@@ -35,6 +35,8 @@ If you want to build a skill from scratch, you can follow the `examples/example-
 Note that you don't specify a `source` field in the recipe.yaml file here but just use `$RECIPE_DIR` when building the package.
 If the user creates special instructions, you can create a `PROMPT.md` file in the recipe directory that includes those instructions. *Don't include it in the final package*.
 
+Whenever you add a skill, please add it to `README.md`.
+
 ## Testing
 
 To build all new skills, you can run
