@@ -1,0 +1,43 @@
+context:
+  skill: pydantic-evals
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  url: https://raw.githubusercontent.com/pydantic/pydantic-ai/refs/heads/main/LICENSE
+  sha256: bc0e89738f36944c8106e1947c3d69631f9c33b8f1bcb60ec4f89d677d2dfcf4
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Guidelines for evaluating non-deterministic functions with pydantic-evals
+  description: |
+    Evaluation framework guidelines for pydantic-evals covering:
+    - Data model: Dataset, Case, Evaluator, EvaluatorContext, EvaluationReport
+    - Writing custom evaluators with typed inputs and outputs
+    - Built-in evaluators: EqualsExpected, Contains, IsInstance, LLMJudge, MaxDuration
+    - YAML dataset serialization and loading
+    - Runtime attributes and metrics for instrumentation
+  homepage: https://ai.pydantic.dev/evals/
+  repository: https://github.com/pavelzw/skill-forge
+  documentation: https://ai.pydantic.dev/evals/
+  license: MIT
+  license_file: LICENSE
