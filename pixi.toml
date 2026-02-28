@@ -1,14 +1,14 @@
 [workspace]
 channels = ["conda-forge"]
-name = "skill-forge"
+name = "my-skill-forge"
 platforms = ["osx-arm64", "linux-64"]
 preview = ["pixi-build"]
 
 [tasks]
 pre-commit-install = "pre-commit install"
 pre-commit-run = "pre-commit run -a"
-build-new = "rattler-build build -c https://prefix.dev/skill-forge -c conda-forge --recipe-dir recipes/ --skip-existing=all"
-build-all = "rattler-build build -c https://prefix.dev/skill-forge -c conda-forge --recipe-dir recipes/"
+build-new = "rattler-build build -c https://prefix.dev/my-skill-forge -c conda-forge --recipe-dir recipes/ --skip-existing=all"
+build-all = "rattler-build build -c https://prefix.dev/my-skill-forge -c conda-forge --recipe-dir recipes/"
 
 [dependencies]
 skills-ref = "*"

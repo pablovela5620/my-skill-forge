@@ -43,7 +43,7 @@ about:
     - Ships with reference guides for recipe templates
       (Python, Rust, Go), cross-compilation setup, and rattler-build migration
   homepage: https://conda-forge.org
-  repository: https://github.com/pavelzw/skill-forge
+  repository: https://github.com/pablovela5620/my-skill-forge
   documentation: https://conda-forge.org/docs
   license: BSD-3-Clause
   license_file: LICENSE

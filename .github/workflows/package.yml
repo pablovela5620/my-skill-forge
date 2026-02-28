@@ -68,7 +68,6 @@ jobs:
       id-token: write
     needs: build
     if: github.event_name == 'push' && needs.build.outputs.has-packages == 'true'
-    environment: upload
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       - uses: prefix-dev/setup-pixi@82d477f15f3a381dbcc8adc1206ce643fe110fb7 # v0.9.3
@@ -102,5 +101,5 @@ jobs:
         run: |
           shopt -s nullglob
           for file in output/**/*.conda; do
-            rattler-build upload prefix -c skill-forge "$file"
+            rattler-build upload prefix -c my-skill-forge "$file"
           done
