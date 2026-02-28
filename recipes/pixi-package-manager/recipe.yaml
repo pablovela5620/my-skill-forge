@@ -1,0 +1,51 @@
+context:
+  skill: pixi-package-manager
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/uw-ssec/rse-plugins
+  rev: ca87886676733f3c9d5d800c71dcddc3288afab0
+  patches:
+    - fix-skill.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R plugins/scientific-python-development/skills/${{ skill }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+requirements:
+  run_constraints:
+    - pixi >=0.40
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/references/*.md
+        - share/agent-skills/${{ skill }}/assets/*
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for pixi package manager
+  description: |
+    Guides AI agents in using the pixi package manager:
+    - Setting up and configuring pixi projects
+    - Managing conda-forge and PyPI dependencies
+    - Creating multi-environment projects
+    - Automating tasks with pixi tasks
+    - Migrating from conda/mamba workflows
+    - Includes reference guides for common issues and patterns
+  homepage: https://pixi.sh
+  repository: https://github.com/uw-ssec/rse-plugins
+  documentation: https://pixi.sh/latest
+  license: BSD-3-Clause
+  license_file: LICENSE
