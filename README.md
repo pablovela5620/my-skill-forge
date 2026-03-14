@@ -14,6 +14,7 @@ For more background on why distributing agent skills through package managers ma
 
 | Skill | Package | Description |
 |-------|---------|-------------|
+| [chrome-cdp](https://github.com/pasky/chrome-cdp-skill) | `agent-skill-chrome-cdp` | Chrome DevTools Protocol skill for live local browser sessions |
 | [conda-forge](https://conda-forge.org) | `agent-skill-conda-forge` | conda-forge packaging operations |
 | [Matplotlib Data Visualization](https://matplotlib.org) | `agent-skill-matplotlib-data-visualization` | Chart design and data storytelling guidelines |
 | [Polars](https://pola.rs) | `agent-skill-polars` | DataFrame library for fast data manipulation |

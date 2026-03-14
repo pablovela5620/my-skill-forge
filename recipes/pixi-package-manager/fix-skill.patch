@@ -9,4 +9,3 @@
 +  Requires pixi >=0.40 and standard Unix tools. Some workflows
 +  use git and GitHub Actions.
  ---
-

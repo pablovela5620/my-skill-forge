@@ -1,0 +1,55 @@
+context:
+  skill: chrome-cdp
+  version: "1.0.2"
+
+package:
+  name: agent-skill-${{ skill }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/pasky/chrome-cdp-skill/archive/refs/tags/v${{ version }}.tar.gz
+  sha256: 2863de65447ee885fd7b496e242f315a517bde5e123d7a188d2eeab14a01c820
+  patches:
+    - fix-skill.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R skills/${{ skill }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+requirements:
+  run_constraints:
+    - nodejs >=22
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/scripts/cdp.mjs
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+  - script:
+      - node --check $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts/cdp.mjs
+    requirements:
+      run:
+        - nodejs >=22
+
+about:
+  summary: Agent skill for interacting with a live local Chrome session over CDP
+  description: |
+    Lightweight Chrome DevTools Protocol skill for live browser inspection:
+    - Lists and targets tabs already open in a local Chrome session
+    - Captures screenshots and accessibility snapshots
+    - Evaluates JavaScript, clicks elements, types text, and navigates pages
+    - Uses a persistent per-tab daemon so Chrome approval prompts only happen once
+    - Requires explicit user approval before interacting with a page
+  homepage: https://github.com/pasky/chrome-cdp-skill
+  repository: https://github.com/pasky/chrome-cdp-skill
+  documentation: https://github.com/pasky/chrome-cdp-skill/tree/v${{ version }}/skills/chrome-cdp
+  license: MIT
