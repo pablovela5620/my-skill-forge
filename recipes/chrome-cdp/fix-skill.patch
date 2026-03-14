@@ -8,5 +8,5 @@
 +compatibility: >-
 +  Requires Node.js 22+ and a local Chrome browser with remote debugging enabled.
  ---
- 
+
  # Chrome CDP
