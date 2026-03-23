@@ -1,0 +1,39 @@
+context:
+  skill: create-node
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+    - cp -R $RECIPE_DIR/references $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/references/*.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for creating single-purpose CV nodes with Rerun visualization
+  description: |
+    Create single-purpose computer vision nodes in a monorepo:
+    - API layer with typed config/result dataclasses and pipeline function
+    - Gradio UI with embedded Rerun viewer and binary streaming
+    - CLI entry point with tyro and RerunTyroConfig
+    - Bundled example data and pixi task integration
+  homepage: https://github.com/pablovela5620/my-skill-forge
+  repository: https://github.com/pablovela5620/my-skill-forge
+  documentation: https://github.com/pablovela5620/my-skill-forge
+  license: BSD-3-Clause
