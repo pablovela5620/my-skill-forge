@@ -2,7 +2,7 @@
 
 Entry points are thin wrappers — 3 to 6 lines each. They wire a UI or config to the API layer.
 
-## Gradio App Launcher (`tools/nodes/<name>_app.py`)
+## Gradio Node Launcher (`tools/nodes/<name>_node.py`)
 
 Node launchers live under `tools/nodes/`, while composite app launchers live under `tools/apps/`.
 
@@ -60,21 +60,21 @@ Notes:
 
 ```bash
 # Spawn Rerun viewer and visualize
-pixi run -e monoprior-dev -- python tools/demos/<name>.py --rr-config.spawn
+pixi run -e <package>-dev -- python tools/demos/<name>.py --rr-config.spawn
 
 # Save to RRD file
-pixi run -e monoprior-dev -- python tools/demos/<name>.py --rr-config.save output.rrd
+pixi run -e <package>-dev -- python tools/demos/<name>.py --rr-config.save output.rrd
 
 # Custom input path
-pixi run -e monoprior-dev -- python tools/demos/<name>.py --image-dir data/examples/<name>/set_1
+pixi run -e <package>-dev -- python tools/demos/<name>.py --image-dir data/examples/<name>/set_1
 
 # Connect to running Rerun viewer
-pixi run -e monoprior-dev -- python tools/demos/<name>.py --rr-config.connect
+pixi run -e <package>-dev -- python tools/demos/<name>.py --rr-config.connect
 ```
 
 ## Real Examples
 
-- **Gradio node app**: `packages/monoprior/tools/nodes/multiview_geometry_app.py`, `packages/monoprior/tools/nodes/metric_depth_app.py`
-- **CLI demo**: `packages/monoprior/tools/demos/metric_depth.py`, `packages/monoprior/tools/demos/multiview_depth.py`
+- **Gradio node**: `packages/pysfm/tools/nodes/video_to_image_node.py`, `packages/monoprior/tools/nodes/multiview_geometry_app.py`, `packages/monoprior/tools/nodes/metric_depth_app.py`
+- **CLI demo**: `packages/pysfm/tools/demos/video_to_image.py`, `packages/monoprior/tools/demos/metric_depth.py`, `packages/monoprior/tools/demos/multiview_depth.py`
 - **Gradio composite app** (NOT a node): `packages/monoprior/tools/apps/multiview_calibration_app.py`
 - **Custom launch**: `packages/sam3-rerun/tools/nodes/sam3_rerun_app.py`

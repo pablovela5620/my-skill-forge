@@ -4,22 +4,39 @@ When adding a new node, wire its tasks into the root `pixi.toml`. All pixi confi
 
 ## Adding Tasks
 
-Tasks go in the package's feature section. Every node needs at minimum an app task and a demo task.
+Tasks go in the package's feature section. Every node needs three tasks: a node launcher, a hot-reload dev task, and a CLI demo.
 
-### Gradio Node App Task
+### Gradio Node Task
 
 ```toml
-[feature.<package>.tasks.<name>-app]
-cmd = "python tools/nodes/<name>_app.py"
+[feature.<package>.tasks.<env>-<name>-node]
+cmd = "python tools/nodes/<name>_node.py"
+depends-on = ["_download-<name>-examples"]
 cwd = "packages/<package-dir>"
 description = "Launch <Name> Gradio node app"
 ```
 
+### Hot-Reload Dev Task
+
+```toml
+[feature.<package>.tasks.<env>-<name>-node-dev]
+cmd = "gradio tools/nodes/<name>_node.py --watch-dirs $PIXI_PROJECT_ROOT/packages/<package-dir>/<module>"
+depends-on = ["_download-<name>-examples"]
+cwd = "packages/<package-dir>"
+description = "<Name> Gradio node with hot reload"
+```
+
+Key points about `--watch-dirs`:
+- Must use `$PIXI_PROJECT_ROOT` for an **absolute path** — relative paths silently fail to clear cached modules during reload
+- The `tools/` directory is auto-watched (parent of the demo file); only the module source dir needs explicit `--watch-dirs`
+- Without `--watch-dirs`, Gradio watches CWD which includes `.pixi/`, causing stdlib modules to get cleared from `sys.modules` during reload
+
 ### CLI Demo Task
 
 ```toml
-[feature.<package>.tasks.<name>-demo]
+[feature.<package>.tasks.<env>-<name>-demo]
 cmd = "python tools/demos/<name>.py --rr-config.spawn"
+depends-on = ["_download-<name>-examples"]
 cwd = "packages/<package-dir>"
 description = "Run <Name> CLI demo with Rerun viewer"
 ```
@@ -29,7 +46,7 @@ Note: `--rr-config.spawn` spawns a Rerun viewer by default. Users can override w
 ### Download Task (for example data > 10MB)
 
 ```toml
-[feature.<package>.tasks.download-<name>-examples]
+[feature.<package>.tasks._download-<name>-examples]
 cmd = "test -d data/examples/<name> || hf download <hf-repo-id> --repo-type dataset --local-dir data/examples/<name>"
 cwd = "packages/<package-dir>"
 description = "Download <Name> example data from HuggingFace"
@@ -40,15 +57,24 @@ Key points:
 - Use `hf download` (NOT `huggingface-cli download`) — conda's huggingface_hub provides `hf`
 - `--repo-type dataset` for data repos
 - `--local-dir` controls where files land
+- Prefix with `_` to mark as private (convention) — other tasks use `depends-on` to call it
 
-### Making demo depend on download
+### Task Dependencies
+
+All three main tasks should `depends-on` the download task:
 
 ```toml
-[feature.<package>.tasks.<name>-demo]
+[feature.<package>.tasks.<env>-<name>-node]
+cmd = "python tools/nodes/<name>_node.py"
+depends-on = ["_download-<name>-examples"]
+
+[feature.<package>.tasks.<env>-<name>-node-dev]
+cmd = "gradio tools/nodes/<name>_node.py --watch-dirs $PIXI_PROJECT_ROOT/packages/<package-dir>/<module>"
+depends-on = ["_download-<name>-examples"]
+
+[feature.<package>.tasks.<env>-<name>-demo]
 cmd = "python tools/demos/<name>.py --rr-config.spawn"
-cwd = "packages/<package-dir>"
-depends-on = ["download-<name>-examples"]
-description = "Run <Name> CLI demo with Rerun viewer"
+depends-on = ["_download-<name>-examples"]
 ```
 
 ## Environment Naming Convention
@@ -60,7 +86,7 @@ Each package has two environments in pixi.toml:
 | `<package>` | Production: running demos/apps | Package deps + CUDA + common |
 | `<package>-dev` | Development: lint, test, typecheck | Production + ruff, pytest, beartype, pyrefly |
 
-Tasks like `<name>-app` and `<name>-demo` work in both environments. Dev tasks (`lint`, `typecheck`, `tests`) only work in `*-dev` environments.
+Tasks like `<env>-<name>-node` and `<env>-<name>-demo` work in both environments. Dev tasks (`lint`, `typecheck`, `tests`) only work in `*-dev` environments.
 
 ## Pyrefly Configuration
 
@@ -79,14 +105,17 @@ checks use the monorepo search paths consistently.
 ## Running Tasks
 
 ```bash
-# Gradio app (prod env is fine)
-pixi run -e <package> <name>-app
+# Gradio node (prod env is fine)
+pixi run -e <package> <env>-<name>-node
+
+# Gradio node with hot reload (dev env recommended)
+pixi run -e <package>-dev <env>-<name>-node-dev
 
 # CLI demo (prod env is fine)
-pixi run -e <package> <name>-demo
+pixi run -e <package> <env>-<name>-demo
 
 # Download example data
-pixi run -e <package> download-<name>-examples
+pixi run -e <package> _download-<name>-examples
 ```
 
 ## Feature Composition Pattern
@@ -123,6 +152,7 @@ some-conda-dep = ">=1.0"
 ## Real Examples
 
 Look at existing task definitions in root `pixi.toml`:
+- `feature.pysfm.tasks` for pysfm's node/demo tasks (class-based pattern)
 - `feature.monoprior.tasks` for monoprior's app/demo tasks
 - `feature.sam3-rerun.tasks` for sam3-rerun's tasks
-- `feature.monoprior.tasks.download-*` for download task patterns
+- `feature.pysfm.tasks._download-*` for download task patterns
