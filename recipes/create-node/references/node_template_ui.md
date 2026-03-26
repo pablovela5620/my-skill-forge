@@ -1,6 +1,6 @@
 # Gradio UI Template
 
-This is the annotated template for a node's Gradio UI module (`<module>/gradio_ui/nodes/<name>_ui.py`). Node UIs live under `gradio_ui/nodes/`, while composite app UIs live under `gradio_ui/apps/`. The UI layer translates between Gradio widgets and the API layer, manages model singletons, and streams Rerun data to the viewer.
+This is the annotated template for a node's Gradio UI module (`<module>/gradio_ui/nodes/<name>_ui.py`). Node UIs live under `gradio_ui/nodes/`, while composite app UIs live under `gradio_ui/apps/`. The UI layer translates between Gradio widgets and the API layer, manages the node singleton, and streams Rerun data to the viewer.
 
 ## Structure
 
@@ -11,10 +11,12 @@ Provides an interactive web interface for running <description>.
 The left panel holds inputs, a run button, and a config accordion;
 the right panel streams results into an embedded Rerun viewer.
 
-The model is loaded once at module import and reused across runs.
+The node is loaded once at module import and reused across runs.
 Config changes that affect the model trigger lazy re-initialisation.
 """
 
+import shutil
+import tempfile
 import uuid
 from collections.abc import Generator
 from pathlib import Path
@@ -29,11 +31,11 @@ from numpy import ndarray
 
 from <module>.apis.<name> import (
     <Name>Config,
+    <Name>Node,
     <Name>Result,
-    run_<name>,
     create_<name>_blueprint,
+    log_<name>_result,
 )
-from <module>.models.<model> import <Predictor>
 
 
 # ---------------------------------------------------------------------------
@@ -42,11 +44,14 @@ from <module>.models.<model> import <Predictor>
 EXAMPLE_DATA_DIR: Final[Path] = Path(__file__).resolve().parents[3] / "data" / "examples" / "<name>"
 """Path to bundled example inputs.
 
-Note: .parents[3] navigates from <module>/gradio_ui/nodes/<name>_ui.py up to the package root.
+Note: ``.parents[3]`` navigates from ``<module>/gradio_ui/nodes/<name>_ui.py``
+up to the package root.
 """
 
 # IMPORTANT: register example data with Gradio's static file server
 gr.set_static_paths([str(EXAMPLE_DATA_DIR)])
+
+PARENT_LOG_PATH: Final[Path] = Path("world")
 
 
 # ---------------------------------------------------------------------------
@@ -58,15 +63,16 @@ _CONFIG: <Name>Config = <Name>Config(
 )
 """Module-level config, kept in sync with UI widgets."""
 
-_PREDICTOR: <Predictor> = <Predictor>(
-    device=_CONFIG.device,
-    # ... other init params from config
+_NODE: <Name>Node = <Name>Node(
+    config=_CONFIG,
+    parent_log_path=PARENT_LOG_PATH,
 )
-"""Module-level model singleton. Re-created only when config changes require it."""
+"""Module-level node singleton. Re-created only when model-affecting
+config fields change (see ``_sync_config``)."""
 
 
 # ---------------------------------------------------------------------------
-# _sync_config: widgets → config singleton
+# _sync_config: widgets → config + node singletons
 # ---------------------------------------------------------------------------
 def _sync_config(
     # One parameter per Config field that has a widget
@@ -74,20 +80,20 @@ def _sync_config(
     param_b: str,
     verbose: bool,
 ) -> None:
-    """Sync UI widget values into the module-level config and predictor singleton.
+    """Sync UI widget values into the module-level config and node singleton.
 
-    Only re-creates the predictor when a config change requires loading new
+    Only re-creates the node when a config change requires loading new
     model weights or changing model architecture. Runtime-only fields
     (thresholds, verbosity) are patched in-place.
 
     Args:
         param_a: Description of param_a.
         param_b: Description of param_b.
-        verbose: Whether to log per-frame detail.
+        verbose: Whether to log intermediate detail.
     """
-    global _CONFIG, _PREDICTOR
+    global _CONFIG, _NODE
 
-    # Determine if we need to re-init the predictor
+    # Determine if we need to re-init the node (model-affecting field changed)
     needs_reinit: bool = param_b != _CONFIG.param_b
 
     _CONFIG = <Name>Config(
@@ -98,10 +104,12 @@ def _sync_config(
     )
 
     if needs_reinit:
-        _PREDICTOR = <Predictor>(
-            device=_CONFIG.device,
-            # ... other init params
+        _NODE = <Name>Node(
+            config=_CONFIG,
+            parent_log_path=PARENT_LOG_PATH,
         )
+    else:
+        _NODE.config = _CONFIG  # patch runtime-only fields in-place
 
 
 # ---------------------------------------------------------------------------
@@ -112,7 +120,7 @@ def _parse_and_load_images(
 ) -> list[UInt8[ndarray, "H W 3"]]:
     """Parse Gradio file uploads and load them as RGB arrays.
 
-    This is a separate ``.then()`` step so the pipeline function never
+    This is a separate ``.then()`` step so the node never
     touches file paths — it receives pre-loaded arrays from ``gr.State``.
 
     Args:
@@ -139,16 +147,23 @@ def _parse_and_load_images(
 
 
 # ---------------------------------------------------------------------------
-# Streaming callback: run pipeline → Rerun binary stream
+# Streaming callback: run node → Rerun binary stream
 # ---------------------------------------------------------------------------
+@rr.recording_stream_generator_ctx
 def <name>_fn(
     recording_id: uuid.UUID,
     rgb_list: list[UInt8[ndarray, "H W 3"]],
 ) -> Generator[tuple[bytes | None, str], None, None]:
     """Gradio streaming callback that runs <name> prediction.
 
-    Creates a scoped Rerun recording, runs the pipeline inside it,
-    and yields binary stream bytes to the Rerun viewer component.
+    Creates a scoped Rerun recording, sends the blueprint, runs the
+    node (which handles intermediate logging when verbose), and calls
+    ``log_<name>_result()`` for final outputs. Yields binary stream
+    bytes so the Rerun viewer updates incrementally.
+
+    The ``@rr.recording_stream_generator_ctx`` decorator suspends and
+    restores the Rerun ContextVar around each ``yield``, making it safe
+    to yield inside ``with recording:``.
 
     Args:
         recording_id: Session-scoped recording identifier (fresh UUID per run).
@@ -165,22 +180,20 @@ def <name>_fn(
     with recording:
         # 1. Send blueprint
         blueprint: rrb.Blueprint = rrb.Blueprint(
-            create_<name>_blueprint(parent_log_path=Path("world"), num_images=len(rgb_list)),
+            create_<name>_blueprint(parent_log_path=PARENT_LOG_PATH, num_images=len(rgb_list)),
             collapse_panels=True,
         )
         rr.send_blueprint(blueprint=blueprint)
         rr.log("world", rr.ViewCoordinates.RFU, static=True)
 
-        # 2. Run pipeline (pure computation)
-        result: <Name>Result = run_<name>(
-            rgb_list=rgb_list,
-            predictor=_PREDICTOR,
-            config=_CONFIG,
-        )
+        # 2. Early yield — viewer shows blueprint while node works
+        yield stream.read(), "Running <name>…"
 
-        # 3. Log results to Rerun
-        # ... rr.log() calls for each output
-        # All rr.log() calls go to the scoped recording → binary stream
+        # 3. Run node (intermediate logging handled by node when verbose)
+        result: <Name>Result = _NODE(rgb_list=rgb_list)
+
+        # 4. Log final results (shared with CLI)
+        log_<name>_result(result, parent_log_path=PARENT_LOG_PATH)
 
     yield stream.read(), "<Name> complete"
 
@@ -255,7 +268,7 @@ def main() -> gr.Blocks:
                                 value=_CONFIG.param_b,
                             )
                             verbose_checkbox = gr.Checkbox(
-                                label="Verbose (per-frame detail logging)",
+                                label="Verbose (intermediate detail logging)",
                                 value=_CONFIG.verbose,
                             )
 
@@ -301,7 +314,7 @@ def main() -> gr.Blocks:
             inputs=None,
             outputs=[recording_id],
             api_visibility="private",
-        ).then(  # Sync the predictor singleton with current UI config widgets
+        ).then(  # Sync the node singleton with current UI config widgets
             _sync_config,
             inputs=[
                 param_a_slider,
@@ -312,7 +325,7 @@ def main() -> gr.Blocks:
             _parse_and_load_images,
             inputs=[input_imgs],
             outputs=[rgb_list_state],
-        ).then(  # Run pipeline and stream results to the Rerun viewer
+        ).then(  # Run node and stream results to the Rerun viewer
             <name>_fn,
             inputs=[recording_id, rgb_list_state],
             outputs=[rr_viewer, status_text],
@@ -323,42 +336,74 @@ def main() -> gr.Blocks:
 
 ## Key Patterns
 
-### Module-Level Singletons
+### Module-Level `_CONFIG` + `_NODE` Singletons
 
-Models are expensive to load (VGGT ~7s, SAM3 ~3s). Load once at module import:
+Models are expensive to load (VGGT ~7s, SAM3 ~3s). The node is loaded once at module import:
 
 ```python
-_PREDICTOR: VGGTPredictor = VGGTPredictor(device="cuda", preprocessing_mode="pad")
+_CONFIG: <Name>Config = <Name>Config(device="cuda", verbose=True)
+_NODE: <Name>Node = <Name>Node(config=_CONFIG, parent_log_path=PARENT_LOG_PATH)
 ```
 
-Re-create ONLY when a config change requires new model weights. `_sync_config()` checks what changed and decides:
+`_sync_config()` decides whether to re-create the node or just patch config:
 
 ```python
 needs_reinit: bool = new_mode != _CONFIG.preprocessing_mode
 if needs_reinit:
-    _PREDICTOR = VGGTPredictor(...)  # Reload
+    _NODE = <Name>Node(config=_CONFIG, parent_log_path=PARENT_LOG_PATH)  # Full reload
 else:
-    _PREDICTOR.some_param = new_value  # Patch in-place
+    _NODE.config = _CONFIG  # Patch runtime-only fields
 ```
+
+For lightweight nodes (no model), `_NODE` creation is cheap, but the pattern remains the same for consistency.
+
+### The `@rr.recording_stream_generator_ctx` Decorator
+
+**Required** on all Gradio streaming callbacks that use Rerun. Without it, yielding inside `with recording:` crashes because Gradio resumes generators in different async contexts, invalidating the Rerun ContextVar token.
+
+The decorator suspends the ContextVar before each `yield` and restores it when the generator resumes. This enables true incremental streaming — the viewer updates progressively as computation proceeds.
+
+```python
+@rr.recording_stream_generator_ctx  # <-- required
+def <name>_fn(recording_id, ...) -> Generator[...]:
+    recording = rr.RecordingStream(...)
+    stream = recording.binary_stream()
+    with recording:
+        yield stream.read(), "step 1..."   # safe
+        yield stream.read(), "step 2..."   # safe
+```
+
+Alternative: `@rr.thread_local_stream("app")` creates its own RecordingStream with a random ID. Use `recording_stream_generator_ctx` when you need to control the `recording_id` (Gradio sessions).
 
 ### The Binary Stream Pattern
 
-This is how Rerun data flows from the pipeline to the Gradio viewer:
-
 1. Create a `rr.RecordingStream` scoped to this session's UUID
 2. Get a `binary_stream()` from it
-3. Run the pipeline inside `with recording:` — all `rr.log()` calls go to this stream
+3. Run the node inside `with recording:` — all `rr.log()` calls go to this stream
 4. `yield stream.read()` sends the accumulated bytes to the `Rerun(streaming=True)` component
 
-The pipeline function (`run_<name>()`) doesn't know about streaming. It just returns results. The Rerun logging happens in the streaming callback.
+### Temp Dir Cleanup
+
+When nodes write to the filesystem (e.g. frame extraction), use `try/finally`:
+
+```python
+tmp_dir: Path = Path(tempfile.mkdtemp(prefix="<name>_"))
+try:
+    with recording:
+        result = _NODE(output_dir=tmp_dir, ...)
+        # ...
+    yield stream.read(), "Done"
+finally:
+    shutil.rmtree(tmp_dir, ignore_errors=True)
+```
 
 ### EXAMPLE_DATA_DIR Convention
 
 ```python
-EXAMPLE_DATA_DIR: Final[Path] = Path(__file__).resolve().parents[2] / "data" / "examples" / "<name>"
+EXAMPLE_DATA_DIR: Final[Path] = Path(__file__).resolve().parents[3] / "data" / "examples" / "<name>"
 ```
 
-The `.parents[3]` navigates from `<module>/gradio_ui/nodes/<name>_ui.py` up to the package root. Adjust the index based on your module depth (the extra level is for the `nodes/` subdirectory).
+The `.parents[3]` navigates from `<module>/gradio_ui/nodes/<name>_ui.py` up to the package root. Adjust the index based on your module depth.
 
 ### Single-Image vs Multi-Image Inputs
 
@@ -374,6 +419,6 @@ The `.parents[3]` navigates from `<module>/gradio_ui/nodes/<name>_ui.py` up to t
 
 ## Real Examples
 
-- **Multi-image**: `monopriors/gradio_ui/nodes/multiview_geometry_ui.py`
-- **Single-image with Rerun**: `sam3_rerun/gradio_ui/nodes/sam3_rerun_ui.py`
-- **Single-image with config accordion**: `monopriors/gradio_ui/nodes/metric_depth_ui.py`
+- **Class-based (primary)**: `pysfm/gradio_ui/nodes/video_to_image_ui.py` — `@rr.recording_stream_generator_ctx`, `_CONFIG` + node creation in callback, `try/finally` cleanup
+- **Multi-image (older)**: `monopriors/gradio_ui/nodes/multiview_geometry_ui.py` — `_CONFIG` + `_PREDICTOR` pattern
+- **Single-image with config accordion (older)**: `monopriors/gradio_ui/nodes/metric_depth_ui.py`

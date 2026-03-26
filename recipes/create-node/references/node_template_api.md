@@ -1,6 +1,6 @@
 # API Layer Template
 
-This is the annotated template for a node's API module (`<module>/apis/<name>.py`). The API layer contains pure computation, typed configs/results, and the CLI entry point with Rerun logging.
+This is the annotated template for a node's API module (`<module>/apis/<name>.py`). The API layer contains the node class (computation + verbose Rerun logging), result logging helper, typed configs/results, and the CLI entry point.
 
 ## Structure
 
@@ -17,6 +17,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Literal
 
+import cv2
+import rerun as rr
+import rerun.blueprint as rrb
 from jaxtyping import Float32, UInt8
 from numpy import ndarray
 from simplecv.rerun_log_utils import RerunTyroConfig
@@ -34,7 +37,7 @@ class <Name>Config:
     device: Literal["cuda", "cpu"] = "cuda"
     """Execution backend."""
     verbose: bool = False
-    """Emit per-camera/per-frame detail logging when True."""
+    """Emit intermediate Rerun logging during computation when True."""
 
 
 # ---------------------------------------------------------------------------
@@ -52,32 +55,83 @@ class <Name>Result:
 
 
 # ---------------------------------------------------------------------------
-# Core pipeline function (NO Rerun, NO file I/O)
+# Node class (computation + verbose intermediate logging)
 # ---------------------------------------------------------------------------
-def run_<name>(
-    *,
-    rgb: UInt8[ndarray, "H W 3"],
-    predictor: <Predictor>,
-    config: <Name>Config,
-) -> <Name>Result:
-    """Run <name> prediction.
+class <Name>Node:
+    """<Name> node: computation + verbose-gated intermediate Rerun logging.
 
-    This function is pure computation. It does NOT call ``rr.log()`` and does
-    NOT read files. The caller (CLI or Gradio) handles visualization and I/O.
+    The node encapsulates both config and model. In Gradio, it lives as a
+    module-level ``_NODE`` singleton (re-created only when model-affecting
+    config fields change). In CLI, it is created in ``main()`` and used once.
+
+    The node relies on the **caller** setting the Rerun recording context
+    (``with recording:`` in Gradio, global init in CLI). All ``rr.log()``
+    calls inside ``__call__`` are gated behind ``config.verbose``.
 
     Args:
-        rgb: Input RGB image.
-        predictor: Pre-initialised predictor (model already loaded).
-        config: Prediction configuration.
-
-    Returns:
-        <Name>Result with prediction outputs.
+        config: Node configuration.
+        parent_log_path: Root Rerun log path (e.g. ``Path("world")``).
     """
-    # Call the model
-    raw_output = predictor(rgb)
-    # Post-process
-    ...
-    return <Name>Result(depth_map=...)
+
+    def __init__(self, config: <Name>Config, parent_log_path: Path) -> None:
+        self.config = config
+        self.parent_log_path = parent_log_path
+        # Load model/predictor — done once, reused across calls.
+        # For lightweight nodes (no model), this can be a no-op.
+        self.predictor = create_<name>_predictor(config)
+
+    def __call__(
+        self,
+        *,
+        rgb: UInt8[ndarray, "H W 3"],
+    ) -> <Name>Result:
+        """Run <name> prediction.
+
+        Args:
+            rgb: Input RGB image.
+
+        Returns:
+            <Name>Result with prediction outputs.
+        """
+        # Call the model
+        raw_output = self.predictor(rgb)
+        depth_map: Float32[ndarray, "H W"] = raw_output.depth
+
+        # Intermediate logging (gated behind verbose)
+        if self.config.verbose:
+            rr.log(
+                f"{self.parent_log_path}/camera/pinhole/depth",
+                rr.DepthImage(depth_map, meter=1),
+            )
+
+        return <Name>Result(depth_map=depth_map)
+
+
+# ---------------------------------------------------------------------------
+# Result logging helper (shared between CLI and Gradio)
+# ---------------------------------------------------------------------------
+def log_<name>_result(
+    result: <Name>Result,
+    parent_log_path: Path,
+) -> None:
+    """Log <name> prediction results to the active Rerun recording.
+
+    Called by both CLI ``main()`` and the Gradio streaming callback.
+    Relies on the caller having set the recording context.
+
+    This pairs with ``create_<name>_blueprint()`` — one builds the layout,
+    the other populates it with data.
+
+    Args:
+        result: Prediction output from ``<Name>Node``.
+        parent_log_path: Root log path (e.g. ``Path("world")``).
+    """
+    rr.log(
+        f"{parent_log_path}/camera/pinhole/depth",
+        rr.DepthImage(result.depth_map, meter=1),
+        static=True,
+    )
+    # ... log other result fields (images, point clouds, etc.) ...
 
 
 # ---------------------------------------------------------------------------
@@ -86,7 +140,7 @@ def run_<name>(
 def create_<name>_blueprint(
     parent_log_path: Path,
     # Add parameters that affect layout (e.g. num_images for multi-view)
-) -> "rrb.ContainerLike":
+) -> rrb.ContainerLike:
     """Create a Rerun blueprint for <name> visualization.
 
     Args:
@@ -95,8 +149,6 @@ def create_<name>_blueprint(
     Returns:
         Rerun blueprint layout.
     """
-    import rerun.blueprint as rrb
-
     return rrb.Horizontal(
         rrb.Spatial3DView(
             origin=f"{parent_log_path}",
@@ -121,26 +173,19 @@ class <Name>CLIConfig:
     """Rerun logging configuration (--save, --connect, --spawn)."""
     image_path: Path = Path("data/examples/<name>/example1.jpg")
     """Path to input image (or image_dir for multi-image nodes)."""
-    <name>_config: <Name>Config = field(default_factory=lambda: <Name>Config(verbose=True))
+    config: <Name>Config = field(default_factory=lambda: <Name>Config(verbose=True))
     """<Name> prediction configuration."""
 
 
 # ---------------------------------------------------------------------------
-# CLI entry point (Rerun logging happens HERE, not in run_<name>)
+# CLI entry point
 # ---------------------------------------------------------------------------
 def main(config: <Name>CLIConfig) -> None:
     """CLI entry point for <name> prediction with Rerun visualization.
 
-    Loads input data, initialises the predictor, runs the pipeline,
-    sets up the Rerun blueprint, and logs all results.
+    Creates the node, runs the pipeline, and logs results. The node handles
+    intermediate logging; ``log_<name>_result`` handles final output logging.
     """
-    # Lazy imports for heavy deps — keeps import time fast
-    import cv2
-    import numpy as np
-    import rerun as rr
-    import rerun.blueprint as rrb
-    from simplecv.rerun_log_utils import log_pinhole
-
     parent_log_path: Path = Path("world")
 
     # 1. Load input data
@@ -149,17 +194,7 @@ def main(config: <Name>CLIConfig) -> None:
         raise FileNotFoundError(f"Failed to read image {config.image_path}")
     rgb: UInt8[ndarray, "H W 3"] = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
 
-    # 2. Init predictor
-    predictor = create_<name>_predictor(config.<name>_config)
-
-    # 3. Run pipeline (pure computation, no Rerun)
-    result: <Name>Result = run_<name>(
-        rgb=rgb,
-        predictor=predictor,
-        config=config.<name>_config,
-    )
-
-    # 4. Setup Rerun blueprint
+    # 2. Setup Rerun blueprint
     blueprint: rrb.Blueprint = rrb.Blueprint(
         create_<name>_blueprint(parent_log_path=parent_log_path),
         collapse_panels=True,
@@ -167,17 +202,19 @@ def main(config: <Name>CLIConfig) -> None:
     rr.send_blueprint(blueprint)
     rr.log(f"{parent_log_path}", rr.ViewCoordinates.RDF, static=True)
 
-    # 5. Log results to Rerun
+    # 3. Log input (one-shot asset — caller's responsibility)
     rr.log(
         f"{parent_log_path}/camera/pinhole/image",
         rr.Image(rgb, color_model=rr.ColorModel.RGB).compress(),
         static=True,
     )
-    rr.log(
-        f"{parent_log_path}/camera/pinhole/depth",
-        rr.DepthImage(result.depth_map, meter=1),
-        static=True,
-    )
+
+    # 4. Create node and run (node handles intermediate logging)
+    node: <Name>Node = <Name>Node(config=config.config, parent_log_path=parent_log_path)
+    result: <Name>Result = node(rgb=rgb)
+
+    # 5. Log final results (shared with Gradio)
+    log_<name>_result(result, parent_log_path=parent_log_path)
 ```
 
 ## Key Patterns
@@ -198,13 +235,21 @@ def main(config: <Name>CLIConfig) -> None:
 - Use `Literal` for string enums: `Literal["crop", "pad"]`
 - Default values match the most common use case
 - `device` field uses `Literal["cuda", "cpu"]` with default `"cuda"`
+- `verbose` field controls intermediate `rr.log()` calls in the node
 
 ### Separation of Concerns
 
-- `run_<name>()` is pure: arrays in, result out. No Rerun, no file I/O.
-- `main()` handles: file loading, model init, Rerun setup, logging. These are CLI-specific concerns.
-- The Gradio UI has its own streaming callback that handles the same Rerun setup differently (binary stream).
-- Blueprint builders are separate functions, importable by both CLI and Gradio.
+The API layer has **3 reusable pieces** for Rerun integration:
+
+1. **`<Name>Node.__call__()`** — intermediate logging during computation (gated by `config.verbose`)
+2. **`log_<name>_result()`** — final output logging (called once after computation)
+3. **`create_<name>_blueprint()`** — Rerun viewer layout
+
+The **caller** (CLI `main()` or Gradio callback) is responsible for:
+- Setting the recording context (`with recording:` or global init)
+- Logging one-shot input assets (video files, input images)
+- Sending the blueprint
+- Calling `log_<name>_result()` after the node returns
 
 ### Multi-Image Nodes
 
@@ -223,5 +268,6 @@ For nodes that process one image at a time (like metric depth, segmentation):
 
 ## Real Examples
 
-- **Multi-image**: `monopriors/apis/multiview_geometry.py` — `MultiviewGeometryConfig`, `MultiviewGeometryResult`, `run_multiview_geometry()`
-- **Single-image**: `monopriors/apis/metric_depth.py` — `MetricDepthNodeConfig`, `run_metric_depth()`, `create_metric_predictor()`
+- **Class-based (primary)**: `pysfm/apis/video_to_image.py` — `VideoToImageNode`, `VideoToImageConfig`, `VideoToImageResult`, `create_video_to_image_blueprint()`
+- **Multi-image (older, function-based)**: `monopriors/apis/multiview_geometry.py` — `MultiviewGeometryConfig`, `MultiviewGeometryResult`, `run_multiview_geometry()`
+- **Single-image (older, function-based)**: `monopriors/apis/metric_depth.py` — `MetricDepthNodeConfig`, `run_metric_depth()`, `create_metric_predictor()`
