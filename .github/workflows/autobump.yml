@@ -19,6 +19,8 @@ jobs:
           # git-main strategy (track main branch)
           - skill: grill-me
             strategy: git-main
+          - skill: playwright-cli
+            strategy: git-main
           - skill: polars
             strategy: git-main
     name: Bump ${{ matrix.skill }}

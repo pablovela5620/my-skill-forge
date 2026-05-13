@@ -1,0 +1,42 @@
+context:
+  skill: playwright-cli
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/microsoft/playwright-cli
+  rev: 3a1bafc8b4e973c72d0364eb5b427d1ce0aa8317
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R skills/${{ skill }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/references/*.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for browser automation with Playwright CLI
+  description: |
+    Browser automation skill for working with Playwright CLI:
+    - Navigate pages and interact with elements from snapshots
+    - Inspect tabs, storage, network requests, console output, and traces
+    - Generate Playwright tests and locators from browser workflows
+  homepage: https://github.com/microsoft/playwright-cli/tree/main/skills/playwright-cli
+  repository: https://github.com/microsoft/playwright-cli
+  documentation: https://github.com/microsoft/playwright-cli/tree/main/skills/playwright-cli
+  license: Apache-2.0
+  license_file: LICENSE
