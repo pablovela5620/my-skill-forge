@@ -17,10 +17,10 @@ For more background on why distributing agent skills through package managers ma
 | [chrome-cdp](https://github.com/pasky/chrome-cdp-skill) | `agent-skill-chrome-cdp` | Chrome DevTools Protocol skill for live local browser sessions |
 | [conda-forge](https://conda-forge.org) | `agent-skill-conda-forge` | conda-forge packaging operations |
 | [create-node](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-create-node` | Create single-purpose CV nodes with API, Gradio UI, Rerun viewer, and CLI |
+| [gh-cli](https://github.com/github/awesome-copilot/tree/main/skills/gh-cli) | `agent-skill-gh-cli` | GitHub CLI workflows and command reference |
 | [grill-me](https://skills.sh/mattpocock/skills/grill-me) | `agent-skill-grill-me` | Stress-test plans and designs with a focused planning interview |
 | [playwright-cli](https://github.com/microsoft/playwright-cli/tree/main/skills/playwright-cli) | `agent-skill-playwright-cli` | Browser automation and Playwright test workflows |
 | [rattler-build](https://rattler.build) | `agent-skill-rattler-build` | Build conda packages with rattler-build |
-| [Typst](https://typst.app) | `agent-skill-typst` | Modern markup-based typesetting system |
 
 ## Usage
 
@@ -45,8 +45,8 @@ channels = ["conda-forge", "https://prefix.dev/my-skill-forge"]
 platforms = ["linux-64", "osx-arm64", "win-64"]
 
 [dependencies]
-typst = ">=0.14,<0.15"
+rattler-build = "*"
 
 [feature.dev.dependencies]
-agent-skill-typst = "*"
+agent-skill-rattler-build = "*"
 ```

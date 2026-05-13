@@ -1,0 +1,47 @@
+context:
+  skill: gh-cli
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/github/awesome-copilot
+  rev: 4e136f38768fbbd9ea38946348022f1ce5c5a7a3
+  patches:
+    - fix-install.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp skills/${{ skill }}/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+
+requirements:
+  run_constraints:
+    - gh >=2.85.0
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for GitHub CLI workflows
+  description: |
+    GitHub CLI reference skill covering common GitHub workflows:
+    - Repositories, issues, pull requests, releases, gists, and organizations
+    - GitHub Actions runs, workflows, caches, secrets, and variables
+    - Authentication, configuration, extensions, projects, and API access
+  homepage: https://github.com/github/awesome-copilot/tree/main/skills/gh-cli
+  repository: https://github.com/github/awesome-copilot
+  documentation: https://github.com/github/awesome-copilot/tree/main/skills/gh-cli
+  license: MIT
+  license_file: LICENSE
