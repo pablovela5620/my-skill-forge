@@ -1,8 +1,6 @@
 --- a/skills/gh-cli/SKILL.md
 +++ b/skills/gh-cli/SKILL.md
-@@ -14,6 +14,11 @@ Comprehensive reference for GitHub CLI (gh) - work seamlessly with GitHub from t
- 
- ```bash
+@@ -16,2 +16,7 @@ Comprehensive reference for GitHub CLI (gh) - work seamlessly with GitHub from t
 +# Preferred: install globally with pixi
 +pixi global install gh
 +
@@ -10,4 +8,3 @@
 +
  # macOS
  brew install gh
- 
