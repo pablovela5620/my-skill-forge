@@ -17,6 +17,8 @@ jobs:
           - skill: chrome-cdp
             strategy: github-latest-release
           # git-main strategy (track main branch)
+          - skill: grill-me
+            strategy: git-main
           - skill: polars
             strategy: git-main
     name: Bump ${{ matrix.skill }}

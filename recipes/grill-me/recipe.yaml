@@ -1,0 +1,41 @@
+context:
+  skill: grill-me
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/mattpocock/skills
+  rev: e74f0061bb67222181640effa98c675bdb2fdaa7
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R skills/productivity/${{ skill }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for stress-testing plans with relentless questions
+  description: |
+    Productivity skill that drives a focused planning interview:
+    - Stress-tests plans and designs before execution
+    - Walks decision branches one question at a time
+    - Recommends answers while converging on shared understanding
+  homepage: https://skills.sh/mattpocock/skills/grill-me
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/productivity/grill-me
+  license: MIT
+  license_file: LICENSE
