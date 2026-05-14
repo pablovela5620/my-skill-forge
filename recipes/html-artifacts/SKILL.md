@@ -8,7 +8,7 @@ license: BSD-3-Clause
 
 Build one browser-openable `.html` file when HTML will communicate the work better than markdown. The goal is not a tiny website or a decorative report. The goal is a readable, useful artifact the user will actually open: clear structure, strong hierarchy, enough interactivity to reduce cognitive load, and enough visual craft to make the work inviting.
 
-This skill is inspired by Impeccable's frontend design discipline and by the "unreasonable effectiveness of HTML" pattern: use the browser as a rich document medium for plans, reviews, explainers, reports, diagrams, decks, and small editing tools.
+This skill is inspired by Impeccable's frontend design discipline and by the "unreasonable effectiveness of HTML" pattern: use the browser as a rich document medium for plans, reviews, explainers, reports, diagrams, decks, and small editing tools. Borrow Impeccable's taste, structure, and anti-slop standards, not its command system: keep the artifact agent-agnostic, inline, and directly openable.
 
 ## When to Use HTML
 
@@ -22,7 +22,7 @@ Prefer a single HTML artifact when the content has any of these shapes:
 - A small interactive tool or editor where the user should manipulate inputs and export the result.
 - A deck-like story that benefits from keyboard navigation.
 
-Do not use HTML just to wrap a normal answer in decoration. If the artifact would still read like a wall of prose, restructure it first.
+Do not use HTML just to wrap a normal answer in decoration. If the artifact would still read like a wall of prose, restructure it first. Transform the material into a browser-native reading object: summary bands, comparison tables, timelines, diagrams, filters, tabs, collapsibles, annotations, and copy/export affordances.
 
 ## Output Contract
 
@@ -52,8 +52,9 @@ Unless the user asks otherwise:
 
 3. Apply the design quality bar.
    - Read [references/design-quality.md](references/design-quality.md) before substantial visual work.
+   - Write the scene sentence before theme, palette, density, or motion: the user opens this artifact on what device/context, with what urgency, to decide what.
    - Use restrained but intentional styling. Avoid generic AI-looking decoration.
-   - Choose a physical reading context before theme and palette: where the user opens this, under what light, with what urgency.
+   - Prefer a dark, tinted reading surface when the scene allows it. Switch to light when the user asks for it, the source system requires it, or the artifact is primarily for printing, bright-room projection, or daytime public sharing.
 
 4. Build the file.
    - Use CSS custom properties for color, spacing, type, and radii.
@@ -69,7 +70,8 @@ Unless the user asks otherwise:
 
 ## Design Defaults
 
-- Use a light theme unless the artifact's reading context argues otherwise.
+- Prefer a dark theme when the artifact's reading context does not require light. Dark does not mean black: use tinted near-black surfaces, clear contrast, visible borders, and restrained accents.
+- Include print-friendly light styling for print-heavy plans, reports, and review artifacts.
 - Use one accent color plus tinted neutrals unless the content genuinely needs a broader palette.
 - Prefer system fonts for utility and report artifacts. Use a distinctive type pairing only when the artifact is closer to editorial, deck, or brand work.
 - Use motion sparingly: 150-250ms, ease-out, state feedback only. Respect `prefers-reduced-motion`.
@@ -79,13 +81,21 @@ Unless the user asks otherwise:
 
 - No gradient text.
 - No glassmorphism as decoration.
+- No dark mode with glowing neon accents.
 - No nested card stacks.
 - No endless identical card grids.
+- No everything-centered layouts except for a true deck, poster, or presentation moment.
 - No pure black or pure white as the full visual system. Tint neutrals subtly.
 - No gray text on saturated colored backgrounds.
 - No oversized hero section unless the artifact is explicitly a deck, poster, or landing-style narrative.
+- No rounded-square icon tile above every heading.
+- No modal-first interaction for content that should be browsed, compared, or scanned.
+- No all-primary button rows.
+- No decorative fake charts, sparklines, or metrics.
+- No monospace "technical" styling unless code, paths, commands, logs, or structured data are actually being shown.
+- No redundant intro paragraphs that restate the heading.
 - No visible instructional text explaining that the page is an HTML artifact or how the design works.
-- No lorem ipsum, placeholder metrics, decorative fake charts, or controls that do nothing.
+- No lorem ipsum, fake links, placeholder content, or controls that do nothing.
 
 ## File Naming
 
