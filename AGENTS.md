@@ -37,6 +37,11 @@ If the user creates special instructions, you can create a `PROMPT.md` file in t
 
 Whenever you add a skill, please add it to `README.md`.
 
+## Installing published skills
+
+Do not install `my-skill-forge` packages from local build artifacts or `--path output/...`.
+Push, merge, and publish the package first, then install it from the `https://prefix.dev/my-skill-forge` channel through the normal `agent-skill-forge` environment.
+
 ## Testing
 
 To build all new skills, you can run
