@@ -21,6 +21,8 @@ jobs:
             strategy: git-main
           - skill: grill-me
             strategy: git-main
+          - skill: hf-cli
+            strategy: git-main
           - skill: playwright-cli
             strategy: git-main
     name: Bump ${{ matrix.skill }}

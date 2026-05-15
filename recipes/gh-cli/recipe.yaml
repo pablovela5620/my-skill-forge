@@ -1,11 +1,14 @@
 context:
   skill: gh-cli
+  upstream_path: skills/gh-cli/SKILL.md
+
 package:
   name: agent-skill-${{ skill }}
   version: "0.0.2"
+
 source:
   git: https://github.com/github/awesome-copilot
-  rev: 97cc3f24602b6431b82dbce2afec7a1f3611664f
+  rev: 68120732cf9e69de8bec6a2b06a57b7463222440
   patches:
     - fix-install.patch
 build:
