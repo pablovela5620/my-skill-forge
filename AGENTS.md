@@ -1,59 +1,106 @@
 # Project Summary
 
-This repository contains conda packages for coding agent skills.
+This repository packages coding-agent skills as noarch conda packages and publishes them to the
+`https://prefix.dev/my-skill-forge` channel.
 
-## Structure
+Skills are Markdown-based directories for coding agents. A skill must contain `SKILL.md` with YAML
+frontmatter, and may include `references/`, `scripts/`, assets, or other files that the skill reads
+on demand.
 
-"Skills" are text files that AI-based coding agents can read to enhance their understanding of a complex topic or tool, like an internal library or company-specific guidelines and knowledge. They're usually structured as markdown files with brief documentation, instructions, code examples, and usage guidelines. A skill may reference additional markdown files in a `references/` subdirectory that are read on demand.
-Every skill is shipped in a conda package located in `etc/agent-skills/<skill>/SKILL.md` (plus additional files).
+## Package Layout
 
-## Mirroring from skills.sh
+Package each skill as `agent-skill-<skill>` from `recipes/<skill>/recipe.yaml`.
 
-When mirroring a skill from https://skills.sh/, start with the example in `examples/mirror-skills.sh`. You then need to look into the repository and find the actual skill directory.
+Recipe conventions:
 
-### Update Strategies for Mirrors
+- Use `noarch: generic`.
+- Install files under `$PREFIX/share/agent-skills/<skill>/`.
+- Do not use `etc/agent-skills`; `pixi-skills` discovers packaged skills from `share/agent-skills`.
+- Include a strict `package_contents` test for `share/agent-skills/<skill>/SKILL.md` and any required extra files.
+- Include `agentskills validate $CONDA_PREFIX/share/agent-skills/<skill>` in script tests.
+- Prefer `requirements.run_constraints` for tool or library compatibility unless the package truly needs a bundled runtime dependency.
 
-If you build a skill that fetches data from a remote source, please also add it to `.github/workflows/autobump.yml` with appropriate update strategies.
+## Adding A Skill
 
-- **github-latest-release**: Use this strategy if the repository has releases and the latest release is somewhat recent.
-- **git-main**: Use this strategy otherwise.
+For a local or original skill, follow `examples/example-skill`:
 
-## Updating skill contents
+- Do not specify a `source` field.
+- Copy files from `$RECIPE_DIR`.
+- If the user gives special build/update instructions, place them in `PROMPT.md` next to `recipe.yaml`.
+- Do not include `PROMPT.md` in the final package.
 
-When the user asks you to update the content of a skill, follow these steps:
-1. Check out the latest version of the tool or API that the skill is based on to a temporary location.
-2. Investigate which parts of the skill still accurately reflect the current state of the tool or API and which parts need to be updated or added to the skill.
-3. Apply the minimal viable update to the skill's content. This means:
-   a) NEVER change information in the skill that is still accurate, exhaustive, correct, and up-to-date.
-   b) ONLY change information that is outdated, incorrect, or missing.
-   c) Often times, this means edits will be local to a subsection or a few paragraphs, or new subsections will be added.
-4. If there is a `PROMPT.md` next to the `recipe.yaml`, read that file and also include it in how you update the skill.
+For a mirrored upstream skill:
 
-## Building your own skills
+- Inspect the upstream repository and identify the exact skill directory before writing the recipe.
+- Use `source.git` with a pinned commit, or `source.url` with `sha256` for release/archive sources.
+- Copy only the intended skill subtree into `share/agent-skills/<skill>/`.
+- Add `context.upstream_path` for `git-main` mirrors when possible so autobump can avoid commits where the skill path was removed or moved.
+- Use a small patch only when needed to adapt upstream content to this repo.
 
-If you want to build a skill from scratch, you can follow the `examples/example-skill` example.
-Note that you don't specify a `source` field in the recipe.yaml file here but just use `$RECIPE_DIR` when building the package.
-If the user creates special instructions, you can create a `PROMPT.md` file in the recipe directory that includes those instructions. *Don't include it in the final package*.
+Whenever you add a skill, update `README.md`.
 
-Whenever you add a skill, please add it to `README.md`.
+## Autobump And Updates
 
-## Installing published skills
+If a skill fetches content from a remote source, add it to `.github/workflows/autobump.yml`.
 
-Do not install `my-skill-forge` packages from local build artifacts or `--path output/...`.
-Push, merge, and publish the package first, then install it from the `https://prefix.dev/my-skill-forge` channel through the normal `agent-skill-forge` environment.
+Update strategy defaults:
 
-## Testing
+- Use `github-latest-release` when the upstream repository has active, recent releases.
+- Use `git-main` otherwise.
+- Use `yolo` only for fixed URLs where the sha256 should be refreshed directly.
 
-To build all new skills, you can run
+When updating skill content:
 
+1. Check the latest upstream source in a temporary checkout or with GitHub/API inspection.
+2. Compare the current skill against upstream/tool behavior.
+3. Apply the minimal viable update: keep accurate content unchanged, and only edit outdated, incorrect, or missing parts.
+4. Read any `PROMPT.md` beside the recipe and follow it while updating.
+5. Do not blindly bump to an upstream commit that no longer contains the packaged skill path.
+
+The updater can be run as:
+
+```bash
+pixi run .github/scripts/update.sh <skill> <strategy>
 ```
+
+## Build, Test, Publish, Install
+
+Build all new packages:
+
+```bash
 pixi run build-new
 ```
 
-If you want to build a specific skill, you can run
+Build a specific package:
 
-```
+```bash
 pixi run rattler-build build -r recipes/<skill>
 ```
 
-Please always run `pixi run pre-commit-run` to check for linting errors.
+Always run:
+
+```bash
+pixi run pre-commit-run
+```
+
+Do not install `my-skill-forge` packages from local build artifacts or `--path output/...`.
+Local artifact installs bypass the review/publish path and can leave the user's global environment ahead of the channel.
+
+For real user-level installation:
+
+1. Push and merge the change.
+2. Wait for the `Package` workflow on `main` to upload to prefix.dev.
+3. Verify the package is available from `https://prefix.dev/my-skill-forge`.
+4. Install from the channel-backed global environment:
+
+```bash
+pixi global add --environment agent-skill-forge <agent-skill-package-name>
+```
+
+Then link and verify with `pixi-skills`:
+
+```bash
+pixi skills manage --backend codex --scope global
+pixi skills status --backend codex
+test -f ~/.codex/skills/<skill-name>/SKILL.md
+```
