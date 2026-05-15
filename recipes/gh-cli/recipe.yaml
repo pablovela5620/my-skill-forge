@@ -1,27 +1,25 @@
 context:
   skill: gh-cli
+  upstream_path: skills/gh-cli/SKILL.md
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 
 source:
   git: https://github.com/github/awesome-copilot
-  rev: 4e136f38768fbbd9ea38946348022f1ce5c5a7a3
+  rev: 68120732cf9e69de8bec6a2b06a57b7463222440
   patches:
     - fix-install.patch
-
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp skills/${{ skill }}/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
-
 requirements:
   run_constraints:
     - gh >=2.85.0
-
 tests:
   - package_contents:
       files:
@@ -32,7 +30,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for GitHub CLI workflows
   description: |

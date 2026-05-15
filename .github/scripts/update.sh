@@ -58,13 +58,63 @@ get_repo_from_recipe() {
     echo "$repo_url"
 }
 
+git_path_exists_at_rev() {
+    local repo=$1
+    local upstream_path=$2
+    local rev=$3
+
+    gh api "repos/${repo}/contents/${upstream_path}?ref=${rev}" --silent >/dev/null 2>&1
+}
+
+get_latest_git_rev() {
+    local repo=$1
+    local upstream_path
+    upstream_path=$(yq -r '.context.upstream_path // ""' "$recipe_file")
+
+    if [[ -z "$upstream_path" ]]; then
+        gh api "repos/${repo}/commits/main" --jq '.sha'
+        return
+    fi
+
+    local head_rev
+    head_rev=$(gh api "repos/${repo}/commits/main" --jq '.sha')
+    if git_path_exists_at_rev "$repo" "$upstream_path" "$head_rev"; then
+        echo "$head_rev"
+        return
+    fi
+
+    echo "Path $upstream_path is missing at main; finding newest commit that still contains it..." >&2
+
+    local candidate_rev
+    while IFS= read -r candidate_rev; do
+        if [[ -z "$candidate_rev" ]]; then
+            continue
+        fi
+        if git_path_exists_at_rev "$repo" "$upstream_path" "$candidate_rev"; then
+            echo "$candidate_rev"
+            return
+        fi
+
+        local parent_rev
+        while IFS= read -r parent_rev; do
+            if git_path_exists_at_rev "$repo" "$upstream_path" "$parent_rev"; then
+                echo "$parent_rev"
+                return
+            fi
+        done < <(gh api "repos/${repo}/commits/${candidate_rev}" --jq '.parents[].sha')
+    done < <(gh api "repos/${repo}/commits?path=${upstream_path}&per_page=10" --jq '.[].sha')
+
+    echo "Error: Could not find a commit containing $upstream_path in $repo" >&2
+    exit 1
+}
+
 update_git_main() {
     local repo
     repo=$(get_repo_from_recipe)
 
     echo "Fetching latest commit from $repo main branch..."
     local latest_rev
-    latest_rev=$(gh api "repos/${repo}/commits/main" --jq '.sha')
+    latest_rev=$(get_latest_git_rev "$repo")
 
     local current_rev
     current_rev=$(yq -r '.source.rev // ""' "$recipe_file")
