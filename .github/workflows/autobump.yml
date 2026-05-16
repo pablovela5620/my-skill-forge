@@ -23,6 +23,8 @@ jobs:
             strategy: git-main
           - skill: hf-cli
             strategy: git-main
+          - skill: karpathy-guidelines
+            strategy: git-main
           - skill: playwright-cli
             strategy: git-main
           - skill: tdd

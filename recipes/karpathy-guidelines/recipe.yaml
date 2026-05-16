@@ -1,0 +1,41 @@
+context:
+  skill: karpathy-guidelines
+  upstream_path: skills/karpathy-guidelines
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/multica-ai/andrej-karpathy-skills
+  rev: 2c606141936f1eeef17fa3043a72095b4765b9c2
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for avoiding common LLM coding mistakes
+  description: |
+    Behavioral guidelines for coding agents:
+    - Think before coding and surface assumptions
+    - Prefer simple, surgical changes over speculative abstractions
+    - Define verifiable success criteria and loop until checked
+  homepage: https://github.com/multica-ai/andrej-karpathy-skills/tree/main/skills/karpathy-guidelines
+  repository: https://github.com/multica-ai/andrej-karpathy-skills
+  documentation: https://github.com/multica-ai/andrej-karpathy-skills/tree/main/skills/karpathy-guidelines
+  license: MIT

@@ -21,6 +21,7 @@ For more background on why distributing agent skills through package managers ma
 | [grill-me](https://skills.sh/mattpocock/skills/grill-me) | `agent-skill-grill-me` | Stress-test plans and designs with a focused planning interview |
 | [hf-cli](https://github.com/huggingface/skills/tree/main/skills/hf-cli) | `agent-skill-hf-cli` | Hugging Face Hub CLI workflows and command reference |
 | [html-artifacts](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-html-artifacts` | Readable single-file HTML artifacts for plans, reports, reviews, diagrams, decks, and editors |
+| [karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills/tree/main/skills/karpathy-guidelines) | `agent-skill-karpathy-guidelines` | Behavioral guidelines to reduce common LLM coding mistakes |
 | [playwright-cli](https://github.com/microsoft/playwright-cli/tree/main/skills/playwright-cli) | `agent-skill-playwright-cli` | Browser automation and Playwright test workflows |
 | [rattler-build](https://rattler.build) | `agent-skill-rattler-build` | Build conda packages with rattler-build |
 | [tdd](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `agent-skill-tdd` | Test-driven development with red-green-refactor workflows |
