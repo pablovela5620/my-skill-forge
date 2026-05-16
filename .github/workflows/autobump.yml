@@ -25,6 +25,8 @@ jobs:
             strategy: git-main
           - skill: playwright-cli
             strategy: git-main
+          - skill: tdd
+            strategy: git-main
     name: Bump ${{ matrix.skill }}
     runs-on: ubuntu-latest
     permissions:

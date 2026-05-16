@@ -1,0 +1,47 @@
+context:
+  skill: tdd
+  upstream_path: skills/engineering/tdd
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/mattpocock/skills
+  rev: e74f0061bb67222181640effa98c675bdb2fdaa7
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/deep-modules.md
+        - share/agent-skills/${{ skill }}/interface-design.md
+        - share/agent-skills/${{ skill }}/mocking.md
+        - share/agent-skills/${{ skill }}/refactoring.md
+        - share/agent-skills/${{ skill }}/tests.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for test-driven development
+  description: |
+    Engineering skill for practicing test-driven development:
+    - Follows the red-green-refactor loop one behavior at a time
+    - Emphasizes behavior-focused integration tests through public interfaces
+    - Covers mocking, interface design, refactoring, and deep module guidance
+  homepage: https://skills.sh/mattpocock/skills/tdd
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd
+  license: MIT
+  license_file: LICENSE

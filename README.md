@@ -23,6 +23,7 @@ For more background on why distributing agent skills through package managers ma
 | [html-artifacts](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-html-artifacts` | Readable single-file HTML artifacts for plans, reports, reviews, diagrams, decks, and editors |
 | [playwright-cli](https://github.com/microsoft/playwright-cli/tree/main/skills/playwright-cli) | `agent-skill-playwright-cli` | Browser automation and Playwright test workflows |
 | [rattler-build](https://rattler.build) | `agent-skill-rattler-build` | Build conda packages with rattler-build |
+| [tdd](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `agent-skill-tdd` | Test-driven development with red-green-refactor workflows |
 
 ## Usage
 
