@@ -1,0 +1,44 @@
+context:
+  skill: grill-with-docs
+  upstream_path: skills/engineering/grill-with-docs
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/mattpocock/skills
+  rev: b8be62ffacb0118fa3eaa29a0923c87c8c11985c
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/ADR-FORMAT.md
+        - share/agent-skills/${{ skill }}/CONTEXT-FORMAT.md
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for documentation-backed grilling sessions
+  description: |
+    Engineering skill for stress-testing plans against project documentation:
+    - Challenges terminology against the existing domain model and glossary
+    - Updates CONTEXT.md as terms are resolved during the session
+    - Creates ADRs sparingly for hard-to-reverse trade-off decisions
+  homepage: https://skills.sh/mattpocock/skills/grill-with-docs
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/engineering/grill-with-docs
+  license: MIT
+  license_file: LICENSE
