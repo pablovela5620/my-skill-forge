@@ -1,0 +1,42 @@
+context:
+  skill: daggr
+  upstream_path: .agents/skills/daggr
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/gradio-app/daggr
+  rev: 73cca141ccda71e550f03ecce68dfb78f08d3373
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp ${{ upstream_path }}/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for Daggr visual AI pipelines
+  description: |
+    Daggr skill for building visual DAG-based AI pipelines:
+    - Connect Gradio Spaces, Hugging Face models, and Python functions
+    - Compose multi-step AI workflows with ports, item lists, and node tests
+    - Deploy Daggr workflows to Hugging Face Spaces when explicitly requested
+  homepage: https://github.com/gradio-app/daggr/tree/main/.agents/skills/daggr
+  repository: https://github.com/gradio-app/daggr
+  documentation: https://github.com/gradio-app/daggr/blob/main/.agents/skills/daggr/SKILL.md
+  license: MIT
+  license_file: LICENSE

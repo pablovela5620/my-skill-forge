@@ -17,6 +17,7 @@ For more background on why distributing agent skills through package managers ma
 | [chrome-cdp](https://github.com/pasky/chrome-cdp-skill) | `agent-skill-chrome-cdp` | Chrome DevTools Protocol skill for live local browser sessions |
 | [conda-forge](https://conda-forge.org) | `agent-skill-conda-forge` | conda-forge packaging operations |
 | [create-node](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-create-node` | Create single-purpose CV nodes with API, Gradio UI, Rerun viewer, and CLI |
+| [daggr](https://github.com/gradio-app/daggr/tree/main/.agents/skills/daggr) | `agent-skill-daggr` | Build visual DAG-based AI pipelines with Gradio Spaces, Hugging Face models, and Python functions |
 | [gh-cli](https://github.com/github/awesome-copilot/tree/main/skills/gh-cli) | `agent-skill-gh-cli` | GitHub CLI workflows and command reference |
 | [grill-me](https://skills.sh/mattpocock/skills/grill-me) | `agent-skill-grill-me` | Stress-test plans and designs with a focused planning interview |
 | [hf-cli](https://github.com/huggingface/skills/tree/main/skills/hf-cli) | `agent-skill-hf-cli` | Hugging Face Hub CLI workflows and command reference |
