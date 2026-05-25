@@ -31,6 +31,8 @@ jobs:
             strategy: git-main
           - skill: playwright-cli
             strategy: git-main
+          - skill: port-model
+            strategy: git-main
           - skill: tdd
             strategy: git-main
     name: Bump ${{ matrix.skill }}

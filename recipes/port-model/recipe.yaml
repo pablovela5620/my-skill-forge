@@ -1,0 +1,46 @@
+context:
+  skill: port-model
+  upstream_path: .claude/skills/port-model
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/facebook/pyrefly
+  rev: ef0fcfe90900bd56521bbd49416c062393004235
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/porting_principles.md
+        - share/agent-skills/${{ skill }}/shape_tracking_capabilities.md
+        - share/agent-skills/${{ skill }}/style_guide.md
+        - share/agent-skills/${{ skill }}/verify_port.sh
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for porting PyTorch models to pyrefly tensor shape types
+  description: |
+    Pyrefly skill for porting PyTorch models to use tensor shape type annotations:
+    - Audits PyTorch ops against pyrefly shape tracking support
+    - Guides model-by-model tensor dimension annotation with Dim and Tensor shapes
+    - Includes verification guidance and helper documentation for port quality checks
+  homepage: https://github.com/facebook/pyrefly/tree/main/.claude/skills/port-model
+  repository: https://github.com/facebook/pyrefly
+  documentation: https://github.com/facebook/pyrefly/tree/main/.claude/skills/port-model
+  license: MIT
+  license_file: LICENSE
