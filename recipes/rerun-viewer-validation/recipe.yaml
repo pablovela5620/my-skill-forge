@@ -1,0 +1,39 @@
+context:
+  skill: rerun-viewer-validation
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
+    - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+    - cp $RECIPE_DIR/agents/openai.yaml $PREFIX/share/agent-skills/${{ skill }}/agents/openai.yaml
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for validating Rerun 0.33 viewer output
+  description: |
+    Validate Rerun Viewer output with evidence:
+    - Native Rerun 0.33 headless screenshots by default
+    - Saved RRD reloads, blueprints, view-specific screenshots, and timeline checks
+    - Size-limited self-hosted WebViewer reports with hardware WebGL and theme parity
+    - Optional Tailscale Serve links for remote HTML artifacts
+  homepage: https://github.com/pablovela5620/my-skill-forge
+  repository: https://github.com/pablovela5620/my-skill-forge
+  documentation: https://github.com/pablovela5620/my-skill-forge
+  license: BSD-3-Clause

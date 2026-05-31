@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rerun Viewer Validation"
+  short_description: "Validate Rerun 0.33 screenshots and reports."
+  default_prompt: "Use $rerun-viewer-validation to validate a Rerun 0.33 Viewer or .rrd rendering with native headless screenshots by default, size-limited WebViewer timeline checks when appropriate, native/WebViewer theme parity, optional Tailscale Serve links, and concise notes."
