@@ -1,26 +1,21 @@
 context:
   skill: hf-cli
   upstream_path: skills/hf-cli/SKILL.md
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/huggingface/skills
-  rev: d640d38d200d4586658d9925415c3812369734e8
-
+  rev: d7223848c3895fbd447faf2aec73e0a6cdd7fdcd
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp skills/${{ skill }}/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
-
 requirements:
   run_constraints:
     - huggingface_hub >=1.14.0
-
 tests:
   - package_contents:
       files:
@@ -31,7 +26,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for Hugging Face Hub CLI workflows
   description: |
