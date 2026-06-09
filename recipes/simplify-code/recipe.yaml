@@ -1,0 +1,44 @@
+context:
+  skill: simplify-code
+  upstream_path: skills/software-development/simplify-code/SKILL.md
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/NousResearch/hermes-agent
+  rev: 57775e9e161087dbe55e096c038f512233c03381
+  patches:
+    - fix-frontmatter.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp ${{ upstream_path }} $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for simplifying recent code changes
+  description: |
+    Code cleanup skill for reviewing recent changes:
+    - Runs focused reviewers for reuse, quality, and efficiency findings
+    - Aggregates concrete cleanup suggestions from the codebase context
+    - Applies scoped fixes and verifies the touched project checks
+  homepage: https://github.com/NousResearch/hermes-agent/tree/main/skills/software-development/simplify-code
+  repository: https://github.com/NousResearch/hermes-agent
+  documentation: https://hermes-agent.nousresearch.com/docs/user-guide/skills/bundled/software-development/software-development-simplify-code
+  license: MIT
+  license_file: LICENSE

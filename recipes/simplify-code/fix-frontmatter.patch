@@ -1,0 +1,32 @@
+--- a/skills/software-development/simplify-code/SKILL.md
++++ b/skills/software-development/simplify-code/SKILL.md
+@@ -4,11 +4,24 @@
+-version: 1.0.0
+-author: Hermes Agent (inspired by Claude Code /simplify)
+ license: MIT
+-platforms: [linux, macos, windows]
+ metadata:
+   hermes:
+-    tags: [code-review, cleanup, refactor, delegation, subagent, parallel, simplify]
+-    related_skills: [requesting-code-review, test-driven-development, plan]
++    version: 1.0.0
++    author: Hermes Agent (inspired by Claude Code /simplify)
++    platforms:
++      - linux
++      - macos
++      - windows
++    tags:
++      - code-review
++      - cleanup
++      - refactor
++      - delegation
++      - subagent
++      - parallel
++      - simplify
++    related_skills:
++      - requesting-code-review
++      - test-driven-development
++      - plan
+ ---
+ 
+ # Simplify Code — Parallel Review & Cleanup

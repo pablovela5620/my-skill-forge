@@ -33,6 +33,8 @@ jobs:
             strategy: git-main
           - skill: port-model
             strategy: git-main
+          - skill: simplify-code
+            strategy: git-main
           - skill: tdd
             strategy: git-main
     name: Bump ${{ matrix.skill }}
