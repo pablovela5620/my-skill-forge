@@ -1,22 +1,18 @@
 context:
   skill: grill-with-docs
   upstream_path: skills/engineering/grill-with-docs
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/mattpocock/skills
-  rev: b8be62ffacb0118fa3eaa29a0923c87c8c11985c
-
+  rev: 2bf70051928429983de3b5718d277150926f8c89
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
-
 tests:
   - package_contents:
       files:
@@ -29,7 +25,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for documentation-backed grilling sessions
   description: |
