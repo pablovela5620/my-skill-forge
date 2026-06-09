@@ -1,22 +1,18 @@
 context:
   skill: port-model
   upstream_path: .claude/skills/port-model
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/facebook/pyrefly
-  rev: ef0fcfe90900bd56521bbd49416c062393004235
-
+  rev: d6fb0071af94048c9c5960a0ab45df7c61148adf
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
-
 tests:
   - package_contents:
       files:
@@ -31,7 +27,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for porting PyTorch models to pyrefly tensor shape types
   description: |
