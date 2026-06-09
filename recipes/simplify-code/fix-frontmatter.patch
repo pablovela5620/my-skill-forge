@@ -1,6 +1,6 @@
 --- a/skills/software-development/simplify-code/SKILL.md
 +++ b/skills/software-development/simplify-code/SKILL.md
-@@ -4,11 +4,24 @@
+@@ -4,9 +4,22 @@
 -version: 1.0.0
 -author: Hermes Agent (inspired by Claude Code /simplify)
  license: MIT
@@ -28,5 +28,3 @@
 +      - test-driven-development
 +      - plan
  ---
- 
- # Simplify Code — Parallel Review & Cleanup
