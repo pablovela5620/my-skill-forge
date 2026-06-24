@@ -1,21 +1,17 @@
 context:
   skill: playwright-cli
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/microsoft/playwright-cli
-  rev: 3a1bafc8b4e973c72d0364eb5b427d1ce0aa8317
-
+  rev: 9805da3991435ce6c853fa1dd78c33276eaf5de9
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R skills/${{ skill }}/* $PREFIX/share/agent-skills/${{ skill }}
-
 tests:
   - package_contents:
       files:
@@ -27,7 +23,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for browser automation with Playwright CLI
   description: |
