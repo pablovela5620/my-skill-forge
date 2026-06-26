@@ -1,24 +1,20 @@
 context:
   skill: simplify-code
   upstream_path: skills/software-development/simplify-code/SKILL.md
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/NousResearch/hermes-agent
-  rev: 57775e9e161087dbe55e096c038f512233c03381
+  rev: 063fe4f6ef4b9437c73853e0d8965e21b5f0d5ae
   patches:
     - fix-frontmatter.patch
-
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp ${{ upstream_path }} $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
-
 tests:
   - package_contents:
       files:
@@ -29,7 +25,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for simplifying recent code changes
   description: |
