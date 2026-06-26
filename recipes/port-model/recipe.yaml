@@ -3,10 +3,10 @@ context:
   upstream_path: .claude/skills/port-model
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.2"
+  version: "0.0.3"
 source:
   git: https://github.com/facebook/pyrefly
-  rev: d6fb0071af94048c9c5960a0ab45df7c61148adf
+  rev: 479e1e3a5b3065ee709a27f815dc3e235e17ab74
 build:
   number: 0
   noarch: generic
