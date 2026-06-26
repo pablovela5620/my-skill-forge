@@ -3,10 +3,10 @@ context:
   upstream_path: skills/engineering/grill-with-docs
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.2"
+  version: "0.0.3"
 source:
   git: https://github.com/mattpocock/skills
-  rev: 2bf70051928429983de3b5718d277150926f8c89
+  rev: 5d78bd0903420f97c791f834201e550c765699f8
 build:
   number: 0
   noarch: generic
