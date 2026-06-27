@@ -17,8 +17,6 @@ tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
-        - share/agent-skills/${{ skill }}/deep-modules.md
-        - share/agent-skills/${{ skill }}/interface-design.md
         - share/agent-skills/${{ skill }}/mocking.md
         - share/agent-skills/${{ skill }}/refactoring.md
         - share/agent-skills/${{ skill }}/tests.md
