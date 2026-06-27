@@ -23,10 +23,9 @@ jobs:
             strategy: git-main
           - skill: gh-cli
             strategy: git-main
-          - skill: grill-me
-            strategy: git-main
-          - skill: grill-with-docs
-            strategy: git-main
+          # grill-me and grill-with-docs are intentionally frozen at 0.0.2:
+          # upstream turned them into disable-model-invocation alias stubs that
+          # fail `agentskills validate`. Superseded by grilling + domain-modeling.
           - skill: grilling
             strategy: git-main
           - skill: hf-cli

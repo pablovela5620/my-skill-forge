@@ -20,8 +20,8 @@ For more background on why distributing agent skills through package managers ma
 | [daggr](https://github.com/gradio-app/daggr/tree/main/.agents/skills/daggr) | `agent-skill-daggr` | Build visual DAG-based AI pipelines with Gradio Spaces, Hugging Face models, and Python functions |
 | [domain-modeling](https://github.com/mattpocock/skills/tree/main/skills/engineering/domain-modeling) | `agent-skill-domain-modeling` | Build and sharpen a project's domain model, capturing glossary and ADR decisions |
 | [gh-cli](https://github.com/github/awesome-copilot/tree/main/skills/gh-cli) | `agent-skill-gh-cli` | GitHub CLI workflows and command reference |
-| [grill-me](https://skills.sh/mattpocock/skills/grill-me) | `agent-skill-grill-me` | Stress-test plans and designs with a focused planning interview |
-| [grill-with-docs](https://skills.sh/mattpocock/skills/grill-with-docs) | `agent-skill-grill-with-docs` | Stress-test plans against existing domain documentation and capture glossary or ADR decisions |
+| [grill-me](https://skills.sh/mattpocock/skills/grill-me) | `agent-skill-grill-me` | Stress-test plans and designs with a focused planning interview (frozen; superseded upstream by `grilling`) |
+| [grill-with-docs](https://skills.sh/mattpocock/skills/grill-with-docs) | `agent-skill-grill-with-docs` | Stress-test plans against existing domain documentation and capture glossary or ADR decisions (frozen; superseded upstream by `grilling` + `domain-modeling`) |
 | [grilling](https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling) | `agent-skill-grilling` | Stress-test plans and designs with a relentless one-question-at-a-time interview |
 | [hf-cli](https://github.com/huggingface/skills/tree/main/skills/hf-cli) | `agent-skill-hf-cli` | Hugging Face Hub CLI workflows and command reference |
 | [html-artifacts](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-html-artifacts` | Readable single-file HTML artifacts for plans, reports, reviews, diagrams, decks, and editors |
