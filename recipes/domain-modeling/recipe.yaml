@@ -1,0 +1,39 @@
+context:
+  skill: domain-modeling
+  upstream_path: skills/engineering/domain-modeling
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+source:
+  git: https://github.com/mattpocock/skills
+  rev: 5d78bd0903420f97c791f834201e550c765699f8
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/ADR-FORMAT.md
+        - share/agent-skills/${{ skill }}/CONTEXT-FORMAT.md
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+about:
+  summary: Agent skill for building and sharpening a project's domain model
+  description: |
+    Engineering skill for actively maintaining the domain model:
+    - Challenges terminology and pins down the ubiquitous language
+    - Records the glossary in CONTEXT.md as terms crystallise
+    - Captures hard-to-reverse decisions as ADRs with a consistent format
+  homepage: https://github.com/mattpocock/skills/tree/main/skills/engineering/domain-modeling
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/engineering/domain-modeling
+  license: MIT
+  license_file: LICENSE
