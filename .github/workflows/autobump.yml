@@ -19,11 +19,15 @@ jobs:
           # git-main strategy (track main branch)
           - skill: daggr
             strategy: git-main
+          - skill: domain-modeling
+            strategy: git-main
           - skill: gh-cli
             strategy: git-main
           - skill: grill-me
             strategy: git-main
           - skill: grill-with-docs
+            strategy: git-main
+          - skill: grilling
             strategy: git-main
           - skill: hf-cli
             strategy: git-main
