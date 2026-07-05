@@ -21,7 +21,11 @@ converge fails, onboarding stops, or a machine behaves unexpectedly.
 3. Render base+overlay to a temp file, then safety gates before the atomic
    swap: fewer than 10 envs → refuse (corrupted base); more than 5 deletions
    → refuse unless `FLEET_ALLOW_MASS_DELETE=1`.
-4. `pixi global sync` — installs missing, DELETES unlisted.
+4. `pixi global sync` — installs missing, DELETES unlisted. The previous
+   manifest is snapshotted first and restored if pixi rejects the render.
+   NB: pixi treats a per-env solve failure as a WARNING (exit 0) — a broken
+   pin can silently leave an env missing; the CI solve gate exists to catch
+   this at PR time (`pixi run solve-check`, three-platform matrix).
 5. Skill symlinks: forge envs (`agent-skill-*`) plus this repo's `skills/`
    dir, linked into `~/.claude/skills` and `~/.codex/skills`; dangling links
    pruned.
