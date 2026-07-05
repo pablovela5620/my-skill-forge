@@ -1,9 +1,12 @@
 ---
 name: python-conventions
-description: Python coding conventions for all repos — runtime type checking (beartype), array typing (jaxtyping dtype+shape), PEP 526 annotation style, dataclass documentation, return-type selection (dataclass vs NamedTuple vs tuple), docstrings. Use when writing, reviewing, or refactoring Python code.
+description: Python conventions for every repo — typing, dataclasses, return types, docstrings. Use whenever touching Python code.
 ---
 
 # Python Conventions
+
+Every section below is a check, not a suggestion: code isn't done until it
+passes all of them, and a review applies every one.
 
 ## Runtime type checking (beartype)
 
