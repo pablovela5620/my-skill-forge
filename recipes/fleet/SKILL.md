@@ -67,6 +67,26 @@ pushed revision — not before.
 JS CLIs get rattler-build recipes in the ai-demos repo (npm-tarball pattern,
 see `recipes/ruler` there) and arrive via the channel.
 
+## Adding a skill fleet-wide
+
+Skills are `agent-skill-<name>` conda packages from
+`https://prefix.dev/my-skill-forge`. Three steps, each explicit:
+
+1. Recipe in the my-skill-forge repo (vendored SKILL.md, `noarch: generic`,
+   `agentskills validate` in tests — copy an existing recipe). Merging
+   publishes to the channel.
+2. Pin it in the fleet: add `agent-skill-<name> = "==<version>"` under
+   `[envs.agent-skill-forge.dependencies]` in agent-fleet's
+   `manifests/base.toml`, push.
+3. Converge machines — `link_skills` in sync.sh symlinks it into
+   `~/.claude/skills` and `~/.codex/skills` (work profile shares via
+   `~/.claude-work/skills`).
+
+Publishing alone does NOT propagate: the pin is the membership act (weekly
+pin-bump only bumps versions of skills already pinned — it never adds new
+ones). Done when the skill dir appears under `~/.claude/skills/` on every
+converged machine.
+
 ## Holds
 
 - Range pin (`tmux = "3.3.*"`): the range IS the hold — pin-bump ignores it.
