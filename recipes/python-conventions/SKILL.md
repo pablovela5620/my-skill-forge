@@ -13,7 +13,7 @@ passes all of them, and a review applies every one.
 Projects activate beartype conditionally on the pixi environment:
 
 ```python
-if os.environ.get("PIXI_ENVIRONMENT_NAME") == "dev":
+if os.environ.get("PIXI_DEV_MODE") == "1":
     from beartype.claw import beartype_this_package
     beartype_this_package()
 ```
@@ -40,6 +40,46 @@ indices: Int[np.ndarray, "n"] = np.argsort(scores)
 ```
 
 Named/constrained axes are encouraged: `Float32[ndarray, "n_verts=778 3"]`.
+
+Mirror the annotation in the variable NAME with shape/axis/colorspace
+suffixes: `depth_hw`, `frames_rgb`, `bgr_hwc`, `points_xyz`. Redundant with
+the type by design — it makes shape/format bugs visible at every call site.
+
+## Type aliases: TypeAlias, never PEP 695
+
+beartype does not support PEP 695 `type X = ...` statements (ruff's UP040 is
+ignored for exactly this reason). Always:
+
+```python
+from typing import TypeAlias
+ImageBGR: TypeAlias = UInt8[ndarray, "H W 3"]
+DeviceChoice: TypeAlias = Literal["auto", "cuda", "cpu"]
+```
+
+## Imports & structure
+
+- Absolute first-party imports (`from pkg.module import X`); relative imports
+  are legacy, not the target style.
+- pathlib over os.path.
+- CLI entry points use tyro, not argparse.
+- Config serialization is pyserde (`@serde`, `serde.json`) — never introduce
+  pydantic.
+- CLI tools and demos use plain `print()`; don't introduce logging frameworks
+  into packages that don't already have one.
+
+## Torch patterns
+
+- Device selection: a `DeviceChoice` Literal alias + a
+  `resolve_device(device: DeviceChoice = "auto") -> str` helper ("auto" →
+  cuda if available else cpu; explicit "cuda" raises RuntimeError when
+  unavailable). Pass the resolved device explicitly to
+  `.to(device=..., dtype=...)` — never rely on implicit device inference.
+- Axis manipulation via `einops.rearrange`/`repeat`, not manual
+  `.reshape()`/`.permute()` chains.
+- Float-typed defaults are written `0.0`, never `0` — beartype distinguishes
+  int from float strictly.
+- Never blanket `except Exception` around instrumented code without
+  re-raising `BeartypeException` first.
 
 ## Dataclass documentation
 
@@ -91,9 +131,16 @@ verts: Float32[ndarray, "n_frames 778 3"] = results[0]
 joints: Float32[ndarray, "n_frames 21 3"] = results[1]
 ```
 
-When a two-item tuple must travel further, define a type alias or upgrade to
-a NamedTuple:
+When a two-item tuple must travel further, define a `TypeAlias` (never a
+PEP 695 `type` statement — see Type aliases above) or upgrade to a NamedTuple:
 
 ```python
-type ManoResults = tuple[Float32[ndarray, "n 778 3"], Float32[ndarray, "n 21 3"]]
+ManoResults: TypeAlias = tuple[Float32[ndarray, "n 778 3"], Float32[ndarray, "n 21 3"]]
 ```
+
+## New-package tooling baseline
+
+ruff: `line-length = 150`, `select = ["E","F","UP","B","SIM","I"]`,
+`ignore = ["E501","F722","F821","UP037","UP040"]` — F722/F821 suppress
+jaxtyping forward-ref false positives; UP037/UP040 protect jaxtyping quotes
+and the TypeAlias rule. Typechecking is pyrefly (workspace-level config).
