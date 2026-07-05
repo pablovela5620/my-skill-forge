@@ -17,7 +17,7 @@ deletes what's unlisted.
 |---|---|---|
 | What exists / is online? | Tailscale (self-updating) | `tailscale status` |
 | Specs, GPUs, roles? | Rackpeek (curated, can lag) | `ssh pablo-dl-server docker exec rackpeek rpk summary` (also `rpk servers describe <name>`, `rpk systems list`) |
-| Fleet-managed? | agent-fleet repo | overlay at `manifests/machines/<lowercased short hostname>.toml`; `~/agent-fleet` checked out |
+| Fleet-managed? | agent-fleet repo | overlay at `manifests/machines/<lowercased short hostname>.toml` (the LOCAL hostname, which may differ from the Tailscale name — e.g. `mac.toml`); `~/agent-fleet` checked out |
 
 Stable facts: `pablo-dl-server` is the conductor (always-on, hosts rackpeek).
 `spark-9232` is linux-aarch64 — account for it in platform availability.

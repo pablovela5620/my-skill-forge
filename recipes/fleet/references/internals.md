@@ -14,8 +14,10 @@ converge fails, onboarding stops, or a machine behaves unexpectedly.
 2. First run with no overlay: `capture-overlay.sh` snapshots every live env
    not in base into `manifests/machines/<host>.toml` and stops for review.
    Envs whose exposed binaries collide with base are skipped (reported).
-   Name-colliding envs carrying DIFFERENT packages than base stop everything
-   with a conflict report (exit 2) — resolve before converging.
+   Name-colliding envs stop everything (exit 2) only when the live env has
+   EXTRA packages base lacks (deletion risk); base merely adding packages is
+   normal converge-forward. Resolve extras by promoting them to base or
+   dropping them.
 3. Render base+overlay to a temp file, then safety gates before the atomic
    swap: fewer than 10 envs → refuse (corrupted base); more than 5 deletions
    → refuse unless `FLEET_ALLOW_MASS_DELETE=1`.
@@ -38,3 +40,8 @@ converge fails, onboarding stops, or a machine behaves unexpectedly.
 - **`gh pr create` fails / git pushes rejected on a machine** → check WHICH
   account gh holds (`gh auth status`) — work vs personal credentials differ
   per machine.
+
+- **A pinned tool runs the wrong version** → PATH shadowing: a brew/apt/native
+  copy resolves before `~/.pixi/bin`. fleet.sh prepends pixi in sourced
+  shells; check `command -v <tool>` in the real interactive shell, and clean
+  dormant duplicates (`~/.local/bin`, brew) when convenient.
