@@ -1,0 +1,36 @@
+context:
+  skill: fleet
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  url: https://raw.githubusercontent.com/pablovela5620/my-skill-forge/main/LICENSE
+  sha256: 395ea11dbfdb768a46ebdca5cae26a2b353240752a9a9c30f7cdfe9a44960be0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+    - cp -R $RECIPE_DIR/references $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/references/*.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Fleet operations - machine discovery (Tailscale, Rackpeek), tool management via agent-fleet manifests, converge workflow, holds, paseo, troubleshooting
+  repository: https://github.com/pablovela5620/my-skill-forge
+  license: MIT
+  license_file: LICENSE

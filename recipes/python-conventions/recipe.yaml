@@ -1,0 +1,34 @@
+context:
+  skill: python-conventions
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  url: https://raw.githubusercontent.com/pablovela5620/my-skill-forge/main/LICENSE
+  sha256: 395ea11dbfdb768a46ebdca5cae26a2b353240752a9a9c30f7cdfe9a44960be0
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Python coding conventions - beartype runtime checking, jaxtyping array annotations, dataclass documentation, return-type selection
+  repository: https://github.com/pablovela5620/my-skill-forge
+  license: MIT
+  license_file: LICENSE
