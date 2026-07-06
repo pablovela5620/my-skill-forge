@@ -108,7 +108,7 @@ gui/$UID/sh.paseo.daemon` on macOS (starts at LOGIN). NEVER `paseo daemon
 start` by hand — the unit owns the daemon. `paseo daemon status` for health.
 
 Config: ONE file in git, `agent-fleet/config/paseo/config.json` — edit,
-push, converge (`scripts/paseo-apply.sh` seds in the machine's tailnet IP
+push, converge (`scripts/paseo_apply.py` seds in the machine's tailnet IP
 and restarts only on fleet-initiated change via the `.fleet-config-applied`
 shadow copy; UI edits are drift that reverts on the next fleet change).
 State lives in `~/.paseo` (machine-local, survives binary swaps). There is
