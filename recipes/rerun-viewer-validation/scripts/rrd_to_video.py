@@ -129,6 +129,8 @@ def main() -> None:
     ap.add_argument("--fps", type=int, default=15)
     ap.add_argument("--settle-ms", type=int, default=100, help="Wait after set_time before screenshot")
     ap.add_argument("--pixels-per-point", type=float, default=1.0)
+    ap.add_argument("--collapse-panels", action="store_true",
+                    help="Collapse the blueprint/time/selection panels before sweeping (clean, chrome-free frames)")
     ap.add_argument("--keep-frames", action="store_true")
     args = ap.parse_args()
 
@@ -161,6 +163,13 @@ def main() -> None:
             time.sleep(0.5)
         else:
             raise SystemExit("recording never showed timelines in viewer_state")
+
+        if args.collapse_panels:
+            # The viewer's top bar exposes one labeled toggle per panel; a fresh
+            # viewer starts with panels expanded, so one click each collapses.
+            for label in ("Blueprint panel toggle", "Time panel toggle", "Selection panel toggle"):
+                mcp.call_tool("click", {"label_contains": label})
+                time.sleep(0.2)
 
         tl = pick_timeline(state, args.timeline)
         lo, hi = int(tl["min"]), int(tl["max"])

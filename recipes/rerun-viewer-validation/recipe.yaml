@@ -23,7 +23,7 @@ requirements:
   # None of it exists on <=0.33, so constrain (not depend on) the SDK the
   # environment actually uses.
   run_constraints:
-    - rerun-sdk >=0.34.0rc4,<0.35
+    - rerun-sdk >=0.34.0,<0.35
 
 tests:
   - package_contents:

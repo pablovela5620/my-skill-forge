@@ -17,6 +17,8 @@ Three requirements:
 
 `?url=` also accepts `rerun://` dataset URIs and `rerun+http://…/proxy` live-SDK endpoints. The recording never leaves your network: the viewer assets are static; the `.rrd` fetch happens in the reader's browser.
 
+For a chrome-free embed (no blueprint/selection/time panels), bake the panel state into the recording before embedding — see "Panel visibility" in SKILL.md (`collapse_panels=True` on the saved blueprint).
+
 ## Validating gradio apps & WebViewer embeds
 
 Use playwright / chrome-devtools against the running gradio app or embedded-viewer report:

@@ -86,10 +86,17 @@ for chunk in r.stream(store=r.blueprints()[0]).to_chunks():
 
 ```bash
 python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
-  --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15]
+  --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15] [--collapse-panels]
 ```
 
 Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. ~150 frames ≈ 2 min. Auto-picks the first non-`log_time` timeline; needs `ffmpeg` on PATH and rerun-sdk importable. Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4. The default `--settle-ms 100` is enough for decoded video frames; raise to 250–400 when overlay-heavy views (detections, segmentation) must fully stabilize per frame.
+
+## Panel visibility
+
+Collapse the blueprint/selection/time panels whenever the frame should be all content — videos, embeds, clean screenshots:
+
+- **Live viewer, any recording**: the top bar has one labeled toggle per panel; MCP `click` with `label_contains` = `"Blueprint panel toggle"`, `"Time panel toggle"`, `"Selection panel toggle"`. A fresh viewer starts with panels expanded, so one click each collapses; confirm via `query_tree` (the `_streams_tree` / `_selection_panel` panes disappear). The video helper does this for you: `--collapse-panels`.
+- **Recordings you author — and therefore embeds**, since panel state rides the saved blueprint: `rrb.Blueprint(<views>, collapse_panels=True)`, or per-panel `rrb.BlueprintPanel(state="collapsed")` / `rrb.SelectionPanel(…)` / `rrb.TimePanel(…)` with `"collapsed" | "hidden" | "expanded"`. An `.rrd` re-saved this way opens chrome-free everywhere, including the WASM viewer iframe.
 
 ## Evidence & checks
 
