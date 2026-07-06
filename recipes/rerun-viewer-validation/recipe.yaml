@@ -3,21 +3,47 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  # Version tracks the Rerun line the skill targets (parity with run_constraints);
+  # skill-only iterations bump `build.number` below (same version, new build),
+  # and retargeting a new Rerun line bumps the version + resets the number.
+  version: "0.34.0"
 
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/scripts
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/references
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp $RECIPE_DIR/agents/openai.yaml $PREFIX/share/agent-skills/${{ skill }}/agents/openai.yaml
+    - cp $RECIPE_DIR/scripts/rrd_to_video.py $PREFIX/share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
+    - cp $RECIPE_DIR/references/web.md $PREFIX/share/agent-skills/${{ skill }}/references/web.md
+
+requirements:
+  # The video branch shells out to ffmpeg — a real dependency, so declare it.
+  run:
+    - ffmpeg
+  # The skill targets the 0.34 viewer surface: the `rerun viewer-mcp` stdio
+  # server, MCP `set_time`/`screenshot`, and `ViewerClient.spawn(headless=...)`.
+  # None of it exists on <=0.33, so the right expression is a run constraint on
+  # the SDK. DISABLED until conda-forge ships rerun-sdk >=0.34 (latest there is
+  # 0.33.1 as of 2026-07-06): a conda run_constraints only sees the *conda*
+  # package, so today it (a) makes any env using conda-forge's rerun-sdk
+  # unsolvable, and (b) does nothing for PyPI-sourced rerun-sdk (how most envs
+  # get 0.34). The version requirement is carried by the `compatibility`
+  # frontmatter and SKILL.md prose in the meantime. Re-enable when conda-forge
+  # catches up:
+  # run_constraints:
+  #   - rerun-sdk >=0.34.0,<0.35
 
 tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
         - share/agent-skills/${{ skill }}/agents/openai.yaml
+        - share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
+        - share/agent-skills/${{ skill }}/references/web.md
       strict: true
   - script:
       - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
@@ -26,13 +52,16 @@ tests:
         - skills-ref
 
 about:
-  summary: Agent skill for validating Rerun 0.33 viewer output
+  summary: Agent skill for proving what the Rerun viewer rendered
   description: |
-    Validate Rerun Viewer output with evidence:
-    - Native Rerun 0.33 headless screenshots by default
-    - Saved RRD reloads, blueprints, view-specific screenshots, and timeline checks
-    - Size-limited self-hosted WebViewer reports with hardware WebGL and theme parity
-    - Optional Tailscale Serve links for remote HTML artifacts
+    Validate Rerun viewer output with evidence, picking the branch by surface:
+    - Static render proof via scripted headless ViewerClient screenshots
+    - Timeline scrubbing and UI-state checks via the `rerun viewer-mcp` server
+      (including a cold-subagent provisioning pattern when the MCP is not registered)
+    - Timeline-sweep videos via the bundled scripts/rrd_to_video.py helper
+      (headless viewer + MCP set_time/screenshot loop + ffmpeg)
+    - Browser deliverables (gradio-rerun apps, embedded WebViewer reports) via
+      playwright, with WebGL/theme parity checks and Tailscale Serve links
   homepage: https://github.com/pablovela5620/my-skill-forge
   repository: https://github.com/pablovela5620/my-skill-forge
   documentation: https://github.com/pablovela5620/my-skill-forge

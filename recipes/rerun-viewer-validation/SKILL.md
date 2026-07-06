@@ -1,136 +1,115 @@
 ---
 name: rerun-viewer-validation
-description: Validate Rerun 0.33 Viewer output with native headless screenshots by default, saved .rrd reloads, blueprints, view-specific screenshots, exact timeline screenshots, self-hosted WebViewer HTML reports, hardware WebGL checks, theme parity, optional Tailscale Serve links, and data-path checks. Use when Codex must prove what rendered in Rerun instead of relying on logs or metadata.
+description: Prove what the Rerun viewer rendered — pixel evidence over logs. Use when a .rrd, blueprint, or Rerun rendering must be visually verified, when a timeline sweep or video of a recording is wanted, when an .rrd must be embedded in an HTML page, or when a gradio/WebViewer surface needs browser validation.
+compatibility: Requires the rerun binary (with the viewer-mcp subcommand) and ffmpeg on PATH, plus a GPU or software rasterizer for headless rendering. The web branch additionally needs a browser automation tool (playwright or chrome-devtools) and network access.
 ---
 
 # Rerun Viewer Validation
 
-Use Rerun SDK/CLI 0.33. Default to native headless screenshots; use WebViewer only when it adds browser/timeline evidence.
+Prove what rendered. Logs, metadata, and `rrd stats` say what was *sent*; only pixels say what the viewer *shows*.
 
-## Requirements
+## Decision tree — pick by what you're validating
 
-| Capability | Level | Check |
-| --- | --- | --- |
-| Rerun 0.33 | Required | Verify `import rerun as rr; print(rr.__version__)` and `rerun --version`. |
-| Native headless | Default | Use `ViewerClient.spawn(headless=True)`, not a real desktop window. |
-| WebViewer | Optional | Use for exact timeline/playhead screenshots or embedded reports only when the `.rrd` is under 1.5 GiB. |
-| Tailscale Serve | Optional | If `tailscale` exists and remote viewing is useful, serve the report directory and give the URL. |
+1. **Static render proof** (does the .rrd load? does the blueprint lay out? do views render?) → **scripted ViewerClient**. No MCP needed, deterministic, CI-friendly.
+2. **Time or UI state** (scrub to frame N, verify view X at time T, click/select entities, read panels) → **viewer MCP**.
+3. **Video / timeline sweep** (watch an algorithm run) → **`scripts/rrd_to_video.py`** (this skill's helper). Never loop MCP screenshots for video.
+4. **Web** (embed an .rrd in an HTML page; validate a gradio-rerun app or WebViewer embed) → read **`references/web.md`** — the iframe embed recipe (CORS, Chrome Local Network Access, tailscale) and the playwright validation recipes live there. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial.
 
-## Workflow
+**Video vs embed** (branches 3 vs 4, when both fit): the embedded rrd is the richer artifact — fully inspectable, orbitable, scrubbable — so prefer it when the recording is browser-sized. The WASM viewer holds the whole recording in memory, so check size first (`ls -lh`, `rerun rrd stats`) and gate embeds at a few hundred MB (hard ceiling ~1.5 GiB — see `references/web.md`). Choose video when the recording is huge, when the audience only needs to *watch* (Slack, PR description), or when the data needs a visualizer the web viewer doesn't have (custom visualizers). Best of both, often: a trimmed/downsampled preview rrd for the embed plus a full-fidelity video.
 
-1. Prefer `save .rrd -> reload .rrd -> screenshot`; this validates serialization, blueprints/layout, and viewer loading.
-2. Capture native headless first: full viewer plus important 2D/3D view IDs.
-3. Inspect timelines before choosing frames. Prefer domain timelines such as `video_time`, `frame`, or sensor time.
-4. Use WebViewer JS for exact begin/middle/end playhead screenshots only for small `.rrd` files.
-5. Put disposable reports under `/tmp/rerun-viewer-validation/<timestamp>/`; include `index.html`, screenshots, summaries, and `notes.md`.
-6. If visuals are blank or wrong, inspect data paths before changing blueprints: `rerun rrd verify|stats|print <file>`.
+Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data — Rerun has no forward compat, so an `.rrd` written by a newer SDK will not load in an older viewer (including the WASM viewer inside a gradio-rerun app pinned to an older release). Don't hardcode version numbers in prose or scripts; the environment's package pins (this skill's `run_constraints`) guarantee a capable viewer.
 
-## Native Headless
+## Headless vs headed
+
+Default **headless** for both `ViewerClient.spawn(headless=True)` and `rerun --headless`:
+
+- Renders real frames offscreen (1920×1080 default) given a GPU or a software rasterizer (lavapipe). In a bare container with no Vulkan adapter it panics with "No graphics adapter was found" — then fall back to the browser branch.
+- No OS window → immune to the occluded/minimized-window failure (MCP `screenshot` times out if a *headed* window can't render, notably on macOS).
+- Works over SSH/CI/no-`DISPLAY`. A headed spawn without `DISPLAY` wedges silently (channel fills, `rr.log` blocks forever).
+
+Go **headed only when a human co-views**: the user wants to watch you scrub, or wants the viewer left open afterwards. All tools work identically against either — headed vs headless is user preference, not capability.
+
+Lifecycle gotchas (both modes):
+- The MCP **never spawns a viewer**. Always: spawn viewer → `connect` → work.
+- `ViewerClient.spawn` resolves `rerun` from PATH — stale global installs win. **Always pass `executable_path=` pointing at the project env's rerun binary.**
+- `detach_process` defaults: headless → attached (dies with your script / `close()`); headed → detached (survives; only explicit `close()` kills it). Clean up detached viewers when done.
+
+## MCP: getting the tools
+
+The server is `rerun viewer-mcp` (stdio); it dials a running viewer's gRPC `ViewerControlService`. In order of preference:
+
+1. `mcp__rerun__*` tools already in your surface → use them.
+2. No tools, no restart possible → drive the server over stdio yourself: newline-delimited JSON-RPC (`initialize` → `notifications/initialized` → `tools/call`); reuse `McpStdioClient` from `scripts/rrd_to_video.py`.
+3. Register for future sessions: `claude mcp add rerun -- <env>/bin/rerun viewer-mcp` (or `codex mcp add …`). (The `viewer-mcp` subcommand exists since 0.34.)
+4. Delegating to a *different* agent CLI (e.g. `claude -p --mcp-config …` from a non-Claude harness) crosses a provider boundary — confirm with the user first.
+
+## MCP: driving the viewer
+
+17 tools: `connect`, `disconnect`, `viewer_state`, `set_time`, `open_url` (rerun-specific) + `query_tree`, `get_node`, `screenshot`, `click`, `drag`, `hover`, `scroll`, `press_key`, `type_text`, `resize`, `wait_for`, `batch` (egui UI, accessibility-tree based). Work observe → act → verify.
+
+- `connect` takes `endpoint: "http://127.0.0.1:<port>"` — plain http, **not** the SDK's `rerun+http://…/proxy` URL.
+- `open_url` loads recordings: absolute file path (no `file://` prefix), `rerun://` dataset URI, or https URL.
+- `viewer_state` first, always: recordings + per-timeline `{timeline, type, min, max}` + current time. Choose the timeline from this data, never by assumption.
+- `set_time`: `time` is a sequence index for `sequence` timelines, **nanoseconds** for duration/timestamp timelines. `play: true` to run from there; default stays paused.
+- `screenshot` **always returns the PNG inline into context**; `save_path` writes to disk *in addition*. Budget ≤ ~10 MCP screenshots per validation — seeing evidence frames is the point; sweeping is the helper's job.
+- Prefer locators (`id` from `query_tree`, `role`/`label_contains`) over raw `pos`; everything is in logical points (screenshot pixels at `pixels_per_point: 1.0` align 1:1 with click coordinates).
+- `batch` chains act+observe (e.g. `set_time` → `screenshot`) in one round trip.
+
+## ViewerClient: scripted static proof
 
 ```python
 import rerun as rr
 from rerun.experimental import ViewerClient
 
-with ViewerClient.spawn(headless=True, port=9877, hide_welcome_screen=True) as viewer:
+with ViewerClient.spawn(
+    headless=True, port=9877, hide_welcome_screen=True,
+    executable_path="<env>/bin/rerun",  # NEVER rely on PATH
+) as viewer:
     rr.init("rrd_check", default_enabled=True, strict=True)
     rr.connect_grpc(url=viewer.url)
-    rr.log_file_from_path("recording.rrd")  # preserves saved layout better than send_chunks replay
+    rr.log_file_from_path("recording.rrd")  # preserves saved blueprint/layout
     rr.get_global_data_recording().flush(timeout_sec=30.0)
+    import time; time.sleep(3.0)  # let ingestion + first render settle
     viewer.save_screenshot("native-full.png")
-    viewer.save_screenshot("native-3d.png", view_id=view_3d_id)
 ```
 
-Native `ViewerClient` in 0.33 does not expose a playhead setter. It proves the current/default viewer state; use WebViewer JS when exact timeline positions matter.
+Prefer `save .rrd → reload → screenshot`: it validates serialization, blueprint, and viewer loading in one pass. `ViewerClient` has **no time-cursor setter** — the playhead lives in the MCP (`set_time`) only.
 
-To find saved blueprint view IDs:
+**Per-view capture works only for views the viewer is currently rendering.** The safe pattern is authoring the blueprint in-process: `view = rrb.Spatial3DView(…); rr.send_blueprint(view); viewer.save_screenshot(p, view_id=view.id)` — returns in milliseconds. The trap: a `view_id` the viewer can't resolve to a rendered view (an unknown uuid, or a saved-blueprint view right after replaying an `.rrd`) gets **no reply and the blocking call hangs forever, with no diagnostic on 0.34.0**. So always run `view_id` calls in a killable child process with a timeout, and for replayed recordings prefer cropping the full screenshot (view rectangles are deterministic for a fixed viewport). To enumerate a recording's saved views (their `/view/<uuid>` ids are the same namespace as `view.id`, but resolve only while rendered):
 
 ```python
 import rerun.experimental as rrx
-
 r = rrx.RrdReader("recording.rrd")
 for chunk in r.stream(store=r.blueprints()[0]).to_chunks():
     if str(chunk.entity_path).startswith("/view/"):
         print(chunk.entity_path, chunk.to_record_batch())
 ```
 
-## Timelines
-
-Choose the timeline from the data, not by assumption. For saved `.rrd` files, read index columns, types, and min/max ranges. For live gRPC, use the producer's `rr.set_time(..., sequence=|duration=|timestamp=)` contract.
-
-For WebViewer exact-time screenshots:
-
-```js
-viewer.set_active_timeline(recordingId, "video_time")
-viewer.set_current_time(recordingId, "video_time", encodedValue)
-```
-
-Encode values by timeline type: sequence number for sequence timelines, nanoseconds for duration/timedelta timelines, and Unix epoch nanoseconds for timestamp timelines. After setting time, wait for loading/video decode, then confirm `get_current_time(...)`, renderer errors, no visible loading overlay, and nonblank pixels.
-
-## WebViewer
-
-Use a same-origin report:
-
-```text
-report/
-  index.html
-  recording.rrd        # symlink is fine if the server follows it
-  viewer.html
-  screenshots/
-  web-viewer/          # official @rerun-io/web-viewer JS/WASM pinned to Rerun 0.33
-```
-
-Self-host `@rerun-io/web-viewer` assets next to the `.rrd`; make `viewer.html` import `WebViewer` and call `viewer.start("./recording.rrd", element, options)`. Embed `viewer.html` with an iframe only when the `.rrd` is under 1.5 GiB. For larger files, skip WebViewer and report native screenshots; browser/WASM loading can fail near 2 GiB, and a 5.1 GiB EPFL RRD hit `RuntimeError: unreachable` from allocation failure.
-
-Default WebViewer to native visual parity. Native screenshots usually render dark; in 0.33, `theme: "dark"` alone may not override the browser's light `prefers-color-scheme`. For Playwright, set `colorScheme: "dark"`. For embedded reports, pass `theme=dark` and force the media query before `viewer.start`:
-
-```js
-const theme = new URLSearchParams(location.search).get("theme") || "dark"
-const realMatchMedia = window.matchMedia.bind(window)
-window.matchMedia = (query) =>
-  String(query).includes("prefers-color-scheme: dark")
-    ? { matches: theme === "dark", media: query, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return false } }
-    : realMatchMedia(query)
-```
-
-For WebGL validation, reject software renderers (`SwiftShader`, `llvmpipe`, `lavapipe`, `Software`). On Linux/NVIDIA browser automation, use hardware GPU flags and, only if needed, the real X11 session:
+## Video: timeline sweep to mp4
 
 ```bash
-DISPLAY=:1 XAUTHORITY=/run/user/1000/gdm/Xauthority \
-  node capture_webviewer_timeline.mjs --ozone=x11
+python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
+  --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15] [--collapse-panels]
 ```
 
-Use Chrome flags `--enable-gpu --disable-software-rasterizer`; add `--ozone-platform=x11` only if Chrome falls back to software.
+Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. 120 frames at 1080p ≈ 10 s: the per-frame cost is the settle wait plus a ~32 ms screenshot RPC, so `--settle-ms` is the speed/fidelity dial. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and the project env's rerun binary. The default `--settle-ms 30` is enough for decoded video frames; raise to 100–400 when overlay-heavy views (detections, segmentation) must fully stabilize per frame — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 
-## Tailscale Reports
+## Panel visibility
 
-If remote viewing is needed and Tailscale is available:
+Collapse the blueprint/selection/time panels whenever the frame should be all content — videos, embeds, clean screenshots:
 
-```bash
-command -v tailscale
-tailscale serve status
-tailscale serve --https 10465 --bg /tmp/rerun-viewer-validation/<report>
-```
+- **Live viewer, any recording**: the top bar has one labeled toggle per panel; MCP `click` with `label_contains` = `"Blueprint panel toggle"`, `"Time panel toggle"`, `"Selection panel toggle"`. A fresh viewer starts with panels expanded, so one click each collapses; confirm via `query_tree` (the `_streams_tree` / `_selection_panel` panes disappear). The video helper does this for you: `--collapse-panels`.
+- **Recordings you author — and therefore embeds**, since panel state rides the saved blueprint: `rrb.Blueprint(<views>, collapse_panels=True)`, or per-panel `rrb.BlueprintPanel(state="collapsed")` / `rrb.SelectionPanel(…)` / `rrb.TimePanel(…)` with `"collapsed" | "hidden" | "expanded"`. An `.rrd` re-saved this way opens chrome-free everywhere, including the WASM viewer iframe.
 
-Choose a new unused port if `serve status` shows a listener. Return the `https://<node>.<tailnet>.ts.net:<port>/` URL. Verify the report and `.rrd` are reachable when possible:
+## Evidence & checks
 
-```bash
-curl -k -I https://<node>.<tailnet>.ts.net:<port>/
-curl -k -I https://<node>.<tailnet>.ts.net:<port>/recording.rrd
-```
-
-## Checks
-
-- Record Rerun version, command, `.rrd` path/size, chosen timeline/range, wait time, renderer string, screenshots, and pass/fail in `notes.md`.
-- Keep viewport/window size fixed and wait after initial load and after each timeline change.
-- For encoded video, `set_current_time` only moves the playhead; it does not prove decode/render. Use screenshots and visible pixels as evidence.
-- For catalog/table flows, capture catalog, table, and selected recording/segment separately.
+- Reports under `/tmp/rerun-viewer-validation/<timestamp>/`: screenshots, `notes.md` recording Rerun version, command, `.rrd` path/size, chosen timeline + range, wait times, renderer string, pass/fail.
+- Blank or wrong visuals → inspect data before blaming blueprints: `rerun rrd verify|stats|print <file>` (use the project env's binary).
+- Keep viewport fixed; wait after load and after each time change. For encoded video streams, a moved playhead proves nothing about decode — only nonblank, changing pixels do.
+- Remote viewing (optional): `tailscale serve --https <port> --bg <report-dir>`, pick an unused port, `curl -k -I` the URL to confirm reachability. Path mode is fine for plain HTML + screenshots; a report that *embeds* an .rrd needs the CORS proxy setup in `references/web.md`.
 
 ## Docs
 
-- Rerun web embedding: https://rerun.io/docs/howto/integrations/embed-web
-- Rerun timelines: https://rerun.io/docs/concepts/logging-and-ingestion/timelines
-- Rerun video: https://rerun.io/docs/concepts/logging-and-ingestion/video
-- WebViewer API: https://ref.rerun.io/docs/js/0.33.0/web-viewer/classes/WebViewer.html
-- Python `ViewerClient`: https://ref.rerun.io/docs/python/main/common/experimental/
-- Chrome headless GPU testing: https://developer.chrome.com/blog/supercharge-web-ai-testing
-- Tailscale Serve: https://tailscale.com/docs/features/tailscale-serve
+- Viewer MCP: https://rerun.io/docs/reference/viewer/mcp
+- Python `ViewerClient`: https://ref.rerun.io/docs/python/main/experimental/
+- Timelines: https://rerun.io/docs/concepts/logging-and-ingestion/timelines
