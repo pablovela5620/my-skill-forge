@@ -29,7 +29,7 @@ For more background on why distributing agent skills through package managers ma
 | [playwright-cli](https://github.com/microsoft/playwright-cli/tree/main/skills/playwright-cli) | `agent-skill-playwright-cli` | Browser automation and Playwright test workflows |
 | [port-model](https://github.com/facebook/pyrefly/tree/main/.claude/skills/port-model) | `agent-skill-port-model` | Port PyTorch models to pyrefly tensor shape types |
 | [rattler-build](https://rattler.build) | `agent-skill-rattler-build` | Build conda packages with rattler-build |
-| [rerun-viewer-validation](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-rerun-viewer-validation` | Validate Rerun 0.33 viewer output with native headless screenshots and size-limited WebViewer reports |
+| [rerun-viewer-validation](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-rerun-viewer-validation` | Prove what the Rerun 0.34 viewer rendered: headless ViewerClient screenshots, viewer MCP timeline/UI checks, rrd-to-video sweeps, playwright for web embeds |
 | [simplify-code](https://github.com/NousResearch/hermes-agent/tree/main/skills/software-development/simplify-code) | `agent-skill-simplify-code` | Simplify recent code changes with focused reuse, quality, and efficiency reviewers |
 | [tdd](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `agent-skill-tdd` | Test-driven development with red-green-refactor workflows |
 

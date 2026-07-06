@@ -3,21 +3,32 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.1.0"
 
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/scripts
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp $RECIPE_DIR/agents/openai.yaml $PREFIX/share/agent-skills/${{ skill }}/agents/openai.yaml
+    - cp $RECIPE_DIR/scripts/rrd_to_video.py $PREFIX/share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
+
+requirements:
+  # The skill targets the 0.34 viewer surface: the `rerun viewer-mcp` stdio
+  # server, MCP `set_time`/`screenshot`, and `ViewerClient.spawn(headless=...)`.
+  # None of it exists on <=0.33, so constrain (not depend on) the SDK the
+  # environment actually uses.
+  run_constraints:
+    - rerun-sdk >=0.34.0rc4,<0.35
 
 tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
         - share/agent-skills/${{ skill }}/agents/openai.yaml
+        - share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
       strict: true
   - script:
       - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
@@ -26,13 +37,16 @@ tests:
         - skills-ref
 
 about:
-  summary: Agent skill for validating Rerun 0.33 viewer output
+  summary: Agent skill for proving what the Rerun 0.34 viewer rendered
   description: |
-    Validate Rerun Viewer output with evidence:
-    - Native Rerun 0.33 headless screenshots by default
-    - Saved RRD reloads, blueprints, view-specific screenshots, and timeline checks
-    - Size-limited self-hosted WebViewer reports with hardware WebGL and theme parity
-    - Optional Tailscale Serve links for remote HTML artifacts
+    Validate Rerun 0.34 viewer output with evidence, picking the branch by surface:
+    - Static render proof via scripted headless ViewerClient screenshots
+    - Timeline scrubbing and UI-state checks via the `rerun viewer-mcp` server
+      (including a cold-subagent provisioning pattern when the MCP is not registered)
+    - Timeline-sweep videos via the bundled scripts/rrd_to_video.py helper
+      (headless viewer + MCP set_time/screenshot loop + ffmpeg)
+    - Browser deliverables (gradio-rerun apps, embedded WebViewer reports) via
+      playwright, with WebGL/theme parity checks and Tailscale Serve links
   homepage: https://github.com/pablovela5620/my-skill-forge
   repository: https://github.com/pablovela5620/my-skill-forge
   documentation: https://github.com/pablovela5620/my-skill-forge
