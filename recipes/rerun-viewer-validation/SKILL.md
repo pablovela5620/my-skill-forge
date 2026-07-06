@@ -72,7 +72,7 @@ with ViewerClient.spawn(
 
 Prefer `save .rrd → reload → screenshot`: it validates serialization, blueprint, and viewer loading in one pass. `ViewerClient` has **no time-cursor setter** — the playhead lives in the MCP (`set_time`) only.
 
-**Per-view capture is broken in 0.34**: `save_screenshot(view_id=…)` rejects the blueprint-store view UUIDs (the only ids you can discover) with "View … not found", then wedges the gRPC channel with no timeout. Crop per-view evidence out of the full screenshot instead — view rectangles are deterministic for a fixed viewport. To enumerate the saved views (names/origins; their UUIDs are *not* usable as `view_id`):
+**Per-view capture works only for views the viewer is currently rendering.** The safe pattern is authoring the blueprint in-process: `view = rrb.Spatial3DView(…); rr.send_blueprint(view); viewer.save_screenshot(p, view_id=view.id)` — returns in milliseconds. The trap: a `view_id` the viewer can't resolve to a rendered view (an unknown uuid, or a saved-blueprint view right after replaying an `.rrd`) gets **no reply and the blocking call hangs forever, with no diagnostic on 0.34.0**. So always run `view_id` calls in a killable child process with a timeout, and for replayed recordings prefer cropping the full screenshot (view rectangles are deterministic for a fixed viewport). To enumerate a recording's saved views (their `/view/<uuid>` ids are the same namespace as `view.id`, but resolve only while rendered):
 
 ```python
 import rerun.experimental as rrx
