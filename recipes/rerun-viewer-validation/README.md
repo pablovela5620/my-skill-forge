@@ -42,10 +42,16 @@ Status from a 751 MB test (assembly101 episode, rerun 0.34.0):
 - The **native** viewer connects and browses the dataset/segment fine.
 - The **WASM** viewer fails connection verification with
   `missing grpc-status trailer` in *every* topology — including same-machine
-  plain-http against the rerun binary's own `--serve-web` viewer — while curl
-  shows byte-perfect grpc-web framing including the trailer frame. The break is
-  in the viewer/browser grpc-web read path, i.e. **upstream**, not
-  infrastructure. No matching rerun-io/rerun issue as of 2026-07-06.
+  plain-http against the rerun binary's own `--serve-web` viewer, and the
+  exact so100-hackathon pattern (npm `@rerun-io/web-viewer@0.34.0` served
+  same-origin, JS-API `viewer.open(segment_url)`), replicated verbatim.
+  Definitive isolation: a plain `fetch` of the WhoAmI endpoint *in the failing
+  page's own JS* returns all 29 bytes **including the 0x80 trailer frame**
+  (`grpc-status:0`) — the bytes reach the JS boundary intact, so the bug is in
+  the WASM viewer's grpc-web response parsing (re_grpc_client /
+  tonic-web-wasm-client path). **Upstream viewer bug**, not infrastructure.
+  No matching rerun-io/rerun issue as of 2026-07-06; full evidence chain +
+  issue draft: `~/0Dev/personal/grpc-web-trailer-bug/ISSUE_DRAFT.md`.
 - Even once fixed, two more hurdles: `tailscale serve` truncates gRPC streams
   in both tcp+TLS and https-proxy modes (tailnet transport would need a
   gRPC-aware proxy), and the OSS server is in-memory (1.6 GB RSS after serving
