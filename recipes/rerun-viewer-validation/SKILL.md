@@ -89,7 +89,7 @@ python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
   --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15] [--collapse-panels]
 ```
 
-Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. ~150 frames ≈ 2 min. Auto-picks the first non-`log_time` timeline; needs `ffmpeg` on PATH and rerun-sdk importable. Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4. The default `--settle-ms 100` is enough for decoded video frames; raise to 250–400 when overlay-heavy views (detections, segmentation) must fully stabilize per frame.
+Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. 120 frames at 1080p ≈ 10 s: the per-frame cost is the settle wait plus a ~32 ms screenshot RPC, so `--settle-ms` is the speed/fidelity dial. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and a ≥0.34 rerun binary. The default `--settle-ms 30` is enough for decoded video frames; raise to 100–400 when overlay-heavy views (detections, segmentation) must fully stabilize per frame — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 
 ## Panel visibility
 
