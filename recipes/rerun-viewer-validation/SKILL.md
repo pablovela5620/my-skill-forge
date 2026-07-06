@@ -31,14 +31,6 @@ Lifecycle gotchas (both modes):
 - `ViewerClient.spawn` resolves `rerun` from PATH — stale global installs win. **Always pass `executable_path=` pointing at the project env's ≥0.34 binary.**
 - `detach_process` defaults: headless → attached (dies with your script / `close()`); headed → detached (survives; only explicit `close()` kills it). Clean up detached viewers when done.
 
-## Running inside an agent sandbox
-
-Every native branch needs three capabilities: **bind a localhost socket** (the viewer's gRPC server), **write outside the repo** (temp dirs; pixi caches under `~/.cache/rattler` + `~/.cache/uv` for fresh envs), and **open the GPU** (or a software rasterizer). Check before starting, not after a mysterious failure:
-
-- A **read-only sandbox** (e.g. Codex review mode) blocks the socket bind — the viewer dies with `re_grpc_server: … Operation not permitted` and *no branch of this skill can run*. Don't retry or work around it; report that the environment can't execute the skill and fall back to static analysis.
-- Under **Codex**, viewer work needs `--sandbox workspace-write` with `network_access = true` in `[sandbox_workspace_write]` (verified: bind+listen works there) and the pixi cache dirs in `writable_roots`. GPU device access may still require a full-access profile — treat that as opt-in per run, not a default.
-- A sandbox "can't reproduce" is an environment artifact, not evidence about the code — pair sandboxed static review with one executor that has real network/GPU access before trusting a negative result.
-
 ## MCP: getting the tools
 
 The server is `rerun viewer-mcp` (stdio); it dials a running viewer's gRPC `ViewerControlService`. In order of preference:
