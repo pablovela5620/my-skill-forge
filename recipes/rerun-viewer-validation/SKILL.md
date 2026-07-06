@@ -12,7 +12,7 @@ Prove what rendered. Logs, metadata, and `rrd stats` say what was *sent*; only p
 1. **Static render proof** (does the .rrd load? does the blueprint lay out? do views render?) → **scripted ViewerClient**. No MCP needed, deterministic, CI-friendly.
 2. **Time or UI state** (scrub to frame N, verify view X at time T, click/select entities, read panels) → **viewer MCP**.
 3. **Video / timeline sweep** (watch an algorithm run) → **`scripts/rrd_to_video.py`** (this skill's helper). Never loop MCP screenshots for video — every frame returns inline into context.
-4. **Browser deliverable** (gradio app with gradio-rerun, embedded WebViewer HTML report) → **playwright / chrome-devtools**. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial.
+4. **Browser deliverable** (gradio app with gradio-rerun, embedded WebViewer HTML report) → **playwright / chrome-devtools**. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial. To *build* such a deliverable, see "Embedding an .rrd in an HTML report".
 
 Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data. Rerun has no forward compat — a 0.34-written `.rrd` will not load in a 0.33 viewer (including the 0.33 WASM viewer inside `gradio-rerun==0.33.0` apps).
 
@@ -96,9 +96,25 @@ python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
 
 Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. ~150 frames ≈ 2 min. Auto-picks the first non-`log_time` timeline; needs `ffmpeg` on PATH and rerun-sdk importable. Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 
-## Browser branch: gradio apps & WebViewer reports
+## Embedding an .rrd in an HTML report (no JS)
 
-Only for validating the web deliverable itself. Use playwright / chrome-devtools against the running gradio app or a self-hosted report (`@rerun-io/web-viewer` assets pinned to the SDK version that wrote the `.rrd`, same-origin next to it). Surviving recipes:
+Preferred embed: an `<iframe>` of the hosted viewer — never self-host `@rerun-io/web-viewer` for a report.
+
+```html
+<iframe src="https://app.rerun.io/version/<ver>/index.html?url=<rrd-url>&theme=dark"
+        style="width:100%;aspect-ratio:16/9" allow="fullscreen"></iframe>
+```
+
+Three requirements, all verified:
+1. **CORS**: the WASM viewer fetches `<rrd-url>` cross-origin, so the `.rrd` response must send `Access-Control-Allow-Origin: *`. `tailscale serve` path mode sets no headers — run a small CORS+Range file server on localhost and use proxy mode: `tailscale serve --https=<port> http://127.0.0.1:<local>` (headers pass through).
+2. **Chrome Local Network Access**: Chrome 138+ gates fetches from a public origin (app.rerun.io) to private address space (Tailscale 100.64/10, LAN IPs) behind a user permission. Symptom: the rrd request sits `pending` forever in headless/CI, and real browsers show a one-time "allow local network" prompt. **Zero-prompt dodge**: also proxy the viewer itself — `tailscale serve --https=<port2> https://app.rerun.io` — and iframe `https://<node>.ts.net:<port2>/version/<ver>/index.html?url=…`; both origins are then private, so no gate. Firefox/Safari don't gate.
+3. **Version + size**: pin `/version/<ver>/` ≥ the SDK that wrote the `.rrd`; keep files under ~1.5 GiB (WASM allocation fails near 2 GiB).
+
+`?url=` also accepts `rerun://` dataset URIs and `rerun+http://…/proxy` live-SDK endpoints. The recording never leaves your network: the viewer assets are static; the `.rrd` fetch happens in the reader's browser.
+
+## Browser branch: gradio apps & WebViewer validation
+
+Only for validating the web deliverable itself. Use playwright / chrome-devtools against the running gradio app or embedded-viewer report. Surviving recipes:
 
 - **Dark parity**: set playwright `colorScheme: "dark"`; for embedded reports force the `prefers-color-scheme` media query before `viewer.start` (`theme: "dark"` alone may not override).
 - **WebGL**: reject software renderers (`SwiftShader`, `llvmpipe`, `lavapipe`). Chrome flags `--enable-gpu --disable-software-rasterizer`; add `--ozone-platform=x11` (+ real `DISPLAY`/`XAUTHORITY`) only if it still falls back.
