@@ -101,10 +101,20 @@ pin PR.
 
 ## Paseo (orchestration layer)
 
-CLI daemon on headless machines (pixi `paseo` package), desktop app on the
-primary laptop. `paseo daemon status|start|stop`. State lives in `~/.paseo`
-(machine-local, survives binary swaps); the daemon password is
-`PASEO_PASSWORD` in `~/.secrets.env`, never in config files.
+Fleet-managed on every machine (2026-07-06): CLI daemon from the pixi
+`paseo` pin, run by a service unit — `systemctl --user status|restart paseo`
+on Linux (linger required for boot start), `launchctl print|kickstart -k
+gui/$UID/sh.paseo.daemon` on macOS (starts at LOGIN). NEVER `paseo daemon
+start` by hand — the unit owns the daemon. `paseo daemon status` for health.
+
+Config: ONE file in git, `agent-fleet/config/paseo/config.json` — edit,
+push, converge (`scripts/paseo-apply.sh` seds in the machine's tailnet IP
+and restarts only on fleet-initiated change via the `.fleet-config-applied`
+shadow copy; UI edits are drift that reverts on the next fleet change).
+State lives in `~/.paseo` (machine-local, survives binary swaps). There is
+NO daemon password — auth is the daemon keypair + relay pairing. One web UI:
+`https://pablo-dl-server.ilish-ruler.ts.net:8767` (PWA); pair a daemon into
+it with `paseo daemon pair` → Add connection.
 
 ## When a converge fails or a machine misbehaves
 
