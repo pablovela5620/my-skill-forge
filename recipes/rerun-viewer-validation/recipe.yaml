@@ -3,7 +3,10 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.1.0"
+  # Version tracks the Rerun line the skill targets (parity with run_constraints);
+  # skill-only iterations bump `build.number` below (same version, new build),
+  # and retargeting a new Rerun line bumps the version + resets the number.
+  version: "0.34.0"
 
 build:
   number: 0
@@ -40,9 +43,9 @@ tests:
         - skills-ref
 
 about:
-  summary: Agent skill for proving what the Rerun 0.34 viewer rendered
+  summary: Agent skill for proving what the Rerun viewer rendered
   description: |
-    Validate Rerun 0.34 viewer output with evidence, picking the branch by surface:
+    Validate Rerun viewer output with evidence, picking the branch by surface:
     - Static render proof via scripted headless ViewerClient screenshots
     - Timeline scrubbing and UI-state checks via the `rerun viewer-mcp` server
       (including a cold-subagent provisioning pattern when the MCP is not registered)

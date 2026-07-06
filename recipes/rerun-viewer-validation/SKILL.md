@@ -1,9 +1,9 @@
 ---
 name: rerun-viewer-validation
-description: Prove what the Rerun viewer (≥0.34) rendered — pixel evidence over logs. Use when a .rrd, blueprint, or Rerun rendering must be visually verified, when a timeline sweep or video of a recording is wanted, when an .rrd must be embedded in an HTML page, or when a gradio/WebViewer surface needs browser validation.
+description: Prove what the Rerun viewer rendered — pixel evidence over logs. Use when a .rrd, blueprint, or Rerun rendering must be visually verified, when a timeline sweep or video of a recording is wanted, when an .rrd must be embedded in an HTML page, or when a gradio/WebViewer surface needs browser validation.
 ---
 
-# Rerun Viewer Validation (0.34)
+# Rerun Viewer Validation
 
 Prove what rendered. Logs, metadata, and `rrd stats` say what was *sent*; only pixels say what the viewer *shows*.
 
@@ -14,7 +14,9 @@ Prove what rendered. Logs, metadata, and `rrd stats` say what was *sent*; only p
 3. **Video / timeline sweep** (watch an algorithm run) → **`scripts/rrd_to_video.py`** (this skill's helper). Never loop MCP screenshots for video.
 4. **Web** (embed an .rrd in an HTML page; validate a gradio-rerun app or WebViewer embed) → read **`references/web.md`** — the iframe embed recipe (CORS, Chrome Local Network Access, tailscale) and the playwright validation recipes live there. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial.
 
-Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data. Rerun has no forward compat — a 0.34-written `.rrd` will not load in a 0.33 viewer (including the 0.33 WASM viewer inside `gradio-rerun==0.33.0` apps).
+**Video vs embed** (branches 3 vs 4, when both fit): the embedded rrd is the richer artifact — fully inspectable, orbitable, scrubbable — so prefer it when the recording is browser-sized. The WASM viewer holds the whole recording in memory, so check size first (`ls -lh`, `rerun rrd stats`) and gate embeds at a few hundred MB (hard ceiling ~1.5 GiB — see `references/web.md`). Choose video when the recording is huge, when the audience only needs to *watch* (Slack, PR description), or when the data needs a visualizer the web viewer doesn't have (custom visualizers). Best of both, often: a trimmed/downsampled preview rrd for the embed plus a full-fidelity video.
+
+Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data — Rerun has no forward compat, so an `.rrd` written by a newer SDK will not load in an older viewer (including the WASM viewer inside a gradio-rerun app pinned to an older release). Don't hardcode version numbers in prose or scripts; the environment's package pins (this skill's `run_constraints`) guarantee a capable viewer.
 
 ## Headless vs headed
 
@@ -28,7 +30,7 @@ Go **headed only when a human co-views**: the user wants to watch you scrub, or 
 
 Lifecycle gotchas (both modes):
 - The MCP **never spawns a viewer**. Always: spawn viewer → `connect` → work.
-- `ViewerClient.spawn` resolves `rerun` from PATH — stale global installs win. **Always pass `executable_path=` pointing at the project env's ≥0.34 binary.**
+- `ViewerClient.spawn` resolves `rerun` from PATH — stale global installs win. **Always pass `executable_path=` pointing at the project env's rerun binary.**
 - `detach_process` defaults: headless → attached (dies with your script / `close()`); headed → detached (survives; only explicit `close()` kills it). Clean up detached viewers when done.
 
 ## MCP: getting the tools
@@ -37,7 +39,7 @@ The server is `rerun viewer-mcp` (stdio); it dials a running viewer's gRPC `View
 
 1. `mcp__rerun__*` tools already in your surface → use them.
 2. No tools, no restart possible → drive the server over stdio yourself: newline-delimited JSON-RPC (`initialize` → `notifications/initialized` → `tools/call`); reuse `McpStdioClient` from `scripts/rrd_to_video.py`.
-3. Register for future sessions: `claude mcp add rerun -- <env>/bin/rerun viewer-mcp` (or `codex mcp add …`). Older binaries lack the subcommand.
+3. Register for future sessions: `claude mcp add rerun -- <env>/bin/rerun viewer-mcp` (or `codex mcp add …`). (The `viewer-mcp` subcommand exists since 0.34.)
 4. Delegating to a *different* agent CLI (e.g. `claude -p --mcp-config …` from a non-Claude harness) crosses a provider boundary — confirm with the user first.
 
 ## MCP: driving the viewer
@@ -89,7 +91,7 @@ python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
   --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15] [--collapse-panels]
 ```
 
-Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. 120 frames at 1080p ≈ 10 s: the per-frame cost is the settle wait plus a ~32 ms screenshot RPC, so `--settle-ms` is the speed/fidelity dial. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and a ≥0.34 rerun binary. The default `--settle-ms 30` is enough for decoded video frames; raise to 100–400 when overlay-heavy views (detections, segmentation) must fully stabilize per frame — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
+Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. 120 frames at 1080p ≈ 10 s: the per-frame cost is the settle wait plus a ~32 ms screenshot RPC, so `--settle-ms` is the speed/fidelity dial. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and the project env's rerun binary. The default `--settle-ms 30` is enough for decoded video frames; raise to 100–400 when overlay-heavy views (detections, segmentation) must fully stabilize per frame — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 
 ## Panel visibility
 
@@ -101,7 +103,7 @@ Collapse the blueprint/selection/time panels whenever the frame should be all co
 ## Evidence & checks
 
 - Reports under `/tmp/rerun-viewer-validation/<timestamp>/`: screenshots, `notes.md` recording Rerun version, command, `.rrd` path/size, chosen timeline + range, wait times, renderer string, pass/fail.
-- Blank or wrong visuals → inspect data before blaming blueprints: `rerun rrd verify|stats|print <file>` (use the ≥0.34 binary).
+- Blank or wrong visuals → inspect data before blaming blueprints: `rerun rrd verify|stats|print <file>` (use the project env's binary).
 - Keep viewport fixed; wait after load and after each time change. For encoded video streams, a moved playhead proves nothing about decode — only nonblank, changing pixels do.
 - Remote viewing (optional): `tailscale serve --https <port> --bg <report-dir>`, pick an unused port, `curl -k -I` the URL to confirm reachability. Path mode is fine for plain HTML + screenshots; a report that *embeds* an .rrd needs the CORS proxy setup in `references/web.md`.
 

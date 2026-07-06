@@ -4,7 +4,7 @@ One `rerun --headless` viewer loads the recording; `rerun viewer-mcp` (stdio JSO
 drives it: set_time -> short settle -> screenshot(save_path) per frame, then one ffmpeg
 pass over the PNGs. Frame times are sampled EVENLY across the timeline's full range.
 
-Stdlib only (no rerun-sdk import). Requires a >=0.34 rerun binary + ffmpeg.
+Stdlib only (no rerun-sdk import). Requires a rerun binary with the `viewer-mcp` subcommand (0.34+) and ffmpeg.
 120 frames at 1080p take ~10s; raise --settle-ms to 100-400 for overlay-heavy or
 slow-decoding scenes (the stale-frame tripwire catches it if you forget).
 
@@ -291,7 +291,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--rrd", required=True)
     ap.add_argument("--out", required=True)
-    ap.add_argument("--rerun-bin", required=True, help="Path to a >=0.34 rerun binary")
+    ap.add_argument("--rerun-bin", required=True, help="Path to the project env's rerun binary (needs the viewer-mcp subcommand)")
     ap.add_argument("--frames", type=int, default=150, help="Points sampled EVENLY across the range")
     ap.add_argument("--fps", type=int, default=15)
     ap.add_argument("--timeline", default=None, help="Timeline to sweep (default: auto)")

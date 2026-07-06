@@ -1,4 +1,4 @@
 interface:
   display_name: "Rerun Viewer Validation"
-  short_description: "Prove what the Rerun 0.34 viewer rendered."
-  default_prompt: "Use $rerun-viewer-validation to visually verify Rerun 0.34 output: pick the branch by surface — scripted headless ViewerClient screenshots for static render proof, the rerun viewer MCP for timeline scrubbing and UI-state checks, scripts/rrd_to_video.py for timeline-sweep videos, and playwright for gradio/WebViewer browser deliverables — then report evidence with screenshots and notes.md."
+  short_description: "Prove what the Rerun viewer rendered."
+  default_prompt: "Use $rerun-viewer-validation to visually verify Rerun output: pick the branch by surface — scripted headless ViewerClient screenshots for static render proof, the rerun viewer MCP for timeline scrubbing and UI-state checks, scripts/rrd_to_video.py for timeline-sweep videos, and playwright for gradio/WebViewer browser deliverables — then report evidence with screenshots and notes.md."
