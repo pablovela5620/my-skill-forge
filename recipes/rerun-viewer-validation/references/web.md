@@ -15,6 +15,8 @@ Three requirements:
 2. **Chrome Local Network Access**: Chrome 138+ gates fetches from a public origin (app.rerun.io) to private address space (Tailscale 100.64/10, LAN IPs) behind a user permission. Symptom: the rrd request sits `pending` forever in headless/CI, and real browsers show a one-time "allow local network" prompt. **Zero-prompt dodge**: also proxy the viewer itself — `tailscale serve --https=<port2> https://app.rerun.io` — and iframe `https://<node>.ts.net:<port2>/version/<ver>/index.html?url=…`; both origins are then private, so no gate. Firefox/Safari don't gate.
 3. **Version + size**: pin `/version/<ver>/` ≥ the SDK that wrote the `.rrd`; keep files under ~1.5 GiB (WASM allocation fails near 2 GiB, `RuntimeError: unreachable`). Larger files → native screenshots only.
 
+TODO (unproven path for large recordings): registering the `.rrd` on an OSS catalog server may lift the size gate — `rerun server`, then `rr.catalog.CatalogClient(uri).create_dataset(...).register([file_uri])` and point the viewer at `dataset.segment_url(seg)` instead of a raw file URL (see `tools/apps/dataset_collector.py` in rerun-io/so100-hackathon). The hypothesis is the viewer streams chunks from the server on demand rather than fetching the whole file into WASM memory; needs validation with GB-scale recordings before it goes in this recipe.
+
 `?url=` also accepts `rerun://` dataset URIs and `rerun+http://…/proxy` live-SDK endpoints. The recording never leaves your network: the viewer assets are static; the `.rrd` fetch happens in the reader's browser.
 
 For a chrome-free embed (no blueprint/selection/time panels), bake the panel state into the recording before embedding — see "Panel visibility" in SKILL.md (`collapse_panels=True` on the saved blueprint).

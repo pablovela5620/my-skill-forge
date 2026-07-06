@@ -1,6 +1,7 @@
 ---
 name: rerun-viewer-validation
 description: Prove what the Rerun viewer rendered — pixel evidence over logs. Use when a .rrd, blueprint, or Rerun rendering must be visually verified, when a timeline sweep or video of a recording is wanted, when an .rrd must be embedded in an HTML page, or when a gradio/WebViewer surface needs browser validation.
+compatibility: Requires the rerun binary (with the viewer-mcp subcommand) and ffmpeg on PATH, plus a GPU or software rasterizer for headless rendering. The web branch additionally needs a browser automation tool (playwright or chrome-devtools) and network access.
 ---
 
 # Rerun Viewer Validation
