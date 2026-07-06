@@ -68,10 +68,11 @@ with ViewerClient.spawn(
     rr.get_global_data_recording().flush(timeout_sec=30.0)
     import time; time.sleep(3.0)  # let ingestion + first render settle
     viewer.save_screenshot("native-full.png")
-    viewer.save_screenshot("native-3d.png", view_id=view_3d_id)  # per-view
 ```
 
-Prefer `save .rrd → reload → screenshot`: it validates serialization, blueprint, and viewer loading in one pass. `ViewerClient` has **no time-cursor setter** — the playhead lives in the MCP (`set_time`) only. To find saved blueprint view IDs:
+Prefer `save .rrd → reload → screenshot`: it validates serialization, blueprint, and viewer loading in one pass. `ViewerClient` has **no time-cursor setter** — the playhead lives in the MCP (`set_time`) only.
+
+**Per-view capture is broken in 0.34**: `save_screenshot(view_id=…)` rejects the blueprint-store view UUIDs (the only ids you can discover) with "View … not found", then wedges the gRPC channel with no timeout. Crop per-view evidence out of the full screenshot instead — view rectangles are deterministic for a fixed viewport. To enumerate the saved views (names/origins; their UUIDs are *not* usable as `view_id`):
 
 ```python
 import rerun.experimental as rrx
@@ -88,7 +89,7 @@ python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
   --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15]
 ```
 
-Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. ~150 frames ≈ 2 min. Auto-picks the first non-`log_time` timeline; needs `ffmpeg` on PATH and rerun-sdk importable. Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
+Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. ~150 frames ≈ 2 min. Auto-picks the first non-`log_time` timeline; needs `ffmpeg` on PATH and rerun-sdk importable. Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4. The default `--settle-ms 100` is enough for decoded video frames; raise to 250–400 when overlay-heavy views (detections, segmentation) must fully stabilize per frame.
 
 ## Evidence & checks
 
