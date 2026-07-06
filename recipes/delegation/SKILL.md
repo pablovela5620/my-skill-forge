@@ -5,10 +5,18 @@ description: Model routing for delegated work — use when spawning subagents or
 
 # Delegation — Model Routing
 
-Rankings (higher = better). Cost reflects actual spend (OpenAI limits are
-very generous), not list price. Intelligence is how hard a problem you can
-hand the model unsupervised. Taste covers UI/UX, code quality, API design,
-and copy.
+## General preferences
+
+- If asked to do too much work at once, stop and state that clearly.
+- If computer use is helpful for completing or verifying work, shell out to
+  gpt-5.5 with Codex for it.
+
+## Picking the right models for workflows and subagents
+
+Rankings, higher = better. Cost reflects what I actually pay (OpenAI has
+really generous limits), not list price. Intelligence is how hard a problem
+you can hand the model unsupervised. Taste covers UI/UX, code quality, API
+design, and copy.
 
 | model    | cost | intelligence | taste |
 |----------|------|--------------|-------|
@@ -17,25 +25,26 @@ and copy.
 | opus-4.8 | 4    | 8            | 8     |
 | fable-5  | 2    | 9            | 9     |
 
-## Routing rules
+How to apply:
 
-- Bulk/mechanical work (clear-spec implementation, data analysis, migrations,
-  convention mining, codebase sweeps): gpt-5.5 via the Codex runtime — very
+- These are defaults, not limits. You have standing permission to override
+  them: if a cheaper model's output doesn't meet the bar, rerun or redo the
+  work with a smarter model without asking. Judge the output, not the price
+  tag. Escalating costs less than shipping mediocre work.
+- Don't let cost prevent you from using the right model for the job.
+  Instead, take advantage of cheaper options to get more information and
+  try things before moving the work to a more expensive option.
+- Cost is a tie-breaker only; when axes conflict for anything that ships,
+  intelligence > taste > cost.
+- Bulk/mechanical work (clear-spec implementation, data analysis,
+  migrations, convention mining, codebase sweeps): gpt-5.5 — it's very
   cheap and token efficient.
 - Anything user-facing (UI, copy, API design) needs taste ≥ 7.
-- Reviews of plans/implementations: fable-5 or opus-4.8; optionally gpt-5.5
+- Reviews of plans/implementations: fable-5 or opus-4.8, optionally gpt-5.5
   as an extra independent perspective.
 - Never use Haiku.
-- When axes conflict for anything that ships: intelligence > taste > cost.
 - Claude stays for synthesis, judgment, and taste stages — the orchestrator,
   not the workhorse.
-
-## Defaults, not limits
-
-These are defaults with standing permission to override: if a cheaper
-model's output misses the bar, rerun or redo with a smarter model WITHOUT
-asking. Judge the output, not the price tag. Escalating costs less than
-shipping mediocre work.
 
 ## The habitual failure mode
 
@@ -51,26 +60,36 @@ reviewed before tokens burn.
 
 ## Mechanics
 
-gpt-5.5 runs natively via the `openai/codex-plugin-cc` plugin, adopting
-user-level config from `~/.codex/config.toml`. Use the plugin's tools —
-never hand-rolled bash wrappers around the codex CLI:
+gpt-5.5 is handled natively via the `openai/codex-plugin-cc` plugin inside
+Claude Code, automatically adopting your user-level configuration from
+`~/.codex/config.toml`. Avoid writing custom bash scripts; instead, utilize
+the plugin's built-in tools and skills:
 
-- `/codex:review` — non-destructive read-only code quality assessment;
-  supports `--base <ref>` for branch analysis.
-- `/codex:adversarial-review` — skeptical design review pressure-testing
-  tradeoffs, auth, and reliability; append focus text to steer it.
+- `/codex:review` — run non-destructive, read-only code quality
+  assessments. Supports `--base <ref>` for branch analysis.
+- `/codex:adversarial-review` — perform a skeptical design review to
+  pressure-test tradeoffs, auth, and reliability. Append custom focus text
+  at the end of the command to steer the focus.
 - `/codex:rescue` — subcontract active debugging, multi-file refactoring,
-  or implementation loops when a second pass is required.
-- `/codex:status` / `/codex:result` / `/codex:cancel` — check, fetch, or
-  abort asynchronous jobs when using `--background` on heavy tasks.
-
-Inside Workflows and subagents: delegate via the plugin's slash commands or
-its exposed `codex-cli-runtime` skills directly — bulk stages route to
-Codex; Claude subagents take only the synthesis/judgment stages.
+  or implementation loops to Codex when a second pass is required.
+- `/codex:status` / `/codex:result` / `/codex:cancel` — use these to check,
+  fetch, or abort asynchronous jobs when using the `--background` flag on
+  heavy tasks.
 
 Claude models (sonnet-5, opus-4.8, fable-5) run via the Agent/Workflow
 `model` parameter.
 
-Closed-loop QA: keep the review gate on via
-`/codex:setup --enable-review-gate` — a stop hook challenges Claude's output
-with Codex before it reaches the main session unvetted.
+Known limit: the Codex sandbox has NO network access — no SSH, no web
+fetches. Route stages that need to reach other machines or the internet to
+a Claude agent instead; Codex takes the local-only work.
+
+Using gpt-5.5 inside workflows and subagents:
+
+- Subagents and automated workflows should call the plugin's native slash
+  commands or its exposed `codex-cli-runtime` skills to delegate tasks
+  directly, omitting the need for raw terminal wrappers.
+- For closed-loop quality assurance, keep the review gate turned on via
+  `/codex:setup --enable-review-gate`. This ensures a stop hook
+  automatically challenges Claude's outputs using Codex before finalizing,
+  preventing broken code or weak design assumptions from reaching the main
+  session unvetted.
