@@ -15,6 +15,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import select
 import shutil
 import subprocess
 import sys
@@ -23,16 +24,19 @@ import time
 from pathlib import Path
 from typing import Any
 
+RPC_TIMEOUT_S = 120.0  # per-call bound; a wedged viewer-mcp must fail, not hang the run
+
 
 class McpStdioClient:
     """Minimal JSON-RPC client for an MCP server speaking newline-delimited stdio."""
 
     def __init__(self, command: list[str]) -> None:
+        self._stderr = tempfile.NamedTemporaryFile(prefix="viewer-mcp-stderr-", suffix=".log", delete=False)
         self.proc = subprocess.Popen(
             command,
             stdin=subprocess.PIPE,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=self._stderr,
             text=True,
         )
         self._id = 0
@@ -48,14 +52,21 @@ class McpStdioClient:
         self.proc.stdin.write(json.dumps(msg) + "\n")
         self.proc.stdin.flush()
 
-    def _rpc(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
+    def _rpc(self, method: str, params: dict[str, Any], timeout: float = RPC_TIMEOUT_S) -> dict[str, Any]:
         self._id += 1
         self._send({"jsonrpc": "2.0", "id": self._id, "method": method, "params": params})
         assert self.proc.stdout is not None
+        deadline = time.monotonic() + timeout
         while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise RuntimeError(f"{method} timed out after {timeout:.0f}s (MCP stderr: {self._stderr.name})")
+            ready, _, _ = select.select([self.proc.stdout], [], [], min(remaining, 1.0))
+            if not ready:
+                continue
             line = self.proc.stdout.readline()
             if not line:
-                raise RuntimeError("MCP server closed its stdout")
+                raise RuntimeError(f"MCP server closed its stdout (stderr: {self._stderr.name})")
             msg = json.loads(line)
             if msg.get("id") == self._id:
                 if "error" in msg:
@@ -82,7 +93,11 @@ class McpStdioClient:
 
     def close(self) -> None:
         self.proc.terminate()
-        self.proc.wait(timeout=5)
+        try:
+            self.proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            self.proc.kill()
+            self.proc.wait(timeout=5)
 
 
 def pick_timeline(state: Any, requested: str | None) -> dict[str, Any]:
@@ -127,9 +142,10 @@ def main() -> None:
         executable_path=args.rerun_bin if args.rerun_bin != "rerun" else None,
         executable_name=args.rerun_bin if args.rerun_bin == "rerun" else "rerun",
     )
-    mcp = McpStdioClient([args.rerun_bin, "viewer-mcp"])
     frames_dir = Path(tempfile.mkdtemp(prefix="rrd-video-frames-"))
+    mcp = None
     try:
+        mcp = McpStdioClient([args.rerun_bin, "viewer-mcp"])
         mcp.call_tool("connect", {"endpoint": f"http://127.0.0.1:{args.port}"})
         rrd = args.rrd if "://" in args.rrd else str(Path(args.rrd).resolve())
         mcp.call_tool("open_url", {"url": rrd})
@@ -177,7 +193,8 @@ def main() -> None:
         )
         print(f"wrote {out} ({out.stat().st_size / 1e6:.1f} MB)")
     finally:
-        mcp.close()
+        if mcp is not None:
+            mcp.close()
         viewer.close()
         if args.keep_frames:
             print(f"frames kept in {frames_dir}")

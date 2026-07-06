@@ -1,6 +1,6 @@
 ---
 name: rerun-viewer-validation
-description: Validate Rerun 0.34 viewer output — prove what rendered instead of trusting logs. Native headless screenshots via ViewerClient, timeline scrubbing and UI interaction via the rerun viewer MCP, timeline-sweep videos via a shipped helper, and playwright for gradio/WebViewer browser deliverables. Use when Rerun rendering, a .rrd, a blueprint, or a viewer-embedding must be visually verified.
+description: Prove what the Rerun viewer (≥0.34) rendered — pixel evidence over logs. Use when a .rrd, blueprint, or Rerun rendering must be visually verified, when a timeline sweep or video of a recording is wanted, when an .rrd must be embedded in an HTML page, or when a gradio/WebViewer surface needs browser validation.
 ---
 
 # Rerun Viewer Validation (0.34)
@@ -11,8 +11,8 @@ Prove what rendered. Logs, metadata, and `rrd stats` say what was *sent*; only p
 
 1. **Static render proof** (does the .rrd load? does the blueprint lay out? do views render?) → **scripted ViewerClient**. No MCP needed, deterministic, CI-friendly.
 2. **Time or UI state** (scrub to frame N, verify view X at time T, click/select entities, read panels) → **viewer MCP**.
-3. **Video / timeline sweep** (watch an algorithm run) → **`scripts/rrd_to_video.py`** (this skill's helper). Never loop MCP screenshots for video — every frame returns inline into context.
-4. **Browser deliverable** (gradio app with gradio-rerun, embedded WebViewer HTML report) → **playwright / chrome-devtools**. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial. To *build* such a deliverable, see "Embedding an .rrd in an HTML report".
+3. **Video / timeline sweep** (watch an algorithm run) → **`scripts/rrd_to_video.py`** (this skill's helper). Never loop MCP screenshots for video.
+4. **Web** (embed an .rrd in an HTML page; validate a gradio-rerun app or WebViewer embed) → read **`references/web.md`** — the iframe embed recipe (CORS, Chrome Local Network Access, tailscale) and the playwright validation recipes live there. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial.
 
 Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data. Rerun has no forward compat — a 0.34-written `.rrd` will not load in a 0.33 viewer (including the 0.33 WASM viewer inside `gradio-rerun==0.33.0` apps).
 
@@ -33,18 +33,12 @@ Lifecycle gotchas (both modes):
 
 ## MCP: getting the tools
 
-The server is `rerun viewer-mcp` (stdio); it dials a running viewer's gRPC `ViewerControlService`. If `mcp__rerun__*` tools are already in your surface, use them. If not, **don't wait for a restart — delegate to a cold subagent**:
+The server is `rerun viewer-mcp` (stdio); it dials a running viewer's gRPC `ViewerControlService`. In order of preference:
 
-```bash
-cat > /tmp/rerun-mcp.json <<EOF
-{"mcpServers": {"rerun": {"command": "<env>/bin/rerun", "args": ["viewer-mcp"]}}}
-EOF
-claude -p --strict-mcp-config --mcp-config /tmp/rerun-mcp.json \
-  --allowedTools "mcp__rerun__*" --model sonnet \
-  "Connect to the viewer at http://127.0.0.1:<port>, then <task>. Report findings."
-```
-
-For a persistent registration instead: `claude mcp add rerun -- <env>/bin/rerun viewer-mcp` (takes effect next session). The binary must come from an env whose `rerun --version` is ≥ 0.34 — never bare `rerun` from PATH.
+1. `mcp__rerun__*` tools already in your surface → use them.
+2. No tools, no restart possible → drive the server over stdio yourself: newline-delimited JSON-RPC (`initialize` → `notifications/initialized` → `tools/call`); reuse `McpStdioClient` from `scripts/rrd_to_video.py`.
+3. Register for future sessions: `claude mcp add rerun -- <env>/bin/rerun viewer-mcp` (or `codex mcp add …`). Older binaries lack the subcommand.
+4. Delegating to a *different* agent CLI (e.g. `claude -p --mcp-config …` from a non-Claude harness) crosses a provider boundary — confirm with the user first.
 
 ## MCP: driving the viewer
 
@@ -96,41 +90,15 @@ python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
 
 Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. ~150 frames ≈ 2 min. Auto-picks the first non-`log_time` timeline; needs `ffmpeg` on PATH and rerun-sdk importable. Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 
-## Embedding an .rrd in an HTML report (no JS)
-
-Preferred embed: an `<iframe>` of the hosted viewer — never self-host `@rerun-io/web-viewer` for a report.
-
-```html
-<iframe src="https://app.rerun.io/version/<ver>/index.html?url=<rrd-url>&theme=dark"
-        style="width:100%;aspect-ratio:16/9" allow="fullscreen"></iframe>
-```
-
-Three requirements, all verified:
-1. **CORS**: the WASM viewer fetches `<rrd-url>` cross-origin, so the `.rrd` response must send `Access-Control-Allow-Origin: *`. `tailscale serve` path mode sets no headers — run a small CORS+Range file server on localhost and use proxy mode: `tailscale serve --https=<port> http://127.0.0.1:<local>` (headers pass through).
-2. **Chrome Local Network Access**: Chrome 138+ gates fetches from a public origin (app.rerun.io) to private address space (Tailscale 100.64/10, LAN IPs) behind a user permission. Symptom: the rrd request sits `pending` forever in headless/CI, and real browsers show a one-time "allow local network" prompt. **Zero-prompt dodge**: also proxy the viewer itself — `tailscale serve --https=<port2> https://app.rerun.io` — and iframe `https://<node>.ts.net:<port2>/version/<ver>/index.html?url=…`; both origins are then private, so no gate. Firefox/Safari don't gate.
-3. **Version + size**: pin `/version/<ver>/` ≥ the SDK that wrote the `.rrd`; keep files under ~1.5 GiB (WASM allocation fails near 2 GiB).
-
-`?url=` also accepts `rerun://` dataset URIs and `rerun+http://…/proxy` live-SDK endpoints. The recording never leaves your network: the viewer assets are static; the `.rrd` fetch happens in the reader's browser.
-
-## Browser branch: gradio apps & WebViewer validation
-
-Only for validating the web deliverable itself. Use playwright / chrome-devtools against the running gradio app or embedded-viewer report. Surviving recipes:
-
-- **Dark parity**: set playwright `colorScheme: "dark"`; for embedded reports force the `prefers-color-scheme` media query before `viewer.start` (`theme: "dark"` alone may not override).
-- **WebGL**: reject software renderers (`SwiftShader`, `llvmpipe`, `lavapipe`). Chrome flags `--enable-gpu --disable-software-rasterizer`; add `--ozone-platform=x11` (+ real `DISPLAY`/`XAUTHORITY`) only if it still falls back.
-- **Size limit**: embed WebViewer only under ~1.5 GiB `.rrd`; WASM allocation fails near 2 GiB (`RuntimeError: unreachable`). Larger files → native screenshots only.
-- WebViewer JS `set_current_time(recordingId, timeline, value)` encodes like MCP `set_time` (sequence index / ns / epoch-ns); after seeking, wait for decode and confirm nonblank pixels.
-
 ## Evidence & checks
 
 - Reports under `/tmp/rerun-viewer-validation/<timestamp>/`: screenshots, `notes.md` recording Rerun version, command, `.rrd` path/size, chosen timeline + range, wait times, renderer string, pass/fail.
 - Blank or wrong visuals → inspect data before blaming blueprints: `rerun rrd verify|stats|print <file>` (use the ≥0.34 binary).
 - Keep viewport fixed; wait after load and after each time change. For encoded video streams, a moved playhead proves nothing about decode — only nonblank, changing pixels do.
-- Remote viewing (optional): `tailscale serve --https <port> --bg <report-dir>`, pick an unused port, `curl -k -I` the URL and the `.rrd` to confirm reachability.
+- Remote viewing (optional): `tailscale serve --https <port> --bg <report-dir>`, pick an unused port, `curl -k -I` the URL to confirm reachability. Path mode is fine for plain HTML + screenshots; a report that *embeds* an .rrd needs the CORS proxy setup in `references/web.md`.
 
 ## Docs
 
 - Viewer MCP: https://rerun.io/docs/reference/viewer/mcp
 - Python `ViewerClient`: https://ref.rerun.io/docs/python/main/experimental/
 - Timelines: https://rerun.io/docs/concepts/logging-and-ingestion/timelines
-- Web embedding: https://rerun.io/docs/howto/integrations/embed-web
