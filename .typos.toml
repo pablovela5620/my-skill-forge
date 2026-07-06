@@ -3,3 +3,5 @@ extend-exclude = ["*.patch"]
 
 [default.extend-words]
 placehold = "placehold"
+# "PNGs" tokenizes as PN + suffix and false-positives as ON
+PN = "PN"
