@@ -11,8 +11,12 @@ converge fails, onboarding stops, or a machine behaves unexpectedly.
    (`~/.pixi/manifests/pixi-global.toml.last-synced`), else refuses unless
    `FLEET_OFFLINE_OK=1` (tar-shipped machines set this: the fresh checkout IS
    the intended state).
-2. First run with no overlay: `capture-overlay.sh` snapshots every live env
+2. First run with no overlay: `capture_overlay.py` snapshots every live env
    not in base into `manifests/machines/<host>.toml` and stops for review.
+   NB: "first run" is keyed on the overlay filename matching `hostname -s`
+   — if the OS renames the machine (macOS does on network name conflicts),
+   sync re-enters onboarding for the "new" host; fix by `git mv`-ing the
+   overlay to the new name (the fresh capture should be near-identical).
    Envs whose exposed binaries collide with base are skipped (reported).
    Name-colliding envs stop everything (exit 2) only when the live env has
    EXTRA packages base lacks (deletion risk); base merely adding packages is
@@ -29,6 +33,19 @@ converge fails, onboarding stops, or a machine behaves unexpectedly.
 5. Skill symlinks: forge envs (`agent-skill-*`) plus this repo's `skills/`
    dir, linked into `~/.claude/skills` and `~/.codex/skills`; dangling links
    pruned.
+6. Instruction symlinks + work profile (`~/.claude/CLAUDE.md`,
+   `~/.claude-work/CLAUDE.md`, `~/.codex/AGENTS.md`,
+   `~/.claude-work/skills`; pre-existing real files backed up once) and the
+   managed rc line sourcing `config/shell/fleet.sh`.
+7. `paseo_apply.py` — fleet paseo config (tailnet-IP listen) + service
+   unit; restarts the daemon only on fleet-initiated config change (shadow
+   copy `.fleet-config-applied`); no-op without the pixi paseo binary.
+8. `mcp_apply.py` — rendered `.mcp.json` → user-scope MCP servers on
+   claude (personal + work) and codex via their own `mcp add/remove` CLIs.
+   Gates: command must resolve (`~/.pixi/bin` prepended), capability probes
+   hold entries back on too-old binaries (`mcp: skip …` note, converge
+   stays green), 120s CLI timeouts. Only fleet-declared names are touched;
+   drift is corrected on the next converge.
 
 ## Failure signatures
 

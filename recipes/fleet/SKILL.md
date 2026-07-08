@@ -17,16 +17,17 @@ deletes what's unlisted.
 |---|---|---|
 | What exists / is online? | Tailscale (self-updating) | `tailscale status` |
 | Specs, GPUs, roles? | Rackpeek (curated, can lag) | `ssh pablo-dl-server docker exec rackpeek rpk summary` (also `rpk servers describe <name>`, `rpk systems list`) |
-| Fleet-managed? | agent-fleet repo | overlay at `manifests/machines/<lowercased short hostname>.toml` (the LOCAL hostname, which may differ from the Tailscale name — e.g. `mac.toml`); `~/agent-fleet` checked out |
+| Fleet-managed? | agent-fleet repo | overlay at `manifests/machines/<lowercased short hostname>.toml` (the LOCAL hostname, which may differ from the Tailscale name — e.g. the M5 laptop is `pablos-m5-pro` on the tailnet but `macbook-pro-3.toml` here, and the DGX is `dgx-spark` vs `spark-9232.toml`); `~/agent-fleet` checked out |
 
 Stable facts: `pablo-dl-server` is the conductor (always-on, hosts rackpeek).
-`spark-9232` is linux-aarch64 — account for it in platform availability.
+The DGX Spark (`dgx-spark` on the tailnet, local hostname `spark-9232`)
+is linux-aarch64 — account for it in platform availability.
 Macs are osx-arm64.
 
 ## Reaching machines
 
 SSH rides the tailnet: any hostname from `tailscale status` is an SSH target
-(`ssh pablo-ubuntu`, `ssh spark-9232`; `~/.ssh/config` may hold shorter
+(`ssh pablo-ubuntu`, `ssh dgx-spark`; `~/.ssh/config` may hold shorter
 aliases). Patterns that matter:
 
 - Non-interactive commands: `ssh -o ConnectTimeout=5 -o BatchMode=yes <host> '…'`
@@ -86,6 +87,23 @@ Publishing alone does NOT propagate: the pin is the membership act (weekly
 pin-bump only bumps versions of skills already pinned — it never adds new
 ones). Done when the skill dir appears under `~/.claude/skills/` on every
 converged machine.
+
+## MCP servers (fleet-managed since 2026-07-07)
+
+ONE declared MCP set in git lands on claude (personal), claude-work, AND
+codex on every machine: `[mcp_servers.<name>]` blocks in agent-fleet's
+`.ruler/ruler.toml` → `pixi run render` (committed `.mcp.json`) → converge
+(`scripts/mcp_apply.py` applies at user scope through each CLI's own
+`mcp add/remove` — it never writes their state files directly).
+
+- NEVER hand-run `claude mcp add` / `codex mcp add` for a fleet server —
+  hand edits are drift and revert on the next converge. Hand-added servers
+  under OTHER names are ignored (the applier only touches declared names).
+- Entries persist the machine's RESOLVED binary path (a capability probe
+  vouches for the exact binary sessions will run); too-old binaries are
+  skipped with a `mcp: skip <name> …` note and apply automatically once the
+  pin catches up (e.g. rerun viewer-mcp needs >= 0.34).
+- New sessions pick changes up automatically; running sessions restart.
 
 ## Holds
 
