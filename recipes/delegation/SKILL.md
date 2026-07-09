@@ -79,9 +79,23 @@ the plugin's built-in tools and skills:
 Claude models (sonnet-5, opus-4.8, fable-5) run via the Agent/Workflow
 `model` parameter.
 
-Known limit: the Codex sandbox has NO network access — no SSH, no web
-fetches. Route stages that need to reach other machines or the internet to
-a Claude agent instead; Codex takes the local-only work.
+Sandbox & network (verified empirically 2026-07-08): Codex network access
+is a CONFIG SETTING, not a fixed limit. Modes: `read-only` (no network),
+`workspace-write` (network off by default; on when the machine's
+`~/.codex/config.toml` sets `[sandbox_workspace_write] network_access =
+true`, or per-run via `-c sandbox_workspace_write.network_access=true`),
+`danger-full-access` (no boundary). With network on, both web fetches and
+outbound SSH work from inside the sandbox — proven with live runs. So:
+
+- Before rerouting a network-needing stage to a Claude agent, check the
+  machine's codex config — on network-enabled machines Codex handles ssh/
+  web stages fine. The banner line of every run states the effective mode.
+- The flip side: a network-enabled sandbox makes delegated prompts an
+  injection surface. Never feed untrusted content (web pages, third-party
+  code) into a Codex run that can also reach the tailnet.
+- Fleet state (2026-07-08): M5 + dl-server set `network_access = true`;
+  spark / mini / ubuntu run the network-off default — one config line to
+  change, per machine, if a stage there needs egress.
 
 Using gpt-5.5 inside workflows and subagents:
 
