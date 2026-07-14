@@ -9,21 +9,18 @@ description: Model routing for delegated work — use when spawning subagents or
 
 - If asked to do too much work at once, stop and state that clearly.
 - If computer use is helpful for completing or verifying work, shell out to
-  gpt-5.5 with Codex for it.
+  Codex for it using the configured model or profile.
+- Keep model IDs out of this skill. `codex exec` without `--model` inherits
+  the configured or recommended model. When a task needs a different
+  cost/capability tradeoff, use a stable named profile and keep its model ID
+  in Codex configuration.
 
 ## Picking the right models for workflows and subagents
 
-Rankings, higher = better. Cost reflects what I actually pay (OpenAI has
-really generous limits), not list price. Intelligence is how hard a problem
-you can hand the model unsupervised. Taste covers UI/UX, code quality, API
-design, and copy.
-
-| model    | cost | intelligence | taste |
-|----------|------|--------------|-------|
-| gpt-5.5  | 9    | 8            | 5     |
-| sonnet-5 | 6    | 5            | 7     |
-| opus-4.8 | 4    | 8            | 8     |
-| fable-5  | 2    | 9            | 9     |
+Choose by task characteristics, not release names. Intelligence is how hard
+a problem the worker can handle unsupervised. Taste covers UI/UX, code
+quality, API design, and copy. Cost reflects the user's effective usage
+limits, not list price.
 
 How to apply:
 
@@ -37,12 +34,15 @@ How to apply:
 - Cost is a tie-breaker only; when axes conflict for anything that ships,
   intelligence > taste > cost.
 - Bulk/mechanical work (clear-spec implementation, data analysis,
-  migrations, convention mining, codebase sweeps): gpt-5.5 — it's very
-  cheap and token efficient.
-- Anything user-facing (UI, copy, API design) needs taste ≥ 7.
-- Reviews of plans/implementations: fable-5 or opus-4.8, optionally gpt-5.5
-  as an extra independent perspective.
-- Never use Haiku.
+  migrations, convention mining, codebase sweeps): route through Codex using
+  the configured workhorse or default profile.
+- Difficult, ambiguous, or high-value work: use the strongest appropriate
+  configured profile and increase reasoning effort before changing runtimes.
+- Anything user-facing (UI, copy, API design) needs a runtime or profile
+  demonstrated to meet the user's quality and taste bar.
+- Reviews of plans or implementations should use a strong reviewer, with a
+  different runtime or profile as an optional independent perspective.
+- Do not use the smallest, lowest-capability Claude tier for delegated work.
 - Claude stays for synthesis, judgment, and taste stages — the orchestrator,
   not the workhorse.
 
@@ -53,17 +53,18 @@ running bulk work on Claude *by default* because Claude is the runtime you
 are already in. Spawning a Claude subagent for a codebase sweep, or running
 every Workflow stage on the session model, both feel natural and both
 misroute. Before ANY delegation (Agent call, Workflow stage, background
-task), classify first: is this bulk/mechanical? Then it goes to gpt-5.5,
-and staying on a Claude model requires a reason, not a habit. When launching
-multi-stage work, state the per-stage model routing up front so it can be
-reviewed before tokens burn.
+task), classify first: is this bulk/mechanical? Then it goes through Codex
+using the configured workhorse or default profile, and staying on Claude
+requires a reason, not a habit. When launching multi-stage work, state the
+per-stage routing up front so it can be reviewed before tokens burn.
 
 ## Codex mechanics
 
-gpt-5.5 runs through the Codex CLI: `codex exec` for work, `codex review` for
-reviews. The claude-code plugin stays out of the agent's model of the world —
-its stop-time review gate runs as an ambient hook, and its slash commands are
-for the human to type. Route everything agent-initiated through the CLI:
+Codex work runs through the Codex CLI: `codex exec` for work, `codex review`
+for reviews. The claude-code plugin stays out of the agent's model of the
+world — its stop-time review gate runs as an ambient hook, and its slash
+commands are for the human to type. Route everything agent-initiated through
+the CLI:
 
 - One self-contained prompt per run: `codex exec -s read-only "..."` for
   investigation/analysis, `codex exec --sandbox workspace-write "..."` for
@@ -75,19 +76,21 @@ for the human to type. Route everything agent-initiated through the CLI:
   session (`pgrep -f "codex exec"`) before relaunching with a steering note.
 - Codex runs can exceed Bash's 10-minute timeout: pass an explicit timeout,
   or run in the background and poll for the report file.
+- Omit `--model` for the configured default. If routing requires a distinct
+  capability or cost tier, use `--profile <name>` and let that profile own the
+  current model ID.
 
-Using gpt-5.5 inside workflows and subagents (the model parameter only takes
+Using Codex inside workflows and subagents (the model parameter only takes
 Claude models, so use a wrapper):
 
 - Spawn a thin Claude wrapper agent (`model: 'sonnet', effort: 'low'`) whose
   prompt instructs it to write a self-contained codex prompt, run
   `codex exec` via Bash, and return the report (use `schema` on the wrapper
   for structured output back).
-- Always label these agents with a `gpt-5.5:` prefix, e.g.
-  `{label: 'gpt-5.5:review-auth'}` — the workflow UI shows the wrapper's
-  Claude model, so the label is the only indication the real worker is
-  gpt-5.5.
-- Parallel gpt-5.5 implementation agents must use `isolation: 'worktree'` so
+- Always label these agents with a `codex:` prefix, e.g.
+  `{label: 'codex:review-auth'}` — the workflow UI shows the wrapper's Claude
+  model, so the label is the indication that the real worker is Codex.
+- Parallel Codex implementation agents must use `isolation: 'worktree'` so
   codex edits don't collide in the shared checkout.
 - Workflow token budgets only count Claude tokens; codex work is free and
   invisible to `budget.spent()`.
