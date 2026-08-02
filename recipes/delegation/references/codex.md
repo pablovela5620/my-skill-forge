@@ -16,9 +16,13 @@ codex exec -c 'model_reasoning_effort="xhigh"' ...
 
 ## Foreground
 
-Foreground is the default. Set an explicit tool timeout and collect the result
-before yielding. Use `--sandbox read-only` for investigation and
+Foreground is the default. Set an explicit tool timeout and capture the complete
+output. If foreground Codex times out, preserve its output and switch to the
+durable branch. Use `--sandbox read-only` for investigation and
 `--sandbox workspace-write` for edits.
+
+Start hardware probes in the sandbox. If device isolation blocks the probe,
+request approval for only that command; do not broaden the sandbox.
 
 **Complete when:** Codex has returned and its output has been assessed.
 

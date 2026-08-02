@@ -1,6 +1,6 @@
 ---
 name: delegation
-description: "Closed-loop delegation from Claude Code: use when choosing between the current Fable session, Opus workers, and Codex."
+description: "Closed-loop delegation from Claude Code: use when choosing between the current Claude session, Opus workers, and Codex."
 ---
 
 # Delegation
@@ -14,7 +14,7 @@ follow its active delegation instructions and native tools.
 
 ## 1. Route
 
-Keep small or tightly coupled work in the current Fable session. Delegate work
+Keep small or tightly coupled work in the current Claude session. Delegate work
 that benefits from separation, specialization, or parallel execution.
 
 Use only Codex, Opus, or Fable:
