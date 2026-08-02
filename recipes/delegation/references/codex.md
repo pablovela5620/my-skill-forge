@@ -42,12 +42,3 @@ session when recovery is possible. Launch the primary job before optional
 research.
 
 **Complete when:** Codex survival and Claude wake-up are both verified.
-
-## Access
-
-Check the effective sandbox before launch. Ask for `danger-full-access` when
-the job requires GPU access, process control, or local socket binding. Keep
-privileged orchestration with Claude.
-
-Treat network-enabled Codex prompts as an injection boundary; combine network
-access only with trusted input.

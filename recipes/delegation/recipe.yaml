@@ -29,6 +29,7 @@ tests:
       - grep -Fq 'model_reasoning_effort="xhigh"' $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md
       - grep -Fq 'paseo heartbeat create' $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md
       - '! grep -Fiq sonnet $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md'
+      - '! grep -Fq danger-full-access $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md'
     requirements:
       run:
         - skills-ref
