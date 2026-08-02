@@ -3,7 +3,7 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.6"
+  version: "0.0.7"
 
 source:
   url: https://raw.githubusercontent.com/pablovela5620/my-skill-forge/main/LICENSE
@@ -13,16 +13,22 @@ build:
   number: 0
   noarch: generic
   script:
-    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/references
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+    - cp $RECIPE_DIR/references/codex.md $PREFIX/share/agent-skills/${{ skill }}/references/codex.md
 
 tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/references/codex.md
       strict: true
   - script:
       - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - grep -Fq 'This skill governs Claude Code.' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+      - grep -Fq 'model_reasoning_effort="xhigh"' $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md
+      - grep -Fq 'paseo heartbeat create' $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md
+      - '! grep -Fiq sonnet $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md'
     requirements:
       run:
         - skills-ref
