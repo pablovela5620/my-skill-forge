@@ -32,6 +32,7 @@ For more background on why distributing agent skills through package managers ma
 | [rerun-viewer-validation](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-rerun-viewer-validation` | Prove what the Rerun 0.34 viewer rendered: headless ViewerClient screenshots, viewer MCP timeline/UI checks, rrd-to-video sweeps, playwright for web embeds |
 | [simplify-code](https://github.com/NousResearch/hermes-agent/tree/main/skills/software-development/simplify-code) | `agent-skill-simplify-code` | Simplify recent code changes with focused reuse, quality, and efficiency reviewers |
 | [tdd](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `agent-skill-tdd` | Test-driven development with red-green-refactor workflows |
+| [thermo-nuclear-code-quality-review](https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review) | `agent-skill-thermo-nuclear-code-quality-review` | Run unusually strict maintainability reviews focused on structural simplification and codebase health |
 
 ## Usage
 

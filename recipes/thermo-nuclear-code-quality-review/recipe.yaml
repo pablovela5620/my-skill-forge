@@ -1,0 +1,44 @@
+context:
+  skill: thermo-nuclear-code-quality-review
+  upstream_path: cursor-team-kit/skills/thermo-nuclear-code-quality-review
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/cursor/plugins
+  rev: fa16d695b35ccf4ea179d976e5aaee0834a25b0b
+  patches:
+    - fix-frontmatter.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp ${{ upstream_path }}/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for unusually strict maintainability reviews
+  description: |
+    Run a thermo-nuclear code quality review that:
+    - Searches for structural simplifications that delete complexity
+    - Flags spaghetti growth, giant files, weak boundaries, and thin abstractions
+    - Prioritizes a few high-conviction findings over cosmetic comments
+  homepage: https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review
+  repository: https://github.com/cursor/plugins
+  documentation: https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review
+  license: MIT
+  license_file: cursor-team-kit/LICENSE
