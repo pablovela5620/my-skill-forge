@@ -1,28 +1,23 @@
 context:
   skill: chrome-cdp
-  version: "1.0.2"
-
+  version: "1.1.0"
 package:
   name: agent-skill-${{ skill }}
   version: ${{ version }}
-
 source:
   url: https://github.com/pasky/chrome-cdp-skill/archive/refs/tags/v${{ version }}.tar.gz
-  sha256: 2863de65447ee885fd7b496e242f315a517bde5e123d7a188d2eeab14a01c820
+  sha256: 1f6cf16ed1be023410e101135f2b51972803ba90fcd88499e72a62396b40348c
   patches:
     - fix-skill.patch
-
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R skills/${{ skill }}/* $PREFIX/share/agent-skills/${{ skill }}
-
 requirements:
   run_constraints:
     - nodejs >=22
-
 tests:
   - package_contents:
       files:
@@ -39,7 +34,6 @@ tests:
     requirements:
       run:
         - nodejs >=22
-
 about:
   summary: Agent skill for interacting with a live local Chrome session over CDP
   description: |
