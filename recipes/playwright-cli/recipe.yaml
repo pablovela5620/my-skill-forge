@@ -2,10 +2,10 @@ context:
   skill: playwright-cli
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.3"
+  version: "0.0.4"
 source:
   git: https://github.com/microsoft/playwright-cli
-  rev: 74d9bf144a96770b6295ceedecb07a2fd7e86775
+  rev: eee5a185c98e6b04d88f580d45a854e9692ab50b
 build:
   number: 0
   noarch: generic
