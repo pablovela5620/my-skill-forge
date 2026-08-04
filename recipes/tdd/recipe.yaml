@@ -17,8 +17,8 @@ tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
         - share/agent-skills/${{ skill }}/mocking.md
-        - share/agent-skills/${{ skill }}/refactoring.md
         - share/agent-skills/${{ skill }}/tests.md
       strict: true
   - script:
@@ -30,9 +30,9 @@ about:
   summary: Agent skill for test-driven development
   description: |
     Engineering skill for practicing test-driven development:
-    - Follows the red-green-refactor loop one behavior at a time
-    - Emphasizes behavior-focused integration tests through public interfaces
-    - Covers mocking, interface design, refactoring, and deep module guidance
+    - Follows the red-green loop one behavior and one agreed seam at a time
+    - Emphasizes behavior-focused tests through public interfaces
+    - Rejects implementation-coupled, tautological, and horizontal-slice tests
   homepage: https://skills.sh/mattpocock/skills/tdd
   repository: https://github.com/mattpocock/skills
   documentation: https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd
