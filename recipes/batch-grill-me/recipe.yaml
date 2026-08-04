@@ -1,0 +1,45 @@
+context:
+  skill: batch-grill-me
+  upstream_path: skills/in-progress/batch-grill-me
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/mattpocock/skills
+  rev: 2ab958093e83e0ec752e6c1c5932da465bf23e0c
+  patches:
+    - fix-frontmatter.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for batch grilling plans through frontier questions
+  description: |
+    Planning skill that interviews the user in dependency-aware rounds:
+    - Maps decisions as a tree and asks every currently unblocked question
+    - Recommends an answer for each question while leaving decisions to the user
+    - Recomputes the frontier until no assumptions remain
+  homepage: https://github.com/mattpocock/skills/tree/main/skills/in-progress/batch-grill-me
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/in-progress/batch-grill-me
+  license: MIT
+  license_file: LICENSE

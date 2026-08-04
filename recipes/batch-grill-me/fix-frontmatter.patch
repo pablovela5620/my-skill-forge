@@ -1,0 +1,8 @@
+--- a/skills/in-progress/batch-grill-me/SKILL.md
++++ b/skills/in-progress/batch-grill-me/SKILL.md
+@@ -1,5 +1,4 @@
+ ---
+ name: batch-grill-me
+ description: A relentless interview that asks every frontier question at once, round by round.
+-disable-model-invocation: true
+ ---

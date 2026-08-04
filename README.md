@@ -14,6 +14,7 @@ For more background on why distributing agent skills through package managers ma
 
 | Skill | Package | Description |
 |-------|---------|-------------|
+| [batch-grill-me](https://github.com/mattpocock/skills/tree/main/skills/in-progress/batch-grill-me) | `agent-skill-batch-grill-me` | Interview users in dependency-aware rounds by asking every currently unblocked design question |
 | [chrome-cdp](https://github.com/pasky/chrome-cdp-skill) | `agent-skill-chrome-cdp` | Chrome DevTools Protocol skill for live local browser sessions |
 | [conda-forge](https://conda-forge.org) | `agent-skill-conda-forge` | conda-forge packaging operations |
 | [create-node](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-create-node` | Create single-purpose CV nodes with API, Gradio UI, Rerun viewer, and CLI |
