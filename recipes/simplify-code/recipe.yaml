@@ -3,10 +3,10 @@ context:
   upstream_path: skills/software-development/simplify-code/SKILL.md
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.4"
+  version: "0.0.5"
 source:
   git: https://github.com/NousResearch/hermes-agent
-  rev: dec4485d2ffacc49f2d2af15d6b3fcdeb238e1dc
+  rev: fb4e17b1ea50d92f4f5dbba99347b1b0b18ef544
   patches:
     - fix-frontmatter.patch
 build:
