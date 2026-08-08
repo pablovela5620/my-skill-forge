@@ -37,7 +37,8 @@ For a mirrored upstream skill:
 - Add `context.upstream_path` for `git-main` mirrors when possible so autobump can avoid commits where the skill path was removed or moved.
 - Use a small patch only when needed to adapt upstream content to this repo.
 
-Whenever you add a skill, update `README.md`.
+Keep package names, descriptions, and upstream links in `recipe.yaml`; do not
+duplicate the recipe catalog in `README.md`.
 
 ## Autobump And Updates
 

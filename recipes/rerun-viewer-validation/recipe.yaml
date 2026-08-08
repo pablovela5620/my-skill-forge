@@ -3,13 +3,11 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  # Version tracks the Rerun line the skill targets (parity with run_constraints);
-  # skill-only iterations bump `build.number` below (same version, new build),
-  # and retargeting a new Rerun line bumps the version + resets the number.
+  # The version records the minimum Rerun line: viewer MCP first shipped in 0.34.
   version: "0.34.0"
 
 build:
-  number: 0
+  number: 1
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
@@ -24,18 +22,9 @@ requirements:
   # The video branch shells out to ffmpeg — a real dependency, so declare it.
   run:
     - ffmpeg
-  # The skill targets the 0.34 viewer surface: the `rerun viewer-mcp` stdio
-  # server, MCP `set_time`/`screenshot`, and `ViewerClient.spawn(headless=...)`.
-  # None of it exists on <=0.33, so the right expression is a run constraint on
-  # the SDK. DISABLED until conda-forge ships rerun-sdk >=0.34 (latest there is
-  # 0.33.1 as of 2026-07-06): a conda run_constraints only sees the *conda*
-  # package, so today it (a) makes any env using conda-forge's rerun-sdk
-  # unsolvable, and (b) does nothing for PyPI-sourced rerun-sdk (how most envs
-  # get 0.34). The version requirement is carried by the `compatibility`
-  # frontmatter and SKILL.md prose in the meantime. Re-enable when conda-forge
-  # catches up:
-  # run_constraints:
-  #   - rerun-sdk >=0.34.0,<0.35
+  # Viewer MCP first shipped in 0.34; later minor lines remain supported.
+  run_constraints:
+    - rerun-sdk >=0.34.0
 
 tests:
   - package_contents:

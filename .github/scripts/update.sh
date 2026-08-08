@@ -17,18 +17,9 @@ usage() {
     exit 1
 }
 
-if [[ $# -lt 2 ]]; then
-    usage
-fi
-
-skill_name=$1
-strategy=$2
-recipe_file="recipes/${skill_name}/recipe.yaml"
-
-if [[ ! -f "$recipe_file" ]]; then
-    echo "Error: Recipe file not found: $recipe_file"
-    exit 1
-fi
+skill_name=""
+strategy=""
+recipe_file=""
 
 # Bump patch version (e.g., 0.0.1 -> 0.0.2)
 bump_patch_version() {
@@ -76,15 +67,8 @@ get_latest_git_rev() {
         return
     fi
 
-    local head_rev
-    head_rev=$(gh api "repos/${repo}/commits/main" --jq '.sha')
-    if git_path_exists_at_rev "$repo" "$upstream_path" "$head_rev"; then
-        echo "$head_rev"
-        return
-    fi
-
-    echo "Path $upstream_path is missing at main; finding newest commit that still contains it..." >&2
-
+    # Monorepo skills should bump only when their own path changes. Repository
+    # HEAD may advance many times a day for unrelated files.
     local candidate_rev
     while IFS= read -r candidate_rev; do
         if [[ -z "$candidate_rev" ]]; then
@@ -200,18 +184,31 @@ update_yolo() {
     fi
 }
 
-case "$strategy" in
-    git-main)
-        update_git_main
-        ;;
-    github-latest-release)
-        update_github_latest_release
-        ;;
-    yolo)
-        update_yolo
-        ;;
-    *)
-        echo "Error: Unknown strategy '$strategy'"
+main() {
+    if [[ $# -lt 2 ]]; then
         usage
-        ;;
-esac
+    fi
+
+    skill_name=$1
+    strategy=$2
+    recipe_file="recipes/${skill_name}/recipe.yaml"
+
+    if [[ ! -f "$recipe_file" ]]; then
+        echo "Error: Recipe file not found: $recipe_file"
+        exit 1
+    fi
+
+    case "$strategy" in
+        git-main) update_git_main ;;
+        github-latest-release) update_github_latest_release ;;
+        yolo) update_yolo ;;
+        *)
+            echo "Error: Unknown strategy '$strategy'"
+            usage
+            ;;
+    esac
+}
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    main "$@"
+fi

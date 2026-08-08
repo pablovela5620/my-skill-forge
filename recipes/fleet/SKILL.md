@@ -17,12 +17,10 @@ deletes what's unlisted.
 |---|---|---|
 | What exists / is online? | Tailscale (self-updating) | `tailscale status` |
 | Specs, GPUs, roles? | Rackpeek (curated, can lag) | `ssh pablo-dl-server docker exec rackpeek rpk summary` (also `rpk servers describe <name>`, `rpk systems list`) |
-| Fleet-managed? | agent-fleet repo | overlay at `manifests/machines/<lowercased short hostname>.toml` (the LOCAL hostname, which may differ from the Tailscale name — e.g. the M5 laptop is `pablos-m5-pro` on the tailnet but `macbook-pro-3.toml` here, and the DGX is `dgx-spark` vs `spark-9232.toml`); `~/agent-fleet` checked out |
+| Fleet-managed? | agent-fleet repo | an overlay in `manifests/machines/` and a `~/agent-fleet` checkout; the overlay uses the local identity selected by `sync.sh`, which can differ from the Tailscale name |
 
-Stable facts: `pablo-dl-server` is the conductor (always-on, hosts rackpeek).
-The DGX Spark (`dgx-spark` on the tailnet, local hostname `spark-9232`)
-is linux-aarch64 — account for it in platform availability.
-Macs are osx-arm64.
+Query platform and hardware facts through Rackpeek. Read the overlay directory
+instead of copying its current members into documentation.
 
 ## Reaching machines
 

@@ -10,30 +10,12 @@ They are managed by [pixi-skills](https://github.com/pavelzw/pixi-skills) and ca
 
 For more background on why distributing agent skills through package managers makes sense, check out the blog post [Managing Agent Skills with Your Package Manager](https://pavel.pink/blog/pixi-skills).
 
-## Available skills
+## Skills
 
-| Skill | Package | Description |
-|-------|---------|-------------|
-| [batch-grill-me](https://github.com/mattpocock/skills/tree/main/skills/in-progress/batch-grill-me) | `agent-skill-batch-grill-me` | Interview users in dependency-aware rounds by asking every currently unblocked design question |
-| [chrome-cdp](https://github.com/pasky/chrome-cdp-skill) | `agent-skill-chrome-cdp` | Chrome DevTools Protocol skill for live local browser sessions |
-| [conda-forge](https://conda-forge.org) | `agent-skill-conda-forge` | conda-forge packaging operations |
-| [create-node](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-create-node` | Create single-purpose CV nodes with API, Gradio UI, Rerun viewer, and CLI |
-| [daggr](https://github.com/gradio-app/daggr/tree/main/.agents/skills/daggr) | `agent-skill-daggr` | Build visual DAG-based AI pipelines with Gradio Spaces, Hugging Face models, and Python functions |
-| [domain-modeling](https://github.com/mattpocock/skills/tree/main/skills/engineering/domain-modeling) | `agent-skill-domain-modeling` | Build and sharpen a project's domain model, capturing glossary and ADR decisions |
-| [gh-cli](https://github.com/github/awesome-copilot/tree/main/skills/gh-cli) | `agent-skill-gh-cli` | GitHub CLI workflows and command reference |
-| [grill-me](https://skills.sh/mattpocock/skills/grill-me) | `agent-skill-grill-me` | Stress-test plans and designs with a focused planning interview (frozen; superseded upstream by `grilling`) |
-| [grill-with-docs](https://skills.sh/mattpocock/skills/grill-with-docs) | `agent-skill-grill-with-docs` | Stress-test plans against existing domain documentation and capture glossary or ADR decisions (frozen; superseded upstream by `grilling` + `domain-modeling`) |
-| [grilling](https://github.com/mattpocock/skills/tree/main/skills/productivity/grilling) | `agent-skill-grilling` | Stress-test plans and designs with a relentless one-question-at-a-time interview |
-| [hf-cli](https://github.com/huggingface/skills/tree/main/skills/hf-cli) | `agent-skill-hf-cli` | Hugging Face Hub CLI workflows and command reference |
-| [html-artifacts](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-html-artifacts` | Readable single-file HTML artifacts for plans, reports, reviews, diagrams, decks, and editors |
-| [karpathy-guidelines](https://github.com/multica-ai/andrej-karpathy-skills/tree/main/skills/karpathy-guidelines) | `agent-skill-karpathy-guidelines` | Behavioral guidelines to reduce common LLM coding mistakes |
-| [playwright-cli](https://github.com/microsoft/playwright-cli/tree/main/skills/playwright-cli) | `agent-skill-playwright-cli` | Browser automation and Playwright test workflows |
-| [port-model](https://github.com/facebook/pyrefly/tree/main/.claude/skills/port-model) | `agent-skill-port-model` | Port PyTorch models to pyrefly tensor shape types |
-| [rattler-build](https://rattler.build) | `agent-skill-rattler-build` | Build conda packages with rattler-build |
-| [rerun-viewer-validation](https://github.com/pablovela5620/my-skill-forge) | `agent-skill-rerun-viewer-validation` | Prove what the Rerun 0.34 viewer rendered: headless ViewerClient screenshots, viewer MCP timeline/UI checks, rrd-to-video sweeps, playwright for web embeds |
-| [simplify-code](https://github.com/NousResearch/hermes-agent/tree/main/skills/software-development/simplify-code) | `agent-skill-simplify-code` | Simplify recent code changes with focused reuse, quality, and efficiency reviewers |
-| [tdd](https://github.com/mattpocock/skills/tree/main/skills/engineering/tdd) | `agent-skill-tdd` | Test-driven development with red-green-refactor workflows |
-| [thermo-nuclear-code-quality-review](https://github.com/cursor/plugins/tree/main/cursor-team-kit/skills/thermo-nuclear-code-quality-review) | `agent-skill-thermo-nuclear-code-quality-review` | Run unusually strict maintainability reviews focused on structural simplification and codebase health |
+The [Prefix channel](https://prefix.dev/channels/my-skill-forge) is the
+published package catalog. Source recipes and their pinned upstreams live in
+[`recipes/`](recipes/). Recipe metadata is canonical; this README does not copy
+the catalog.
 
 ## Usage
 

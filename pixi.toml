@@ -2,21 +2,21 @@
 channels = ["conda-forge"]
 name = "my-skill-forge"
 platforms = ["osx-arm64", "linux-64"]
-preview = ["pixi-build"]
 
 [tasks]
 pre-commit-install = "pre-commit install"
 pre-commit-run = "pre-commit run -a"
+lint = "pre-commit run -a --color=always --show-diff-on-failure"
+test-autobump = "bash tests/test_update.sh"
+check = { depends-on = ["lint", "test-autobump"] }
 build-new = "rattler-build build -c https://prefix.dev/my-skill-forge -c conda-forge --recipe-dir recipes/ --skip-existing=all"
 build-all = "rattler-build build -c https://prefix.dev/my-skill-forge -c conda-forge --recipe-dir recipes/"
+autobump = ".github/scripts/update.sh"
 
 [dependencies]
-skills-ref = "*"
 go-yq = "*"
 rattler-build = "*"
 pre-commit = "*"
-check-jsonschema = "*"
-shellcheck = "*"
 pre-commit-hooks = "*"
 taplo = "*"
 typos = "*"
