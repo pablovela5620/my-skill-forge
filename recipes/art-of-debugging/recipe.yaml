@@ -1,0 +1,42 @@
+context:
+  skill: art-of-debugging
+  upstream_path: SKILL.md
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+source:
+  git: https://github.com/stas00/the-art-of-debugging
+  rev: 0ece41765dad7fc250a76593dc0e22d08b64b669
+  patches:
+    - pixi-only.patch
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - grep -Fq '## Pixi-only setup' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+      - grep -Fq 'pixi exec py-spy dump -n -p PID' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+      - if grep -Eq 'pip[[:space:]]+install|conda[[:space:]]+activate' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md; then exit 1; fi
+    requirements:
+      run:
+        - skills-ref
+about:
+  summary: Agent skill for systematic Unix, Python, and PyTorch debugging
+  description: |
+    A systematic debugging guide that:
+    - Builds fast, reliable reproductions before changing code
+    - Localizes crashes, hangs, bad output, memory faults, and slow code
+    - Selects practical Unix, Python, PyTorch, CUDA, and distributed tools
+  homepage: https://github.com/stas00/the-art-of-debugging
+  repository: https://github.com/stas00/the-art-of-debugging
+  documentation: https://github.com/stas00/the-art-of-debugging/blob/master/SKILL.md
+  license: CC-BY-SA-4.0
+  license_file: LICENSE-CC-BY-SA

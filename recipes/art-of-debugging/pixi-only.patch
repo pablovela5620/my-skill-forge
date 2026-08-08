@@ -1,0 +1,101 @@
+--- a/SKILL.md
++++ b/SKILL.md
+@@ -18,6 +18,21 @@
+
+ Actionable methodology + copy-paste recipes for debugging Unix / Python / PyTorch programs. Apply the general loop first; then jump to the domain cheatsheet for the failure at hand. For scaling this up to large-model training/inference on real clusters (compute/storage/network, SLURM, throughput/memory, instabilities, fault tolerance, inference), pair this with [Machine Learning Engineering](https://github.com/stas00/ml-engineering/blob/master/SKILL.md).
+
++## Pixi-only setup
++
++Use Pixi for every debugging dependency. Inspect `pixi.toml` and its declared
++channels first; prefer conda packages from those channels, normally conda-forge.
++
++- Run tools already in the workspace with `pixi run`.
++- Use `pixi exec` for one-off diagnostic tools.
++- Add recurring tools with `pixi add`.
++- Use `pixi add --pypi` when a package is unavailable from the declared conda channels.
++- Enter an interactive environment with `pixi shell -e <environment>`.
++- Apply this setup policy to commands in the linked chapters.
++
++Setup is complete when each command runs through Pixi and recurring tools are
++recorded in `pixi.toml` and `pixi.lock`.
++
+ ## The debugging loop
+
+ The single most important idea: **most of the effort is in *locating* the cause; once you truly understand it, the fix is usually easy.** Optimize everything for reaching understanding faster.
+@@ -69,10 +84,10 @@
+   Combine as `set -euo pipefail`. See [controlling script execution](https://github.com/stas00/the-art-of-debugging/blob/master/unix/README.md#controlling-script-execution).
+ - **`strace` - trace system calls** to see what a program actually does (files, network, why it's stuck):
+   ```bash
+-  strace python -c "print('hi')"                 # trace from the start
++  pixi run strace python -c "print('hi')"        # trace from the start
+   strace --pid PID                               # attach to a running/stuck process
+-  strace -o log.txt -f python -m torch.distributed.run ...  # -f follows forked children
+-  strace -e trace=open,openat,read python prog.py           # filter to specific syscalls
++  pixi run strace -o log.txt -f python -m torch.distributed.run ...  # -f follows children
++  pixi run strace -e trace=open,openat,read python prog.py   # filter to specific syscalls
+   strace -e trace=network -p PID                            # is it stuck on a socket?
+   ```
+   Classic use: a process at 100% CPU with no output, or hung on I/O/network. See [strace](https://github.com/stas00/the-art-of-debugging/blob/master/unix/README.md#strace).
+@@ -133,24 +148,23 @@
+   - **trace calls/returns** with `q` (writes to `/tmp/q`, doesn't pollute stdout). See [q](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#q).
+ - **Run the code you think you're running.** Edits not taking effect? Wrong copy is imported:
+   ```bash
+-  pip install -e .               # run from the source tree, not a copied install
+-  PYTHONPATH=src python prog.py  # or point Python straight at the source
+-  python -c "import pkg; print(pkg.__file__)"   # confirm which file is actually loaded
++  pixi install                            # install the locked workspace environment
++  PYTHONPATH=src pixi run python prog.py  # point Python straight at the source
++  pixi run python -c "import pkg; print(pkg.__file__)"  # confirm the imported file
+   ```
+   See [ensuring the Python package you edit is the one that is run](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#ensuring-the-python-package-you-edit-is-the-one-that-is-run) and [make tests use the git repo's packages](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#setting-up-your-test-suite-to-always-use-the-git-repos-python-packages).
+ - **Who called this?** `traceback.print_stack()` or the `die` trick to reveal the caller in complex codebases. See [who is calling?](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#who-is-calling).
+ - **Diagnose a hang (process alive but stuck)** with `py-spy` - no code changes, attaches live:
+   ```bash
+-  pip install py-spy
+-  py-spy dump -n -p PID          # -n also shows native (C/C++ extension) frames
++  pixi exec py-spy dump -n -p PID  # -n also shows native (C/C++ extension) frames
+   # all Python subprocesses at once (skip the launcher):
+-  pgrep -P $(pgrep -o python) | xargs -I {} py-spy dump --pid {}
++  pixi exec --spec py-spy bash -c 'pgrep -P "$(pgrep -o python)" | xargs -I {} py-spy dump --pid {}'
+   ```
+   No sudo? `echo 0 | sudo tee /proc/sys/kernel/yama/ptrace_scope`. **The first line of each dump is where it's stuck.** See [py-spy](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#py-spy).
+ - **Slow code -> profile before optimizing** (measure, don't guess):
+   ```bash
+-  python -m cProfile -s cumtime prog.py     # what dominates cumulative time
+-  kernprof -l -v prog.py                     # line_profiler: per-line timing of @profile funcs
++  pixi run python -m cProfile -s cumtime prog.py  # what dominates cumulative time
++  pixi run kernprof -l -v prog.py                 # per-line timing of @profile funcs
+   ```
+   For sub-ms functions, bump `pstats` precision (e.g. `pstats.f8 = lambda x: f"{x:6.3f}"`) so timings aren't all `0.000`. See [profilers](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#profilers) and [cProfile](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#cprofile).
+
+@@ -168,8 +182,8 @@
+
+ CUDA is async, so the reported line is usually wrong. Force a real traceback:
+ ```bash
+-CUDA_LAUNCH_BLOCKING=1 python prog.py   # sync CUDA -> accurate Python traceback
+-CUDA_VISIBLE_DEVICES="" python prog.py  # run on CPU (if feasible) for the clearest traceback
++CUDA_LAUNCH_BLOCKING=1 pixi run python prog.py   # sync CUDA -> accurate traceback
++CUDA_VISIBLE_DEVICES="" pixi run python prog.py  # use CPU for the clearest traceback
+ ```
+ See [dealing with async CUDA bugs](https://github.com/stas00/the-art-of-debugging/blob/master/pytorch/README.md#dealing-with-async-cuda-bugs).
+
+@@ -191,8 +205,8 @@
+
+ Same core-file + gdb flow as compiled programs, but **activate the exact python env that produced the core** or gdb can't unpack it:
+ ```bash
+-conda activate my-env
+-gdb python core-python-...      # then: bt / thread apply all bt
++pixi shell -e my-env
++gdb "$(command -v python)" core-python-...  # then: bt / thread apply all bt
+ ```
+ See [segfaults and getting a backtrace from a core file](https://github.com/stas00/the-art-of-debugging/blob/master/pytorch/README.md#segfaults-and-getting-a-backtrace-from-a-core-file).
+
+@@ -226,7 +240,7 @@
+ | Cryptic CUDA error / wrong line | `CUDA_LAUNCH_BLOCKING=1`, or run on CPU |
+ | CUDA/CPU OOM | forward vs backward; fragmentation (`PYTORCH_CUDA_ALLOC_CONF`); memory profiler |
+ | NaN/Inf / wrong numbers | `set_detect_anomaly`, under/overflow detection, per-tensor stats, `lovely-tensors` |
+-| "my edits do nothing" | the `die` trick; `pip install -e .` / `PYTHONPATH`; check `pkg.__file__` |
++| "my edits do nothing" | the `die` trick; `pixi install` / `PYTHONPATH`; check `pkg.__file__` |
+ | Who calls this? | `traceback.print_stack()` / `die` |
+ | Wrong/missing shared lib | `ldd`, `nm -D`, `LD_LIBRARY_PATH`, `LD_PRELOAD` |
+ | Too slow (Python) | `cProfile -s cumtime`, `line_profiler` |

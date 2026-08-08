@@ -17,6 +17,8 @@ jobs:
           - skill: chrome-cdp
             strategy: github-latest-release
           # git-main strategy (track main branch)
+          - skill: art-of-debugging
+            strategy: git-main
           - skill: batch-grill-me
             strategy: git-main
           - skill: daggr
