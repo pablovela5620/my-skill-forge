@@ -1,0 +1,49 @@
+context:
+  skill: teach
+  upstream_path: skills/productivity/teach
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/mattpocock/skills
+  rev: 697d4ce9742da558fd1ba6697c8e9775e2e302dd
+  patches:
+    - fix-frontmatter.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/GLOSSARY-FORMAT.md
+        - share/agent-skills/${{ skill }}/LEARNING-RECORD-FORMAT.md
+        - share/agent-skills/${{ skill }}/MISSION-FORMAT.md
+        - share/agent-skills/${{ skill }}/RESOURCES-FORMAT.md
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for teaching concepts in a guided workspace
+  description: |
+    Stateful teaching skill that builds lessons around a learner's mission:
+    - Tracks resources, learning records, reference material, and notes
+    - Uses retrieval practice, spacing, and interactive feedback loops
+    - Ships OpenAI agent metadata so Codex exposes the skill correctly
+  homepage: https://github.com/mattpocock/skills/tree/main/skills/productivity/teach
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/productivity/teach
+  license: MIT
+  license_file: LICENSE
