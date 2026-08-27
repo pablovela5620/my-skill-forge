@@ -40,7 +40,7 @@ bar.
 - Launch Claude workers through Agent or Workflow calls.
 - Before launching Codex, read
   [`references/codex.md`](references/codex.md) completely and follow its
-  foreground or durable branch.
+  durable execution contract — never a bare `codex exec` tool call.
 - Give parallel editing workers separate worktrees.
 - Launch the primary requested work before optional supporting research.
 

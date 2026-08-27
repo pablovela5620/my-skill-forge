@@ -14,32 +14,30 @@ and set the highest supported single-agent CLI effort:
 codex exec -c 'model_reasoning_effort="xhigh"' ...
 ```
 
-## Foreground
+Use `--sandbox read-only` for investigation and `--sandbox workspace-write`
+for edits. Start hardware probes in the sandbox; if device isolation blocks
+the probe, request approval for only that command — do not broaden the
+sandbox.
 
-Foreground is the default. Set an explicit tool timeout and capture the complete
-output. If foreground Codex times out, preserve its output and switch to the
-durable branch. Use `--sandbox read-only` for investigation and
-`--sandbox workspace-write` for edits.
+## Durable execution — the only mode
 
-Start hardware probes in the sandbox. If device isolation blocks the probe,
-request approval for only that command; do not broaden the sandbox.
+Never run `codex exec` directly through a tool call: a run the harness
+backgrounds at a tool timeout wedges silently and never finishes. Every Codex
+launch is durable:
 
-**Complete when:** Codex has returned and its output has been assessed.
-
-## Durable
-
-Use durable execution when work must outlive the current Claude turn:
-
-1. Start Codex in a uniquely named tmux session on a teardown-proof tmux
-   server. An agent-spawned tmux server dies with the agent session's cgroup,
-   killing every session on it — boot the server via
-   `ssh <this-host> 'tmux new-session -d …'` or `systemd-run --user`, and
-   export `PATH` in ssh-launched scripts (`~/.pixi/bin` is absent).
-2. Capture its log and final response with `--output-last-message`.
-3. Register a finite wake-up with `paseo heartbeat create`.
-4. Verify the tmux session, first log output, report path, and heartbeat before
-   promising completion notification. On wake-up, re-check the status sentinel
-   and re-boot the work if it has gone stale.
+1. Use a teardown-proof tmux server. An agent-spawned tmux server dies with
+   the agent session's cgroup, killing every session on it — boot the server
+   via `ssh <this-host> 'tmux new-session -d …'` or `systemd-run --user`.
+   Use absolute binary paths in ssh-launched scripts (`~/.pixi/bin` is not
+   on a non-interactive PATH).
+2. Start Codex in a uniquely named tmux session. Redirect its log to a file
+   and capture the final response with `--output-last-message`.
+3. Pick the wake-up: a background watcher on the output file for work
+   collected this session; `paseo heartbeat create` when the work must
+   outlive the session.
+4. Verify the tmux session, first log output, report path, and wake-up
+   before promising completion. On heartbeat wake-up, re-check the status
+   sentinel and re-boot the work if it has gone stale.
 
 Track the exact tmux session. A live session remains in progress; a valid
 final report is complete; a missing session without a valid report is failed.
@@ -50,4 +48,5 @@ Remove the heartbeat after a terminal outcome. Resume the recorded Codex
 session when recovery is possible. Launch the primary job before optional
 research.
 
-**Complete when:** Codex survival and Claude wake-up are both verified.
+**Complete when:** Codex survival and the wake-up path are both verified, and
+the final report has been read and assessed.
