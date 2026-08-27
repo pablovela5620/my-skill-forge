@@ -30,21 +30,16 @@ request approval for only that command; do not broaden the sandbox.
 
 Use durable execution when work must outlive the current Claude turn:
 
-1. Start Codex in a uniquely named tmux session **on a teardown-proof tmux
-   server**: a tmux server first started from a sandboxed agent shell lives in
-   that agent session's cgroup, and agent teardown kills the whole server —
-   every session on it, however old (verified 2026-08-27: one restart took down
-   two overnight lanes and an 11-day-old catalog server). When `tmux ls` shows
-   no server, boot it through `ssh <this-host> 'tmux new-session -d …'` (sshd's
-   cgroup) or `systemd-run --user`; when a server already runs, confirm its
-   provenance before trusting it with overnight work. Scripts launched through
-   non-interactive ssh need an explicit `PATH` export (`~/.pixi/bin` is absent).
+1. Start Codex in a uniquely named tmux session on a teardown-proof tmux
+   server. An agent-spawned tmux server dies with the agent session's cgroup,
+   killing every session on it — boot the server via
+   `ssh <this-host> 'tmux new-session -d …'` or `systemd-run --user`, and
+   export `PATH` in ssh-launched scripts (`~/.pixi/bin` is absent).
 2. Capture its log and final response with `--output-last-message`.
 3. Register a finite wake-up with `paseo heartbeat create`.
 4. Verify the tmux session, first log output, report path, and heartbeat before
-   promising completion notification. The heartbeat is also the recovery path:
-   it wakes a fresh agent session that must re-check a status sentinel and
-   re-boot the work if the sentinel has gone stale.
+   promising completion notification. On wake-up, re-check the status sentinel
+   and re-boot the work if it has gone stale.
 
 Track the exact tmux session. A live session remains in progress; a valid
 final report is complete; a missing session without a valid report is failed.
