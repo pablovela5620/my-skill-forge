@@ -43,43 +43,21 @@ Named/constrained axes are encouraged: `Float32[ndarray, "n_verts=778 3"]`.
 
 ## Names carry meaning; types carry dtype and shape
 
-The jaxtyping annotation is the only place an array's dtype and shape live,
-and it is checked (beartype at every function boundary in the dev env,
-pyrefly statically — see below). Names never repeat it:
-
-- No dimension counts or axis letters that restate the annotation:
-  `cam_T_world_v44` → `cam_T_world`, `points_xyz_n3` → `points_xyz`,
-  `k_v33` → `intrinsics`, `obs_view_idx_m` → `obs_view_idx`.
-- No dtype in names: `src_f64`, `scales_np`, `view_idx_t` ("tensor") are all
-  wrong; the annotation already says `Float64[...]` or `torch.Tensor`.
-- Keep what the type cannot say: units (`_px`, `_m`, `_deg`, `_ns`, `_s`),
-  frame and direction (`cam_T_world`, `world_T_cam`, `dst_R_src`), and
-  order/layout conventions that differ between libraries (`_xy` vs `_uv`,
-  `_wh` vs `_hw`, `_rgb` vs `_bgr`, `_chw` vs `_hwc`).
-- One vs. many is a singular/plural noun or a role word
-  (`camera_T_world` vs `cameras_T_world`, `observation_view_idx` vs
-  `view_idx`), never a suffix.
-- Numpy and torch copies of the same value get role names, not `_np`/`_t`.
+The jaxtyping annotation is the only place dtype and shape live, and it is
+checked (beartype at function boundaries, pyrefly statically). Names never
+repeat it: `cam_T_world`, not `cam_T_world_v44`; `points_xyz`, not
+`points_xyz_n3`; no `_f64` / `_np` / `_t` dtype tags. Names keep what the type
+cannot say: units (`_px`, `_m`, `_deg`), frame direction (`cam_T_world`,
+`dst_R_src`), layout conventions (`_xy`/`_uv`, `_wh`/`_hw`, `_rgb`/`_bgr`).
+One vs. many is singular/plural or a role word, never a suffix.
 
 ## Static shape checking (pyrefly)
 
-The naming rule stands only because the annotation is verified, in two layers:
-
-1. beartype: the package-level claw checks every function boundary in the dev
-   env (and PEP 526 locals, unless a package turns those off for speed).
-2. pyrefly tensor shapes: switched on automatically when the
-   `shape_extensions` package resolves. It ships as PyPI stub packages
-   versioned in lockstep with pyrefly — `pyrefly-torch-stubs` (torch) and
-   `pyrefly-numpy-stubs` (numpy), both depending on
-   `pyrefly-shape-extensions`. Pin them to the exact pyrefly version in the
-   dev feature. jaxtyping annotations (`Float[Tensor, "n 3"]`,
-   `Float64[ndarray, "v 4 4"]`) are then native shape types: a wrong rank or
-   size at an assignment, argument, or return is a type error. Prove it is on
-   with a probe file that contains a deliberate rank mismatch; it must fail.
-   Stub coverage decides when a package can adopt it: the numpy stubs are on
-   pyrefly's 1.3 line and still lack `einsum` and batched `@`, so a
-   numpy-heavy package either waits for that release or carries a per-package
-   `pyrefly-baseline.json`.
+pyrefly checks jaxtyping shapes once the `shape_extensions` package resolves:
+pin `pyrefly-torch-stubs` and `pyrefly-numpy-stubs` (lockstep with the pyrefly
+version) in the dev feature. Prove it is on with a probe that mismatches a
+rank; it must fail. The numpy stubs (pyrefly 1.3 line) still lack `einsum`
+and batched `@`: adopt per package as coverage allows, baseline meanwhile.
 
 ## Type aliases: TypeAlias, never PEP 695
 
@@ -92,12 +70,9 @@ ImageBGR: TypeAlias = UInt8[ndarray, "H W 3"]
 DeviceChoice: TypeAlias = Literal["auto", "cuda", "cpu"]
 ```
 
-A string that can only take a few values is a `Literal` alias, never a bare
-`str`: codec names, layer kinds, modes, backends, device choices. Reuse the
-alias for parameters, return types, dict keys, and dataclass fields. Never
-`Any` or `object` where a canonical type or a small `Protocol` exists; a
-`Protocol` with read-only properties is the way to accept both a library type
-and a test stand-in.
+Strings with a fixed set of values are `Literal` aliases, never bare `str`;
+reuse the alias for params, returns, dict keys, and fields. No `Any`/`object`
+where a canonical type or a small `Protocol` fits.
 
 ## Imports & structure
 
