@@ -41,9 +41,45 @@ indices: Int[np.ndarray, "n"] = np.argsort(scores)
 
 Named/constrained axes are encouraged: `Float32[ndarray, "n_verts=778 3"]`.
 
-Mirror the annotation in the variable NAME with shape/axis/colorspace
-suffixes: `depth_hw`, `frames_rgb`, `bgr_hwc`, `points_xyz`. Redundant with
-the type by design — it makes shape/format bugs visible at every call site.
+## Names carry meaning; types carry dtype and shape
+
+The jaxtyping annotation is the only place an array's dtype and shape live,
+and it is checked (beartype at every function boundary in the dev env,
+pyrefly statically — see below). Names never repeat it:
+
+- No dimension counts or axis letters that restate the annotation:
+  `cam_T_world_v44` → `cam_T_world`, `points_xyz_n3` → `points_xyz`,
+  `k_v33` → `intrinsics`, `obs_view_idx_m` → `obs_view_idx`.
+- No dtype in names: `src_f64`, `scales_np`, `view_idx_t` ("tensor") are all
+  wrong; the annotation already says `Float64[...]` or `torch.Tensor`.
+- Keep what the type cannot say: units (`_px`, `_m`, `_deg`, `_ns`, `_s`),
+  frame and direction (`cam_T_world`, `world_T_cam`, `dst_R_src`), and
+  order/layout conventions that differ between libraries (`_xy` vs `_uv`,
+  `_wh` vs `_hw`, `_rgb` vs `_bgr`, `_chw` vs `_hwc`).
+- One vs. many is a singular/plural noun or a role word
+  (`camera_T_world` vs `cameras_T_world`, `observation_view_idx` vs
+  `view_idx`), never a suffix.
+- Numpy and torch copies of the same value get role names, not `_np`/`_t`.
+
+## Static shape checking (pyrefly)
+
+The naming rule stands only because the annotation is verified, in two layers:
+
+1. beartype: the package-level claw checks every function boundary in the dev
+   env (and PEP 526 locals, unless a package turns those off for speed).
+2. pyrefly tensor shapes: switched on automatically when the
+   `shape_extensions` package resolves. It ships as PyPI stub packages
+   versioned in lockstep with pyrefly — `pyrefly-torch-stubs` (torch) and
+   `pyrefly-numpy-stubs` (numpy), both depending on
+   `pyrefly-shape-extensions`. Pin them to the exact pyrefly version in the
+   dev feature. jaxtyping annotations (`Float[Tensor, "n 3"]`,
+   `Float64[ndarray, "v 4 4"]`) are then native shape types: a wrong rank or
+   size at an assignment, argument, or return is a type error. Prove it is on
+   with a probe file that contains a deliberate rank mismatch; it must fail.
+   Stub coverage decides when a package can adopt it: the numpy stubs are on
+   pyrefly's 1.3 line and still lack `einsum` and batched `@`, so a
+   numpy-heavy package either waits for that release or carries a per-package
+   `pyrefly-baseline.json`.
 
 ## Type aliases: TypeAlias, never PEP 695
 
@@ -55,6 +91,13 @@ from typing import TypeAlias
 ImageBGR: TypeAlias = UInt8[ndarray, "H W 3"]
 DeviceChoice: TypeAlias = Literal["auto", "cuda", "cpu"]
 ```
+
+A string that can only take a few values is a `Literal` alias, never a bare
+`str`: codec names, layer kinds, modes, backends, device choices. Reuse the
+alias for parameters, return types, dict keys, and dataclass fields. Never
+`Any` or `object` where a canonical type or a small `Protocol` exists; a
+`Protocol` with read-only properties is the way to accept both a library type
+and a test stand-in.
 
 ## Imports & structure
 
@@ -70,7 +113,7 @@ DeviceChoice: TypeAlias = Literal["auto", "cuda", "cpu"]
 ## Torch patterns
 
 - Device selection: a `DeviceChoice` Literal alias + a
-  `resolve_device(device: DeviceChoice = "auto") -> str` helper ("auto" →
+  `resolve_device(device: DeviceChoice = "auto") -> Literal["cuda", "cpu"]` helper ("auto" →
   cuda if available else cpu; explicit "cuda" raises RuntimeError when
   unavailable). Pass the resolved device explicitly to
   `.to(device=..., dtype=...)` — never rely on implicit device inference.
