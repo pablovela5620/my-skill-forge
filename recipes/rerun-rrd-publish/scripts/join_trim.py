@@ -22,6 +22,7 @@ survive the cut, which ``rerun rrd split`` alone drops.
 from __future__ import annotations
 
 import argparse
+import atexit
 import json
 import shutil
 import subprocess
@@ -148,6 +149,10 @@ def main() -> None:
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix=f"{args.out.stem}.work-", dir=args.out.parent))
+    # atexit, not a line at the end: the work dir holds a whole `--fix-keyframe` copy of the recording, and every
+    # refusal below leaves through sys.exit, which would strand those gigabytes under a fresh random name.
+    if not args.keep_work:
+        atexit.register(shutil.rmtree, work, True)
     inputs: list[Path] = []
     summary: dict[str, object] = {"out": str(args.out), "application_id": app_id, "loop": do_loop}
 
@@ -217,8 +222,6 @@ def main() -> None:
     })
     if args.keep_work:
         summary["work_dir"] = str(work)
-    else:
-        shutil.rmtree(work, ignore_errors=True)
     print(json.dumps(summary, indent=2))
 
 
