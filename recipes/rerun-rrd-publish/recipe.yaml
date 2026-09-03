@@ -1,0 +1,53 @@
+context:
+  skill: rerun-rrd-publish
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/scripts
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/references
+    - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+    - cp $RECIPE_DIR/agents/openai.yaml $PREFIX/share/agent-skills/${{ skill }}/agents/openai.yaml
+    - cp $RECIPE_DIR/scripts/fetch_segment.py $PREFIX/share/agent-skills/${{ skill }}/scripts/fetch_segment.py
+    - cp $RECIPE_DIR/scripts/join_trim.py $PREFIX/share/agent-skills/${{ skill }}/scripts/join_trim.py
+    - cp $RECIPE_DIR/references/gotchas.md $PREFIX/share/agent-skills/${{ skill }}/references/gotchas.md
+
+requirements:
+  # The scripts run with the project's own rerun-sdk Python; the LazyStore/RrdReader API they use is 0.37+.
+  run_constraints:
+    - rerun-sdk >=0.37.0
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
+        - share/agent-skills/${{ skill }}/scripts/fetch_segment.py
+        - share/agent-skills/${{ skill }}/scripts/join_trim.py
+        - share/agent-skills/${{ skill }}/references/gotchas.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - python -m py_compile $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts/fetch_segment.py $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts/join_trim.py
+    requirements:
+      run:
+        - skills-ref
+        - python
+
+about:
+  summary: Agent skill for publishing a Rerun catalog segment as a standalone .rrd example
+  description: |
+    Three steps with files as the interface: export one catalog segment plus its default blueprint on one
+    application id; join them into one verified .rrd, optionally clipped on a video keyframe with a looping
+    time panel; upload with hf and check the app.rerun.io link in a browser. Plus the rerun 0.37 gotchas
+    that make the naive route fail.
+  homepage: https://github.com/pablovela5620/my-skill-forge
+  repository: https://github.com/pablovela5620/my-skill-forge
+  documentation: https://github.com/pablovela5620/my-skill-forge
+  license: BSD-3-Clause
