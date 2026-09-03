@@ -11,7 +11,7 @@ invoked as ``python -m rerun`` from the same env, so no binary lookup is needed.
 
 Usage:
   python fetch_segment.py --catalog-url rerun+http://127.0.0.1:9988 --dataset <name> --segment <segment-id> \
-      --out-dir /tmp/rrd-publish/<name> [--app-id <id>] [--blueprint <file.rbl>]
+      --out-dir /tmp/rrd-publish/<name> [--app-id <id>] [--blueprint <file.rbl>] [--force]
 
 The dataset's default blueprint is read from its storage URL, which must be a ``file://`` path reachable
 from this machine (same host as the catalog server, or a shared mount). Otherwise pass ``--blueprint``.
@@ -25,10 +25,11 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from typing import NoReturn
 from urllib.parse import unquote, urlparse
 
 
-def fail(message: str) -> None:
+def fail(message: str) -> NoReturn:
     print(f"fetch_segment: {message}", file=sys.stderr)
     sys.exit(1)
 
@@ -46,6 +47,7 @@ def main() -> None:
     parser.add_argument("--app-id", default=None, help="application id for both stores (default: the dataset name)")
     parser.add_argument("--blueprint", type=Path, default=None, help=".rbl to use instead of the dataset's default blueprint")
     parser.add_argument("--no-assets", action="store_true", help="skip the dataset's registered assets")
+    parser.add_argument("--force", action="store_true", help="overwrite segment.rrd / blueprint.rbl if they are already in --out-dir")
     args = parser.parse_args()
 
     # Plain-http catalog servers need this; it is the fleet default and harmless for https.
@@ -70,7 +72,10 @@ def main() -> None:
         blueprint_id = dataset.default_blueprint()
         if not blueprint_id:
             fail("the dataset has no default blueprint; pass --blueprint <file.rbl> (a file without one opens with an auto layout)")
-        blueprint_rows = dataset.blueprint_dataset().segment_table().to_arrow_table().to_pylist()
+        blueprint_dataset = dataset.blueprint_dataset()
+        if blueprint_dataset is None:
+            fail(f"the dataset names default blueprint {blueprint_id} but has no blueprint dataset to read it from; pass --blueprint <file.rbl>")
+        blueprint_rows = blueprint_dataset.segment_table().to_arrow_table().to_pylist()
         blueprint_row = next((r for r in blueprint_rows if r["rerun_segment_id"] == blueprint_id), None)
         urls: list[str] = list(blueprint_row["rerun_storage_urls"]) if blueprint_row else []
         local = [Path(unquote(urlparse(u).path)) for u in urls if u.startswith("file://")]
@@ -85,6 +90,10 @@ def main() -> None:
     args.out_dir.mkdir(parents=True, exist_ok=True)
     segment_path = args.out_dir / "segment.rrd"
     blueprint_path = args.out_dir / "blueprint.rbl"
+    # A segment export costs minutes and gigabytes; never silently replace one that is already there.
+    existing = [p for p in (segment_path, blueprint_path) if p.exists()]
+    if existing and not args.force:
+        fail(f"{', '.join(str(p) for p in existing)} already exist(s); pass --force to overwrite, or choose another --out-dir")
     dataset.segment_store(args.segment, include_assets=not args.no_assets).write_rrd(
         segment_path, application_id=app_id, recording_id=args.segment
     )

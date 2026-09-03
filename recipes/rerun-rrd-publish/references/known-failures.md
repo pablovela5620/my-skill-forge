@@ -15,14 +15,22 @@ Each entry: symptom, cause, what the scripts do about it.
    chunks (Pinhole, Transform3D). Stage 2 writes the static slice of the full recording with
    `RrdReader(...).stream().filter(is_static=True).write_rrd(...)` and merges it back, with the same recording id as
    the split part (`<prefix>0`, split appends the part index).
+   Pick that part by its recording id, never by file name: split names its output `<stem>_<data-start>__<end>.rrd`,
+   so a glob on `*_0ns__*.rrd` finds nothing as soon as the recording does not start at 0 (a part covering
+   10.759-16.139 s came out as `fixed_10_692348928s__16_138764163s.rrd`, its name taken from the earliest chunk of
+   any component, not from the cut). Stage 2 also deletes the other parts, which are dead weight in the work dir.
 
-4. **Blank video at the end of a clip.** The web viewer never renders the frames of a truncated final GoP once
-   playback parks on the last frame (still blank after 30 s), while mid-clip frames render. So cut exactly at a
-   keyframe: split puts the frame at the cut time in the second part, part 0 ends on a whole GoP (161 frames, up
-   to 5.346 s, for the cut at 5.379588054 s here), and split has no cutoff to revise. Any other time makes split
-   log `revising cutoff time to match video keyframe` for every video: later in the GoP it still leaves part 0 the
-   first frame of the next GoP (162 frames for a 5.4 s cut), earlier it revises back to the GoP start. Stage 2
-   snaps the cut forward, so the clip runs a little longer than requested.
+4. **Blank video at the end of a clip.** Observed once, on 2026-09-03 against app.rerun.io 0.37.0, and not
+   re-tested since: the frames of a truncated final GoP stayed blank once playback parked on the last frame (still
+   blank after 30 s), while mid-clip frames rendered. The mitigation stands whatever the cause is, because it costs
+   nothing: cut exactly at a keyframe. Split puts the frame at the cut time in the second part, part 0 ends on a
+   whole GoP (161 frames, up to 5.346 s, for the cut at 5.379588054 s here), and split has no cutoff to revise. Any
+   other time makes split log `revising cutoff time to match video keyframe` for every video: later in the GoP it
+   still leaves part 0 the first frame of the next GoP (162 frames for a 5.4 s cut), earlier it revises back to the
+   GoP start. Stage 2 snaps the cut forward, so the clip runs a little longer than requested, and it snaps with
+   `>=`: a request that lands exactly on a keyframe cuts there instead of carrying one more GoP. The length is
+   measured from the timeline's first video stamp, so it means the same thing for a recording that starts at 0 and
+   for one that starts at 10.759 s.
 
 5. **Viewer parks on the last frame.** Default playback stops at the end, and a 5 s clip reaches it before the
    viewer has finished decoding. `TimePanel(loop_mode="All")` in the blueprint keeps it playing. An explicit
@@ -59,3 +67,10 @@ Each entry: symptom, cause, what the scripts do about it.
 13. **`playwright-cli` drops a `.playwright-cli/` session log in the working directory.** Driven by hand from a repo
     checkout, its console log and page dump land in the next commit. Stage 3 runs the browser check in a subshell
     that first cds into `--out-dir`.
+
+14. **`playwright-cli console` reports errors two ways.** It prints a summary line
+    `Total messages: 185 (Errors: 0, Warnings: 0)` and then the messages it returns, each tagged
+    `[ERROR] ... @ <url>:<line>`. A gate that greps only one of them, under `set -euo pipefail`, ends the script
+    silently when that shape is missing, and a stage-3 failure then looks like a clean exit with the scratch file
+    still uploaded. Stage 3 reads the summary first, counts `[ERROR]` lines when there is none, says which it used,
+    and puts `|| true` on every grep. It dumps the console at the `warning` level, which returns errors too.
