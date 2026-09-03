@@ -41,9 +41,23 @@ indices: Int[np.ndarray, "n"] = np.argsort(scores)
 
 Named/constrained axes are encouraged: `Float32[ndarray, "n_verts=778 3"]`.
 
-Mirror the annotation in the variable NAME with shape/axis/colorspace
-suffixes: `depth_hw`, `frames_rgb`, `bgr_hwc`, `points_xyz`. Redundant with
-the type by design — it makes shape/format bugs visible at every call site.
+## Names carry meaning; types carry dtype and shape
+
+The jaxtyping annotation is the only place dtype and shape live, and it is
+checked (beartype at function boundaries, pyrefly statically). Names never
+repeat it: `cam_T_world`, not `cam_T_world_v44`; `points_xyz`, not
+`points_xyz_n3`; no `_f64` / `_np` / `_t` dtype tags. Names keep what the type
+cannot say: units (`_px`, `_m`, `_deg`), frame direction (`cam_T_world`,
+`dst_R_src`), layout conventions (`_xy`/`_uv`, `_wh`/`_hw`, `_rgb`/`_bgr`).
+One vs. many is singular/plural or a role word, never a suffix.
+
+## Static shape checking (pyrefly)
+
+pyrefly checks jaxtyping shapes once the `shape_extensions` package resolves:
+pin `pyrefly-torch-stubs` and `pyrefly-numpy-stubs` (lockstep with the pyrefly
+version) in the dev feature. Prove it is on with a probe that mismatches a
+rank; it must fail. The numpy stubs (pyrefly 1.3 line) still lack `einsum`
+and batched `@`: adopt per package as coverage allows, baseline meanwhile.
 
 ## Type aliases: TypeAlias, never PEP 695
 
@@ -55,6 +69,10 @@ from typing import TypeAlias
 ImageBGR: TypeAlias = UInt8[ndarray, "H W 3"]
 DeviceChoice: TypeAlias = Literal["auto", "cuda", "cpu"]
 ```
+
+Strings with a fixed set of values are `Literal` aliases, never bare `str`;
+reuse the alias for params, returns, dict keys, and fields. No `Any`/`object`
+where a canonical type or a small `Protocol` fits.
 
 ## Imports & structure
 
@@ -70,7 +88,7 @@ DeviceChoice: TypeAlias = Literal["auto", "cuda", "cpu"]
 ## Torch patterns
 
 - Device selection: a `DeviceChoice` Literal alias + a
-  `resolve_device(device: DeviceChoice = "auto") -> str` helper ("auto" →
+  `resolve_device(device: DeviceChoice = "auto") -> Literal["cuda", "cpu"]` helper ("auto" →
   cuda if available else cpu; explicit "cuda" raises RuntimeError when
   unavailable). Pass the resolved device explicitly to
   `.to(device=..., dtype=...)` — never rely on implicit device inference.
