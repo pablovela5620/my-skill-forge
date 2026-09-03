@@ -73,4 +73,7 @@ Each entry: symptom, cause, what the scripts do about it.
     `[ERROR] ... @ <url>:<line>`. A gate that greps only one of them, under `set -euo pipefail`, ends the script
     silently when that shape is missing, and a stage-3 failure then looks like a clean exit with the scratch file
     still uploaded. Stage 3 reads the summary first, counts `[ERROR]` lines when there is none, says which it used,
-    and puts `|| true` on every grep. It dumps the console at the `warning` level, which returns errors too.
+    and puts `|| true` on every grep. It dumps the console at the `warning` level, which returns errors too. Do not
+    expect message bodies in `console.txt`: `playwright-cli` returns only what arrived since the previous console
+    call, and the `open` at the start of the check consumes the first batch, so against app.rerun.io the file holds
+    the summary line and little else. Every message is in the `.playwright-cli/console-*.log` file in `--out-dir`.
