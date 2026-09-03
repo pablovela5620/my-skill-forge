@@ -1,0 +1,61 @@
+# Known failures (rerun 0.37, 2026-09)
+
+Each entry: symptom, cause, what the scripts do about it.
+
+1. **`rerun rrd route` panics** (`route.rs` chunk-id assertion) when given several inputs that include a dataforge
+   base recording. Single-input routes work. The scripts only ever route one file at a time, and stage 1 avoids the
+   layer files altogether by exporting the joined segment from the catalog.
+
+2. **Wrong layout after a merge.** Every dataforge base `.rrd` embeds its own blueprint with an activation command;
+   after `rrd merge` its activation comes last and the viewer applies that layout instead of yours. `rrd filter`
+   cannot drop a store. Fix: export from the catalog (stage 1), which yields a recording without the embedded
+   blueprint. Stage 2 rejects a recording that embeds one.
+
+3. **Frusta and transforms vanish after `rrd split`.** Split keeps annotation contexts but drops the other static
+   chunks (Pinhole, Transform3D). Stage 2 writes the static slice of the full recording with
+   `RrdReader(...).stream().filter(is_static=True).write_rrd(...)` and merges it back, with the same recording id as
+   the split part (`<prefix>0`, split appends the part index).
+
+4. **Blank video at the end of a clip.** The web viewer never renders the frames of a truncated final GoP once
+   playback parks on the last frame (still blank after 30 s), while mid-clip frames render. So cut exactly at a
+   keyframe: split puts the frame at the cut time in the second part, part 0 ends on a whole GoP (161 frames, up
+   to 5.346 s, for the cut at 5.379588054 s here), and split has no cutoff to revise. Any other time makes split
+   log `revising cutoff time to match video keyframe` for every video: later in the GoP it still leaves part 0 the
+   first frame of the next GoP (162 frames for a 5.4 s cut), earlier it revises back to the GoP start. Stage 2
+   snaps the cut forward, so the clip runs a little longer than requested.
+
+5. **Viewer parks on the last frame.** Default playback stops at the end, and a 5 s clip reaches it before the
+   viewer has finished decoding. `TimePanel(loop_mode="All")` in the blueprint keeps it playing. An explicit
+   `TimePanel` opts out of `Blueprint(collapse_panels=True)`, so its `state` must be set explicitly. A
+   `Blueprint(TimePanel(...))` fragment also writes `/viewport` `auto_layout`/`auto_views`; keep both `False` or the
+   merged layout changes.
+
+6. **`is_keyframe` is wrong in a dataforge export.** It marks frame 0 `true` and every later frame `false`, where
+   0.37 wants sparse `true` markers only. Reading keyframes from the raw export therefore finds exactly one, and
+   `rrd split` cannot rebatch it: every part carries each video sample row twice (320 rows for 160 frames, about
+   twice the bytes). `rerun rrd optimize --fix-keyframe` rewrites the markers. Stage 2 runs it before reading the
+   keyframes, splits that fixed copy, and keeps `--fix-keyframe` on the final optimize as well.
+
+7. **`rerun --save <catalog-url>` writes an empty file** ("Received a RrdManifest which can't be stored in a file").
+   Use `segment_store(...).write_rrd(...)` from Python; both `application_id` and `recording_id` are required kwargs.
+
+8. **`Failed to fetch` from app.rerun.io against a localhost or Tailscale server.** Chrome's private network access
+   policy blocks the https app from fetching loopback or private addresses, CORS headers or not. Test through a
+   scratch upload to the public dataset instead (stage 3 does this and deletes it afterwards).
+
+9. **"Rerun does not yet support native AV1 decoding on Linux ARM64"** in the native viewer (rerun-io/rerun#7755).
+   Overlays render, videos show a decode error. The browser decodes fine, and a viewer built with the AV1 fix works;
+   only the stock native viewer on aarch64 is affected.
+
+10. **Seeks look stalled in headless chromium.** Software AV1 decode of 1080p from the GoP keyframe takes many
+    seconds; the three-dot spinner in a view means "decoding", not "broken". Judge a frame after 20-40 s.
+
+11. **`segment_store(...).summary()` prints every chunk.** On a 1 GB segment that is 13 MB of text; never log it.
+
+12. **Keypoint-connection warnings** (`could not be resolved in entity ...`) come from an annotation context whose
+    skeleton links reference keypoint ids that are absent in a frame. Sparse per-frame keypoint sets should log the
+    context without connections; fix it in the producer, not in the export.
+
+13. **`playwright-cli` drops a `.playwright-cli/` session log in the working directory.** Driven by hand from a repo
+    checkout, its console log and page dump land in the next commit. Stage 3 runs the browser check in a subshell
+    that first cds into `--out-dir`.

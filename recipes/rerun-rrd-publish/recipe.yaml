@@ -1,0 +1,60 @@
+context:
+  skill: rerun-rrd-publish
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/scripts
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/references
+    - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
+    - cp $RECIPE_DIR/agents/openai.yaml $PREFIX/share/agent-skills/${{ skill }}/agents/openai.yaml
+    - cp $RECIPE_DIR/scripts/fetch_segment.py $PREFIX/share/agent-skills/${{ skill }}/scripts/fetch_segment.py
+    - cp $RECIPE_DIR/scripts/join_trim.py $PREFIX/share/agent-skills/${{ skill }}/scripts/join_trim.py
+    - cp $RECIPE_DIR/scripts/publish_hf.sh $PREFIX/share/agent-skills/${{ skill }}/scripts/publish_hf.sh
+    - cp $RECIPE_DIR/references/known-failures.md $PREFIX/share/agent-skills/${{ skill }}/references/known-failures.md
+
+requirements:
+  # The scripts run with the project's own rerun-sdk Python; the experimental LazyStore/RrdReader API they use is 0.37+.
+  # hf and playwright-cli come from the user's tool manifest, so they are documented in SKILL.md, not bundled.
+  run_constraints:
+    - rerun-sdk >=0.37.0
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
+        - share/agent-skills/${{ skill }}/scripts/fetch_segment.py
+        - share/agent-skills/${{ skill }}/scripts/join_trim.py
+        - share/agent-skills/${{ skill }}/scripts/publish_hf.sh
+        - share/agent-skills/${{ skill }}/references/known-failures.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - python -m py_compile $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts/fetch_segment.py $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts/join_trim.py
+      - bash -n $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts/publish_hf.sh
+    requirements:
+      run:
+        - skills-ref
+        - python
+
+about:
+  summary: Agent skill for publishing a Rerun catalog segment as a standalone .rrd example
+  description: |
+    Three stages with files as the interface:
+    - fetch: export one catalog segment (all layers joined) plus its default blueprint, on one application id
+    - join + trim: merge recording and blueprint into one verified .rrd; optional clip cut on a video keyframe
+      boundary with static chunks restored and a looping time panel
+    - publish: scratch upload to a Hugging Face dataset, headless-chromium check in app.rerun.io, final upload,
+      cleanup, viewer link
+    Plus the list of rerun 0.37 failure modes that make the naive route fail.
+  homepage: https://github.com/pablovela5620/my-skill-forge
+  repository: https://github.com/pablovela5620/my-skill-forge
+  documentation: https://github.com/pablovela5620/my-skill-forge
+  license: BSD-3-Clause

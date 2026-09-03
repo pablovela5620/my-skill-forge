@@ -1,0 +1,4 @@
+interface:
+  display_name: "Rerun rrd publish"
+  short_description: "Catalog segment or .rrd + .rbl -> one standalone .rrd on Hugging Face, proven in the web viewer."
+  default_prompt: "Use $rerun-rrd-publish to make a standalone Rerun recording for app.rerun.io: fetch the segment from the catalog (scripts/fetch_segment.py), join it with its blueprint and trim it to a clip that ends on a keyframe and loops (scripts/join_trim.py), publish it to the Hugging Face dataset with a scratch-upload browser check (scripts/publish_hf.sh), then inspect the screenshots before reporting the link."
