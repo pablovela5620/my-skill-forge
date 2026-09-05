@@ -5,3 +5,5 @@ extend-exclude = ["*.patch"]
 placehold = "placehold"
 # "PNGs" tokenizes as PN + suffix and false-positives as ON
 PN = "PN"
+# Apple's Unique Device Identifier and the pymobiledevice3 option.
+udid = "udid"

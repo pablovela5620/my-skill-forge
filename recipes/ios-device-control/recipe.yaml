@@ -1,0 +1,29 @@
+context:
+  skill: ios-device-control
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p "$PREFIX/share/agent-skills/${{ skill }}"
+    - cp "$RECIPE_DIR/SKILL.md" "$PREFIX/share/agent-skills/${{ skill }}/SKILL.md"
+requirements:
+  run_constraints:
+    - pymobiledevice3 >=11.3.1
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate "$CONDA_PREFIX/share/agent-skills/${{ skill }}"
+    requirements:
+      run:
+        - skills-ref
+about:
+  summary: Control physical iOS devices with screenshot-verified pymobiledevice3 actions
+  homepage: https://github.com/pablovela5620/my-skill-forge
+  documentation: https://doronz88.github.io/pymobiledevice3/
+  license: BSD-3-Clause
