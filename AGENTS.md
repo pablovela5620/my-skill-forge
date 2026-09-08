@@ -92,16 +92,21 @@ For real user-level installation:
 1. Push and merge the change.
 2. Wait for the `Package` workflow on `main` to upload to prefix.dev.
 3. Verify the package is available from `https://prefix.dev/my-skill-forge`.
-4. Install from the channel-backed global environment:
+4. Add or update the published version under
+   `[envs.agent-skill-forge.dependencies]` in agent-fleet's
+   `manifests/base.toml` (fleet-wide) or the target machine's manifest.
+5. Run the fleet checks, commit and push the manifest, then converge each
+   target machine:
 
 ```bash
-pixi global add --environment agent-skill-forge <agent-skill-package-name>
+~/agent-fleet/scripts/sync.sh
 ```
 
-Then link and verify with `pixi-skills`:
+Fleet sync links the installed skills. Verify the expected skill on each target:
 
 ```bash
-pixi skills manage --backend codex --scope global
-pixi skills status --backend codex
 test -f ~/.codex/skills/<skill-name>/SKILL.md
 ```
+
+Do not run `pixi global add` or install a local artifact on a fleet-managed
+machine. The next sync removes packages that are absent from its manifest.

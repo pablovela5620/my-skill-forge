@@ -6,7 +6,7 @@ description: Fleet operations — use when a task involves other machines (disco
 # Fleet Operations
 
 The fleet is defined by the `agent-fleet` repo (`~/agent-fleet` on every
-managed machine). One exact-pinned pixi-global manifest (base + per-machine
+managed machine). One version-controlled pixi-global manifest (base + per-machine
 overlay) declares each machine's tools; a machine **converges** to it — the
 manifest is the complete state, and converging installs what's missing AND
 deletes what's unlisted.
@@ -53,7 +53,9 @@ auth for Tailscale SSH on some machines (e.g. spark).
 ## Changing a machine's tools
 
 1. Edit `manifests/base.toml` (fleet-wide) or `manifests/machines/<host>.toml`
-   (one machine). Exact `==` pins; base packages must solve on linux-64,
+   (one machine). Use exact `==` pins by default; preserve deliberate range
+   pins and `# pin-bump: hold` lines (see Holds below and the fleet manifest
+   rules in `.ruler/AGENTS.md`). Base packages must solve on linux-64,
    linux-aarch64, AND osx-arm64. Channels: conda-forge → own channels
    (`prefix.dev/ai-demos`, `prefix.dev/my-skill-forge`) →
    `prefix.dev/github-releases` as gap-filler.
