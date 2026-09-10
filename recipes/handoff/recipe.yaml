@@ -1,0 +1,44 @@
+context:
+  skill: handoff
+  upstream_path: skills/productivity/handoff
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/mattpocock/skills
+  rev: 3cca18b368ae95cdbdebbff572ccafa662551015
+  patches:
+    - fix-frontmatter.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for handing conversation context to a fresh agent
+  description: |
+    Writes a concise handoff document in the operating system temporary directory.
+    References existing artifacts, suggests skills for the next session, and
+    redacts sensitive information while preserving the context needed to continue.
+  homepage: https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/productivity/handoff
+  license: MIT
+  license_file: LICENSE

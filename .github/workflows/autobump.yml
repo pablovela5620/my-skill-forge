@@ -32,6 +32,8 @@ jobs:
           # fail `agentskills validate`. Superseded by grilling + domain-modeling.
           - skill: grilling
             strategy: git-main
+          - skill: handoff
+            strategy: git-main
           - skill: hf-cli
             strategy: git-main
           - skill: karpathy-guidelines
