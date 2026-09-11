@@ -80,10 +80,72 @@ where a canonical type or a small `Protocol` fits.
   are legacy, not the target style.
 - pathlib over os.path.
 - CLI entry points use tyro, not argparse.
-- Config serialization is pyserde (`@serde`, `serde.json`) — never introduce
-  pydantic.
+- Serialization goes through pyserde (see **Serialization** below) — never
+  introduce pydantic.
 - CLI tools and demos use plain `print()`; don't introduce logging frameworks
   into packages that don't already have one.
+
+## Serialization
+
+pyserde is the door through which data enters Python. Anything that crosses a
+boundary gets a `@serde` dataclass stating what the data is: a file, an HTTP
+response, a dataset's own JSON / YAML / pickle, a catalog row, a model's output
+dict. Fields are checked on the way in (strict mode *is* beartype); the rest of
+the code holds typed objects, never dicts.
+
+- **The Rerun catalog comes first.** Data registered on the catalog is read from
+  the catalog (`CatalogClient`, the dataloader) and never re-parsed from the raw
+  files it was converted from, nor copied into a document we own. pyserde has two
+  places in that flow: ingest (raw third-party format → typed record → catalog)
+  and what the catalog does not carry (gate files, IMU noise models, run reports,
+  tool configs).
+- **Records yes, streams no.** A record read whole goes through pyserde, arrays
+  included (calibrations, hand models, keypoint rows, reports, whole-sequence
+  pose tables). A stream you iterate does not (frames, depth maps, masks, point
+  clouds, trajectories): it lives in npz/npy, Parquet/Arrow or Rerun, and
+  pyserde carries only the metadata that names it. The test is the role of the
+  data, not a size threshold.
+- **Arrays carry jaxtyping with an explicit dtype**: `Float32[ndarray, "n 3"]`,
+  never `Float[...]` or bare `ndarray` — generic `Float`/`Int` do not fix the
+  width and a bare `ndarray` round-trips as float64. Cast explicitly at a
+  conversion boundary when the source width differs. Use jaxtyping, not
+  numpy's own typing alias, which breaks beartype at decoration time.
+- **Formats for files we own:** JSON when a program writes it (`serde.json`;
+  orjson is picked up automatically), TOML when a person edits it
+  (`serde.toml`). YAML and pickle only when a third party hands us that format.
+- **Strictness is per schema.** Files we own:
+  `@serde(type_check=coerce, deny_unknown_fields=True)` above the frozen slots
+  dataclass for hand-written TOML (`from_toml` does not widen `30` to `30.0`;
+  `from_json` does), strict + `deny_unknown_fields=True` for machine-written
+  JSON. Third-party formats read partially: unknown fields allowed; their schema
+  is not ours to police.
+- **Validation lives at the door.** Types come from the class. Cross-field rules
+  go in `__post_init__` (pyserde runs it on load; its exception propagates
+  unwrapped). Rules that need context live in one loader that wraps
+  `SerdeError` *and* the parser's own error (`TOMLDecodeError`,
+  `json.JSONDecodeError`) into a `ValueError` naming the source — pyserde's
+  message names the field, not the path. Callers never re-validate. Never
+  `except Exception` around a decode: `BeartypeException` propagates.
+- **Properties do not serialise.** A report with computed columns gets a flat
+  report dataclass at the write boundary. Our JSON outputs write an unscored
+  number as `X | None` → `null`, never NaN; an input that legitimately carries
+  non-finite cells keeps a custom field decoder.
+- **Rust extensions own their formats** (serde derive on the Rust side). Python
+  asks the extension for typed accessors instead of parsing `to_json()` output;
+  the JSON methods stay for files.
+- **Environment:** `tomli-w` and `orjson` are declared beside every `pyserde`
+  declaration in `pixi.toml` (the conda `pyserde` ships no extras; without
+  `tomli-w` even `from_toml` fails to import). Self-referential classes are
+  decorated after the class body with `serde.serde(Node)`;
+  `to_dict(reuse_instances=False)` when JSON-ready primitives are needed.
+- **Not pyserde:** per-frame loops over large arrays (npz/Parquet/Rerun);
+  formats it has no codec for — CSV (`csv.DictReader` → `from_dict(Row, ...)`),
+  PGM, Arrow, protobuf, streaming JSONL; a measured hot path (msgspec, held in
+  reserve, nothing needs it yet).
+- **Rollout:** convert a hand-rolled `json.load`/`yaml.safe_load` + dict-indexing
+  site when already editing that file, plus one deliberate pass per package with
+  an owner; no big-bang. Raw-format access stays in contract tests and
+  malformed-input fixtures.
 
 ## Torch patterns
 
