@@ -1,22 +1,18 @@
 context:
   skill: daggr
   upstream_path: .agents/skills/daggr
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/gradio-app/daggr
-  rev: 73cca141ccda71e550f03ecce68dfb78f08d3373
-
+  rev: 4079d94ccfda34213a0149d52aeb7aefc0dcdef1
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp ${{ upstream_path }}/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
-
 tests:
   - package_contents:
       files:
@@ -27,7 +23,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for Daggr visual AI pipelines
   description: |
