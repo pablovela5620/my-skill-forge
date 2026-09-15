@@ -17,6 +17,30 @@ jobs:
           - skill: chrome-cdp
             strategy: github-latest-release
           # git-main strategy (track main branch)
+          - skill: investigate-puffin
+            strategy: git-main
+          - skill: rerun-blueprint
+            strategy: git-main
+          - skill: rerun-catalog-queries
+            strategy: git-main
+          - skill: rerun-chunk-processing
+            strategy: git-main
+          - skill: rerun-data-model
+            strategy: git-main
+          - skill: rerun-dataset-conversion
+            strategy: git-main
+          - skill: rerun-docs
+            strategy: git-main
+          - skill: rerun-lerobot
+            strategy: git-main
+          - skill: rerun-mcap
+            strategy: git-main
+          - skill: rerun-mp4
+            strategy: git-main
+          - skill: rerun-parquet
+            strategy: git-main
+          - skill: rerun-urdf
+            strategy: git-main
           - skill: art-of-debugging
             strategy: git-main
           - skill: batch-grill-me

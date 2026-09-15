@@ -1,0 +1,43 @@
+context:
+  skill: rerun-lerobot
+  upstream_path: skills/rerun-lerobot
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/rerun-io/rerun
+  rev: e3f73ea0f1b646e2f21ca1170b3335127a704f9a
+  patches:
+    - packaging.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/scripts/fetch_lerobot_episodes.py
+        - share/agent-skills/${{ skill }}/scripts/find_lerobot_dataset.py
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for importing and splitting LeRobot datasets in Rerun
+  homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-lerobot
+  repository: https://github.com/rerun-io/rerun
+  documentation: https://github.com/rerun-io/rerun/blob/main/skills/rerun-lerobot/SKILL.md
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE

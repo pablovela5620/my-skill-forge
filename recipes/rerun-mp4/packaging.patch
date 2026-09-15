@@ -1,0 +1,6 @@
+--- a/skills/rerun-mp4/SKILL.md
++++ b/skills/rerun-mp4/SKILL.md
+@@ -3,3 +3,2 @@
+ description: Ingest .mp4 video into Rerun chunk streams with rerun.experimental.Mp4Reader. Read when converting video into a VideoStream, choosing stream vs asset mode, transcoding (B-frames, output codec, GOP size) through FFmpeg, or aligning video PTS onto a recording's wall-clock timeline. Builds on rerun-chunk-processing (stream mechanics) and rerun-data-model (where the video belongs in the recording).
+-user_invocable: true
+ allowed-tools: Read, Grep, Bash, WebFetch

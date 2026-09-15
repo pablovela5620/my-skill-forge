@@ -1,0 +1,41 @@
+context:
+  skill: rerun-mp4
+  upstream_path: skills/rerun-mp4
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/rerun-io/rerun
+  rev: bc69c22128f9d5fa562609509a9f5f2a0cfdf3e1
+  patches:
+    - packaging.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for importing MP4 video streams and assets in Rerun
+  homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-mp4
+  repository: https://github.com/rerun-io/rerun
+  documentation: https://github.com/rerun-io/rerun/blob/main/skills/rerun-mp4/SKILL.md
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE

@@ -1,0 +1,45 @@
+context:
+  skill: investigate-puffin
+  upstream_path: skills/investigate-puffin
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/rerun-io/rerun
+  rev: 40c97be851f196ad22452dfb229c6fb94c669756
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/compare_traces.py
+        - share/agent-skills/${{ skill }}/dump-puffin/.gitignore
+        - share/agent-skills/${{ skill }}/dump-puffin/Cargo.lock
+        - share/agent-skills/${{ skill }}/dump-puffin/Cargo.toml
+        - share/agent-skills/${{ skill }}/dump-puffin/src/main.rs
+        - share/agent-skills/${{ skill }}/find_scopes.py
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for analyzing Puffin profiler recordings and comparing traces
+  homepage: https://github.com/rerun-io/rerun/tree/main/skills/investigate-puffin
+  repository: https://github.com/rerun-io/rerun
+  documentation: https://github.com/rerun-io/rerun/blob/main/skills/investigate-puffin/SKILL.md
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE

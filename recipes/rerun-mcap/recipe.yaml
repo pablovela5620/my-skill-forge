@@ -1,0 +1,41 @@
+context:
+  skill: rerun-mcap
+  upstream_path: skills/rerun-mcap
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/rerun-io/rerun
+  rev: ccc27e6a7b406a580d6784554c3ace35bb2b7842
+  patches:
+    - packaging.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for importing MCAP recordings with Rerun readers
+  homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-mcap
+  repository: https://github.com/rerun-io/rerun
+  documentation: https://github.com/rerun-io/rerun/blob/main/skills/rerun-mcap/SKILL.md
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE

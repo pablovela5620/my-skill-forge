@@ -1,0 +1,41 @@
+context:
+  skill: rerun-data-model
+  upstream_path: skills/rerun-data-model
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/rerun-io/rerun
+  rev: edb19a77964eaab1b497a3d7a2aa8700ad7dba7b
+  patches:
+    - packaging.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Agent skill for modeling multimodal robotics data in Rerun
+  homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-data-model
+  repository: https://github.com/rerun-io/rerun
+  documentation: https://github.com/rerun-io/rerun/blob/main/skills/rerun-data-model/SKILL.md
+  license: MIT OR Apache-2.0
+  license_file:
+    - LICENSE-MIT
+    - LICENSE-APACHE

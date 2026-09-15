@@ -1,0 +1,6 @@
+--- a/skills/rerun-catalog-queries/SKILL.md
++++ b/skills/rerun-catalog-queries/SKILL.md
+@@ -3,3 +3,2 @@
+ description: Performance patterns and gotchas for querying a Rerun catalog from Python. Reach for this when a CatalogClient/dataset query is unexpectedly slow, or when shaping a per-segment / per-episode pipeline that hits the catalog from many places.
+-user_invocable: true
+ allowed-tools: Read, Grep, Bash
