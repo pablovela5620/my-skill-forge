@@ -17,7 +17,8 @@ Recipe conventions:
 - Install files under `$PREFIX/share/agent-skills/<skill>/`.
 - Do not use `etc/agent-skills`; `pixi-skills` discovers packaged skills from `share/agent-skills`.
 - Include a strict `package_contents` test for `share/agent-skills/<skill>/SKILL.md` and any required extra files.
-- Include `agentskills validate $CONDA_PREFIX/share/agent-skills/<skill>` in script tests.
+- Include `agentskills read-properties $CONDA_PREFIX/share/agent-skills/<skill> > /dev/null` in script tests. This checks frontmatter parsing and a nonempty name and description without rejecting agent-specific fields.
+- Preserve upstream agent-specific metadata, including `user-invocable`, `user_invocable`, and `disable-model-invocation`. Do not strip or rename these fields to satisfy the strict `agentskills validate` allowlist. Older recipes may still use that command; it is not the policy for new or updated recipes.
 - Prefer `requirements.run_constraints` for tool or library compatibility unless the package truly needs a bundled runtime dependency.
 
 ## Adding A Skill

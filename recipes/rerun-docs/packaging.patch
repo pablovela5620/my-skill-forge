@@ -1,0 +1,7 @@
+--- a/skills/rerun-docs/SKILL.md
++++ b/skills/rerun-docs/SKILL.md
+@@ -14,2 +14,4 @@
+ - In a Rerun checkout: `docs/`.
+ - Inside the Rerun Viewer's agent panel: unpacked next to the skills, at `../../../docs` relative to this file. The session preamble names the absolute path.
++- In a standalone agent-skill package, docs and snippets are not bundled. Use an existing Rerun checkout, or browse https://rerun.io/docs and https://github.com/rerun-io/rerun/tree/main/docs/snippets. Do not assume the viewer-relative path exists.
++- Run the searches below from the Rerun checkout root. Without a checkout, use the website or GitHub instead.
