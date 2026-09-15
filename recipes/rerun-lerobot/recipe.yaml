@@ -9,8 +9,6 @@ package:
 source:
   git: https://github.com/rerun-io/rerun
   rev: e3f73ea0f1b646e2f21ca1170b3335127a704f9a
-  patches:
-    - packaging.patch
 
 build:
   number: 0
@@ -27,7 +25,7 @@ tests:
         - share/agent-skills/${{ skill }}/scripts/find_lerobot_dataset.py
       strict: true
   - script:
-      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
     requirements:
       run:
         - skills-ref

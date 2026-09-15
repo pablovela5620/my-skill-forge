@@ -1,6 +1,0 @@
---- a/skills/rerun-mcap/SKILL.md
-+++ b/skills/rerun-mcap/SKILL.md
-@@ -3,3 +3,2 @@
- description: Ingest MCAP files into Rerun chunk streams with rerun.chunk.McapReader. Read when converting an MCAP recording, selecting topics or decoders, decoding custom protobuf messages, or when an MCAP-derived stream comes out empty. Builds on rerun-chunk-processing (stream mechanics) and rerun-data-model (what the topics should become).
--user_invocable: true
- allowed-tools: Read, Grep, Bash, WebFetch

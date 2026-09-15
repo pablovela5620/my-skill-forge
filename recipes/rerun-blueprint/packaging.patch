@@ -1,6 +1,0 @@
---- a/skills/rerun-blueprint/SKILL.md
-+++ b/skills/rerun-blueprint/SKILL.md
-@@ -3,3 +3,2 @@
- description: Design a Rerun blueprint from the data, then iterate on it from headless screenshots. Read this when laying out a recording or dataset in the viewer, designing a default blueprint, or deciding which views show which entities. Covers archetype-to-view mapping, layout reasoning, the rrb construction API, the contents grammar, and the screenshot loop.
--user_invocable: true
- allowed-tools: Read, Grep, Bash, WebFetch

@@ -1,6 +1,0 @@
---- a/skills/rerun-parquet/SKILL.md
-+++ b/skills/rerun-parquet/SKILL.md
-@@ -3,3 +3,2 @@
- description: Ingest tabular Parquet files into Rerun chunk streams with rerun.experimental.ParquetReader. Read when converting trajectory or sensor tables (LeRobot-style parquet, exported logs) into entities and components — column grouping, timeline/index columns, static columns, and lenses (DeriveLens) that assemble the typed components (Transform3D, Scalars) from the reader's grouped struct/scalar output. Builds on rerun-chunk-processing and rerun-data-model.
--user_invocable: true
- allowed-tools: Read, Grep, Bash, WebFetch

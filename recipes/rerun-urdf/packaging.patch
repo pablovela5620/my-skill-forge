@@ -1,6 +1,0 @@
---- a/skills/rerun-urdf/SKILL.md
-+++ b/skills/rerun-urdf/SKILL.md
-@@ -3,3 +3,2 @@
- description: Drive the Rerun URDF API (rerun.urdf.UrdfTree) to ingest a URDF as a Transform3D layer on a robot recording. Read when logging a robot model, running forward kinematics from joint states, composing a fixed chain for sensor extrinsics, or when the transform tree will not connect from the data alone. Builds on rerun-chunk-processing (stream/lens mechanics) and rerun-data-model (entity paths, timeline, base-vs-layer).
--user_invocable: true
- allowed-tools: Read, Grep, Bash, WebFetch

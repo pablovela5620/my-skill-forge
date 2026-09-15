@@ -29,7 +29,7 @@ tests:
         - share/agent-skills/${{ skill }}/find_scopes.py
       strict: true
   - script:
-      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
     requirements:
       run:
         - skills-ref

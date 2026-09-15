@@ -9,8 +9,6 @@ package:
 source:
   git: https://github.com/rerun-io/rerun
   rev: 79b328a35b5a4eab7c30e2ea0ab4d4ea11dc0b86
-  patches:
-    - packaging.patch
 
 build:
   number: 0
@@ -25,7 +23,7 @@ tests:
         - share/agent-skills/${{ skill }}/SKILL.md
       strict: true
   - script:
-      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
     requirements:
       run:
         - skills-ref

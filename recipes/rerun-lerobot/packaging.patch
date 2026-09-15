@@ -1,6 +1,0 @@
---- a/skills/rerun-lerobot/SKILL.md
-+++ b/skills/rerun-lerobot/SKILL.md
-@@ -3,3 +3,2 @@
- description: Ingest a LeRobot (HuggingFace) dataset into Rerun. Read when converting a LeRobot dataset to RRDs, splitting it into per-episode segments, or registering it on a Rerun catalog. Covers the built-in directory importer (log_file_from_path), the RrdReader + send_chunks per-episode split, and when to drop to ParquetReader for custom control.
--user_invocable: true
- allowed-tools: Read, Grep, Bash, WebFetch
