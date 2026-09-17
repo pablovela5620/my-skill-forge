@@ -1,22 +1,18 @@
 context:
   skill: investigate-puffin
   upstream_path: skills/investigate-puffin
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/rerun-io/rerun
-  rev: 40c97be851f196ad22452dfb229c6fb94c669756
-
+  rev: a134e2754216c83887c96f3d0be61d1a77f7df86
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
-
 tests:
   - package_contents:
       files:
@@ -33,7 +29,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for analyzing Puffin profiler recordings and comparing traces
   homepage: https://github.com/rerun-io/rerun/tree/main/skills/investigate-puffin
