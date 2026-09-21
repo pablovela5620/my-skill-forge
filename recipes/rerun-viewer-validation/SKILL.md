@@ -36,7 +36,7 @@ Lifecycle gotchas (both modes):
 
 ### Linux aarch64: temporary AV1 fix for 0.38.1
 
-Stock Rerun 0.38.1 on Linux aarch64 reports "Rerun does not yet support native AV1 decoding on Linux ARM64" for AV1 video ([upstream issue #7755](https://github.com/rerun-io/rerun/issues/7755)). This error alone does not mean the recording is broken.
+Stock Rerun 0.38.1 on Linux aarch64 reports "Rerun does not yet support native AV1 decoding on Linux ARM64" for AV1 video ([upstream issue #7755](https://github.com/rerun-io/rerun/issues/7755)). This error alone does not mean the recording is broken: text logs, phases, and overlays still load, so read those before judging the recording.
 
 The `ai-demos` channel packages tested, prebuilt `rerun-sdk` 0.38.1 wheels with the patched native viewer. Pixi installation requires no compilation. Its build string contains `av1arm64`. Select it only on Linux aarch64:
 
@@ -45,7 +45,7 @@ The `ai-demos` channel packages tested, prebuilt `rerun-sdk` 0.38.1 wheels with 
 rerun-sdk = { version = "==0.38.1", build = "av1arm64_*", channel = "https://prefix.dev/ai-demos" }
 ```
 
-Check the installed build with `pixi list` and use that environment's viewer explicitly. `rerun --version` must include `Video features: av1`, but that flag alone is not decode proof: capture nonblank, changing video frames as described below.
+Projects that pin `rerun-sdk` through PyPI instead can point the dependency at the wheel behind that package (the `rerun-sdk-0.38.1-av1arm64-wheels` release in the ai-demos repo, `{ url = "…whl" }`) rather than mixing a conda and a PyPI install. Check the installed build with `pixi list` and use that environment's viewer explicitly. `rerun --version` must include `Video features: av1`, but that flag alone is not decode proof: capture nonblank, changing video frames as described below.
 
 This is a stopgap. On a Rerun version bump, check #7755 and the release notes. Once an upstream release supports native AV1 on Linux aarch64, use that release, remove the patched package pin and recipe, and remove this subsection. Do not apply the patch to a version that already includes the fix.
 
