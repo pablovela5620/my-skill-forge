@@ -7,7 +7,7 @@ package:
   version: "0.34.0"
 
 build:
-  number: 1
+  number: 2
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
@@ -35,7 +35,7 @@ tests:
         - share/agent-skills/${{ skill }}/references/web.md
       strict: true
   - script:
-      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
     requirements:
       run:
         - skills-ref

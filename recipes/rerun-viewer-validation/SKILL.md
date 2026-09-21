@@ -34,6 +34,21 @@ Lifecycle gotchas (both modes):
 - `ViewerClient.spawn` resolves `rerun` from PATH — stale global installs win. **Always pass `executable_path=` pointing at the project env's rerun binary.**
 - `detach_process` defaults: headless → attached (dies with your script / `close()`); headed → detached (survives; only explicit `close()` kills it). Clean up detached viewers when done.
 
+### Linux aarch64: temporary AV1 fix for 0.38.1
+
+Stock Rerun 0.38.1 on Linux aarch64 reports "Rerun does not yet support native AV1 decoding on Linux ARM64" for AV1 video ([upstream issue #7755](https://github.com/rerun-io/rerun/issues/7755)). This error alone does not mean the recording is broken.
+
+The `ai-demos` channel packages tested, prebuilt `rerun-sdk` 0.38.1 wheels with the patched native viewer. Pixi installation requires no compilation. Its build string contains `av1arm64`. Select it only on Linux aarch64:
+
+```toml
+[target.linux-aarch64.dependencies]
+rerun-sdk = { version = "==0.38.1", build = "av1arm64_*", channel = "https://prefix.dev/ai-demos" }
+```
+
+Check the installed build with `pixi list` and use that environment's viewer explicitly. `rerun --version` must include `Video features: av1`, but that flag alone is not decode proof: capture nonblank, changing video frames as described below.
+
+This is a stopgap. On a Rerun version bump, check #7755 and the release notes. Once an upstream release supports native AV1 on Linux aarch64, use that release, remove the patched package pin and recipe, and remove this subsection. Do not apply the patch to a version that already includes the fix.
+
 ## MCP: getting the tools
 
 The server is `rerun viewer-mcp` (stdio); it dials a running viewer's gRPC `ViewerControlService`. In order of preference:
