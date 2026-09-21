@@ -17,7 +17,7 @@ Prove what rendered. Logs, metadata, and `rrd stats` say what was *sent*; only p
 
 **Video vs embed** (branches 3 vs 4, when both fit): the embedded rrd is the richer artifact — fully inspectable, orbitable, scrubbable — so prefer it when the recording is browser-sized. The WASM viewer holds the whole recording in memory, so check size first (`ls -lh`, `rerun rrd stats`) and gate embeds at a few hundred MB (hard ceiling ~1.5 GiB — see `references/web.md`). Choose video when the recording is huge, when the audience only needs to *watch* (Slack, PR description), or when the data needs a visualizer the web viewer doesn't have (custom visualizers). Best of both, often: a trimmed/downsampled preview rrd for the embed plus a full-fidelity video.
 
-Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data — Rerun has no forward compat, so an `.rrd` written by a newer SDK will not load in an older viewer (including the WASM viewer inside a gradio-rerun app pinned to an older release). Don't hardcode version numbers in prose or scripts; the environment's package pins (this skill's `run_constraints`) guarantee a capable viewer.
+Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data — Rerun has no forward compat, so an `.rrd` written by a newer SDK will not load in an older viewer (including the WASM viewer inside a gradio-rerun app pinned to an older release). Check the writer and actual viewer versions; this skill's minimum version constraint does not guarantee recording or tool-schema compatibility.
 
 ## Headless vs headed
 
@@ -60,15 +60,14 @@ The server is `rerun viewer-mcp` (stdio); it dials a running viewer's gRPC `View
 
 ## MCP: driving the viewer
 
-17 tools: `connect`, `disconnect`, `viewer_state`, `set_time`, `open_url` (rerun-specific) + `query_tree`, `get_node`, `screenshot`, `click`, `drag`, `hover`, `scroll`, `press_key`, `type_text`, `resize`, `wait_for`, `batch` (egui UI, accessibility-tree based). Work observe → act → verify.
+Use this order. Read **[MCP schemas and recovery](references/mcp.md)** before the first call; use `tools/list` from the selected binary to resolve tool names and arguments.
 
-- `connect` takes `endpoint: "http://127.0.0.1:<port>"` — plain http, **not** the SDK's `rerun+http://…/proxy` URL.
-- `open_url` loads recordings: absolute file path (no `file://` prefix), `rerun://` dataset URI, or https URL.
-- `viewer_state` first, always: recordings + per-timeline `{timeline, type, min, max}` + current time. Choose the timeline from this data, never by assumption.
-- `set_time`: `time` is a sequence index for `sequence` timelines, **nanoseconds** for duration/timestamp timelines. `play: true` to run from there; default stays paused.
-- `screenshot` **always returns the PNG inline into context**; `save_path` writes to disk *in addition*. Budget ≤ ~10 MCP screenshots per validation — seeing evidence frames is the point; sweeping is the helper's job.
-- Prefer locators (`id` from `query_tree`, `role`/`label_contains`) over raw `pos`; everything is in logical points (screenshot pixels at `pixels_per_point: 1.0` align 1:1 with click coordinates).
-- `batch` chains act+observe (e.g. `set_time` → `screenshot`) in one round trip.
+1. **Connect:** spawn the viewer, then disconnect → connect to its plain HTTP control endpoint. Reuse one connection per MCP process; reset it after a viewer restart or endpoint change.
+2. **Loaded:** open the recording, then poll viewer state until it lists the intended recording and a nonempty timeline range. Bound the polling; an accepted open request is not a loaded recording.
+3. **Observe:** choose the recording, timeline, range, and time units from viewer state. Read `query_tree` for current UI locators.
+4. **Act:** make timeline/control calls separately. `batch` accepts only egui UI tools, for example click → `wait_for` → screenshot. For UI actions, prefer a fresh widget ID; verify the action result and resulting state.
+5. **Settle:** call `wait_for` with nonzero `min_steps` before every screenshot, including retries. A presence filter must come from accessible tree text; check nonempty `matched`, not just `ok: true`.
+6. **Prove:** inspect the returned or saved image. Keep viewport fixed and capture only the evidence needed (usually ≤10 MCP images). A moved playhead or successful RPC does not prove video decoding.
 
 ## ViewerClient: scripted static proof
 
@@ -107,13 +106,15 @@ python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
   --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15] [--collapse-panels]
 ```
 
-Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. 120 frames at 1080p ≈ 10 s: the per-frame cost is the settle wait plus a ~32 ms screenshot RPC, so `--settle-ms` is the speed/fidelity dial. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and the project env's rerun binary. The default `--settle-ms 30` is enough for decoded video frames; raise to 100–400 when overlay-heavy views (detections, segmentation) must fully stabilize per frame — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
+**Compatibility gate:** the bundled helper uses the legacy `connect` / `viewer_state` / `set_time` schema. Check `tools/list` first; the newer `rerun_*` schema is not supported by this helper. Use a compatible viewer that can also read the recording, or report the helper limitation and use the appropriate validation branch. Do not downgrade below the writer version.
+
+Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. Capture cost depends on scene and renderer; screenshot calls can take seconds. Measure a short sample before planning a sweep. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and the project env's rerun binary. The default `--settle-ms 30` is a starting point; raise it when decoded video or overlays have not stabilized — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 
 ## Panel visibility
 
 Collapse the blueprint/selection/time panels whenever the frame should be all content — videos, embeds, clean screenshots:
 
-- **Live viewer, any recording**: the top bar has one labeled toggle per panel; MCP `click` with `label_contains` = `"Blueprint panel toggle"`, `"Time panel toggle"`, `"Selection panel toggle"`. A fresh viewer starts with panels expanded, so one click each collapses; confirm via `query_tree` (the `_streams_tree` / `_selection_panel` panes disappear). The video helper does this for you: `--collapse-panels`.
+- **Live viewer, any recording**: inspect `query_tree` for each panel's current state and toggle. Click the fresh ID only when the panel is expanded, then confirm the intended pane disappeared. Saved blueprints can override initial panel state. The video helper does this for you: `--collapse-panels`.
 - **Recordings you author — and therefore embeds**, since panel state rides the saved blueprint: `rrb.Blueprint(<views>, collapse_panels=True)`, or per-panel `rrb.BlueprintPanel(state="collapsed")` / `rrb.SelectionPanel(…)` / `rrb.TimePanel(…)` with `"collapsed" | "hidden" | "expanded"`. An `.rrd` re-saved this way opens chrome-free everywhere, including the WASM viewer iframe.
 
 ## Evidence & checks
