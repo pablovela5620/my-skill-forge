@@ -14,6 +14,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # cua-driver is release-paired with ai-demos; see its PROMPT.md.
           - skill: chrome-cdp
             strategy: github-latest-release
           # git-main strategy (track main branch)

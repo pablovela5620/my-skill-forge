@@ -1,0 +1,49 @@
+context:
+  version: "0.28.2"
+
+package:
+  name: agent-skill-cua-driver
+  version: ${{ version }}
+
+source:
+  - url: https://github.com/trycua/cua/releases/download/cua-driver-rs-v${{ version }}/cua-driver-rs-v${{ version }}-skills.tar.gz
+    sha256: e2e69723e06697083bd433e5b1e50841a930ae13e13303e98fc5f14d090dc90b
+  - url: https://raw.githubusercontent.com/trycua/cua/cua-driver-rs-v${{ version }}/LICENSE.md
+    sha256: c0779290c1d4783169aa3dbfb55feb505e563ef8a004bbf55298ceffcfbda8d9
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p "$PREFIX/share/agent-skills/cua-driver"
+    - cp SKILL.md BROWSER.md EMBEDDING.md LINUX.md MACOS.md RECORDING.md WINDOWS.md README.md "$PREFIX/share/agent-skills/cua-driver/"
+    - cat "$RECIPE_DIR/fleet.md" >> "$PREFIX/share/agent-skills/cua-driver/SKILL.md"
+
+requirements:
+  run_constraints:
+    - cua-driver ==${{ version }}
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/cua-driver/SKILL.md
+        - share/agent-skills/cua-driver/BROWSER.md
+        - share/agent-skills/cua-driver/EMBEDDING.md
+        - share/agent-skills/cua-driver/LINUX.md
+        - share/agent-skills/cua-driver/MACOS.md
+        - share/agent-skills/cua-driver/RECORDING.md
+        - share/agent-skills/cua-driver/WINDOWS.md
+        - share/agent-skills/cua-driver/README.md
+      strict: true
+  - script:
+      - agentskills read-properties "$CONDA_PREFIX/share/agent-skills/cua-driver" > /dev/null
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  homepage: https://cua.ai/docs/how-to-guides/driver/install-agent-skill
+  repository: https://github.com/trycua/cua
+  license: MIT
+  license_file: LICENSE.md
+  summary: Release-matched upstream Cua Driver instructions and platform guides

@@ -7,12 +7,38 @@ Read this file only after routing work to Codex.
 Agent-initiated work uses the Codex CLI. The Claude/Codex plugin remains
 limited to ambient hooks and commands invoked by the user.
 
-Use one self-contained prompt. Inherit the configured model and speed tier,
-and set the highest supported single-agent CLI effort:
+## Preflight: identity and model
+
+Check `printenv CLAUDE_CONFIG_DIR` and `claude auth status` in the parent
+session's environment. Use the profile directory to select Codex; use the
+reported account to catch mismatches:
+
+| Parent profile | Codex profile home |
+|---|---|
+| Personal Claude: unset or the normal `.claude` directory | `$HOME/.codex` |
+| Claude Work: `.claude-work` | `$HOME/.codex-work` |
+
+Resolve custom paths, missing login, or account mismatches before dispatch.
+Keep accounts separate: never substitute the other login or copy credentials.
+Set `delegation_codex_home` to the selected absolute path on the execution host.
+Pass it explicitly through tmux, SSH, and resumes; non-interactive shells may
+not have the `codexw` alias.
+
+Default to GPT-6 Astra (`gpt-6-astra`) with low effort; honor explicit user
+overrides and retain the configured speed tier:
 
 ```bash
-codex exec -c 'model_reasoning_effort="xhigh"' ...
+env CODEX_HOME="$delegation_codex_home" codex login status
+env CODEX_HOME="$delegation_codex_home" codex exec -m gpt-6-astra -c 'model_reasoning_effort="low"' ...
 ```
+
+`codex login status` must pass, but does not prove the account email.
+Include the selected profile and repo identity rules in the worker's prompt.
+GitHub is separate: before private-repo access, pushes, or PR changes, check
+`gh auth status` and select the account required by the repo's `AGENTS.md`.
+
+**Complete when:** the parent profile is verified, the matching Codex login
+passes, and the launch uses the selected home, model, and effort.
 
 Use `--sandbox read-only` for investigation and `--sandbox workspace-write`
 for edits. Start hardware probes in the sandbox; if device isolation blocks
@@ -50,3 +76,12 @@ research.
 
 **Complete when:** Codex survival and the wake-up path are both verified, and
 the final report has been read and assessed.
+
+## Desktop tasks
+
+Use the same Astra/low default for computer use. Include the target host and
+application, ask the worker to read `cua-driver`, and require fresh visual or
+application-state evidence. Confirm that its execution host has the driver,
+skill, graphical session, and OS grants. Keep one active computer-use worker
+per desktop session; isolated desktops may run in parallel. An unavailable
+model or desktop is a reported blocker, not permission to switch accounts.

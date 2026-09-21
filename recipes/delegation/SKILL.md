@@ -21,14 +21,20 @@ Use only Codex, Opus, or Fable:
 
 | Work | Worker |
 |---|---|
+| Native app or desktop computer use | Codex, GPT-6 Astra at low effort |
 | Implementation, testing, migrations, research, or codebase sweeps | Codex |
 | Ambiguous architecture, user-facing judgment, or synthesis | Fable or Opus |
 | Independent review | A different runtime from the author |
 
-Codex uses the configured model and speed tier with
-`model_reasoning_effort="xhigh"`. Ultra is outside this single-agent policy.
+Codex launch defaults and profile checks live in `references/codex.md`.
 Opus and Fable use their default effort. Launch Opus with `model: opus` and
 Fable with `model: inherit`.
+
+For computer use, Astra is the fleet preference based on the user's observed
+results. Have the worker read the installed `cua-driver` skill before acting.
+Run it on the host with the target desktop, verify desktop readiness, and give
+each desktop session one active computer-use worker. Explicit user model
+choices take precedence.
 
 Capability and taste outrank cost. Escalate when the first worker misses the
 bar.
