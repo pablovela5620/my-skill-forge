@@ -25,11 +25,11 @@ Pass it explicitly through tmux, SSH, and resumes; non-interactive shells may
 not have the `codexw` alias.
 
 Default to GPT-6 Astra (`gpt-6-astra`) with low effort; honor explicit user
-overrides and retain the configured speed tier:
+overrides. Use normal speed (`service_tier="default"`), not fast/priority mode:
 
 ```bash
 env CODEX_HOME="$delegation_codex_home" codex login status
-env CODEX_HOME="$delegation_codex_home" codex exec -m gpt-6-astra -c 'model_reasoning_effort="low"' ...
+env CODEX_HOME="$delegation_codex_home" codex exec -m gpt-6-astra -c 'model_reasoning_effort="low"' -c 'service_tier="default"' ...
 ```
 
 `codex login status` must pass, but does not prove the account email.

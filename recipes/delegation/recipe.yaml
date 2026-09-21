@@ -10,7 +10,7 @@ source:
   sha256: 395ea11dbfdb768a46ebdca5cae26a2b353240752a9a9c30f7cdfe9a44960be0
 
 build:
-  number: 0
+  number: 1
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/references
