@@ -3,11 +3,11 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  # The version records the minimum Rerun line: viewer MCP first shipped in 0.34.
-  version: "0.34.0"
+  # Match the Rerun release targeted by this skill; use build bumps for skill revisions.
+  version: "0.38.1"
 
 build:
-  number: 4
+  number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
