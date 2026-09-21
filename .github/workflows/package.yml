@@ -100,7 +100,11 @@ jobs:
       - name: Upload package to Artifactory
         if: github.event_name == 'push'
         run: |
-          shopt -s nullglob
-          for file in output/**/*.conda; do
+          first_file="$(find output -type f -name '*.conda' -print -quit)"
+          if [[ -z "$first_file" ]]; then
+            echo "No package artifacts were downloaded" >&2
+            exit 1
+          fi
+          while IFS= read -r file; do
             rattler-build upload prefix -c my-skill-forge "$file"
-          done
+          done < <(find output -type f -name '*.conda' | sort)
