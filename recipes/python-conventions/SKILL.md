@@ -22,6 +22,24 @@ if os.environ.get("PIXI_DEV_MODE") == "1":
   production/default environments.
 - Never add `@beartype` decorators manually — the package-level claw covers
   everything.
+- The dev environment checks everything, annotated locals included, and is
+  allowed to be slower. Never pass `BeartypeConf(claw_is_pep526=False)` to
+  speed a run up: long jobs (corpus conversions, registrations, full-length
+  captures, training) run in the prod environment, which never loads beartype.
+  If one hot local makes the dev gate measurably too slow, drop that local's
+  annotation; do not invent aliases for speed.
+- Why annotated locals cost time: every `x: Float32[ndarray, "3"] = ...` runs
+  the subscription again, jaxtyping builds a new class each time, and beartype
+  compiles and caches a new checker for it (~45 µs per line, and memory is
+  never freed). This is dev-only cost; see the policy above.
+- beartype caches transformed bytecode in `__pycache__/*.opt-beartype*.pyc`
+  keyed by beartype version, not by conf. After changing a `BeartypeConf`,
+  delete those files or the old checks stay in.
+- No `jaxtyping.jaxtyped` and no `install_import_hook`. The hook replaces the
+  claw for its modules, so local checks stop. The decorator runs in prod too
+  and raises `jaxtyping.TypeCheckError`, not `BeartypeException`.
+  `jaxtyped(typechecker=None)` under the claw turns off every check on that
+  function, dtype included.
 
 ## Annotations: PEP 526 everywhere, jaxtyping for arrays
 
@@ -32,19 +50,63 @@ validate at runtime.
 Every array annotation carries BOTH dtype and shape:
 
 ```python
-from jaxtyping import Float, UInt8, Int
+from jaxtyping import Float64, Int64, UInt8
 
 rgb: UInt8[np.ndarray, "h w 3"] = load_image(path)
-intrinsics: Float[np.ndarray, "3 3"] = calibration.K
-indices: Int[np.ndarray, "n"] = np.argsort(scores)
+intrinsics: Float64[np.ndarray, "3 3"] = calibration.K
+order: Int64[np.ndarray, "n"] = np.argsort(scores)
 ```
 
-Named/constrained axes are encouraged: `Float32[ndarray, "n_verts=778 3"]`.
+Use a fixed width (`Float32`, `Float64`, `Int64`) whenever the producer fixes
+it: `argsort` returns int64, and a float64 value under `Float32` fails
+beartype. Generic `Float`/`Int` only for genuine dtype polymorphism, marked on
+the line with `# jaxtyping: generic-dtype`. Serialized fields always fix the
+width.
+
+### Shapes: what each spelling enforces
+
+beartype checks each array **on its own**: dtype, rank, literal sizes, and a
+name repeated inside one string (`"n n"`). It does **not** compare a name
+across arguments or with the return value: `f(a: "n 3", b: "n 3")` accepts
+n=2 with n=5. Axis names are documentation, so they must still be correct.
+
+| Spelling | Meaning | Checked now |
+|---|---|---|
+| `"n 3"` | exactly one leading axis | rank and the `3` |
+| `"*batch 3"` | any number of leading axes, zero included, shared by every array that says `*batch` | only the `3` |
+| `"*#batch 4 4"` | broadcasts to `*batch` | only the `4 4` |
+| `"... 3"` | anonymous leading axes, related to nothing | only the `3` |
+| `"n_verts=778 3"` | `n_verts` is a label, `778` is checked | the `778` and the `3` |
+
+Choose by reading the body, not the caller:
+
+1. The body indexes an axis (`[:, i]`, `shape[0]`, `dim=1`, `axis=0`,
+   `reshape(x.shape[0], ...)`) → name every axis up to it. A branch on
+   `ndim in (3, 4)` → a union of fixed ranks.
+2. The body flattens and restores any leading dims (`reshape(-1, k)` …
+   `reshape(*lead, ...)`) and two or more arrays share them → `*batch`; an
+   input that goes through `broadcast_to` → `*#batch`. One variadic per string.
+3. One array whose leading axes nothing else refers to → `"..."`. Never put
+   `"..."` in a union with a stricter shape: the union accepts anything.
+
+```python
+# no: "..." hides that X is rank 5; a rank-3 X silently gives an outer product
+def proj(X: Float32[Tensor, "... 4"], intrinsics: Float32[Tensor, "... 4"]) -> Float32[Tensor, "..."]: ...
+# yes
+def proj(X: Float32[Tensor, "b e ps ps 4"], intrinsics: Float32[Tensor, "b e 4"]) -> Float32[Tensor, "b e ps ps 2"]: ...
+```
+
+Spelling: axis names are lowercase snake_case (`h w 3`, not `H W 3`), one
+concept keeps one spelling per package (`ps`, not `ps`/`p`/`P`), and locals use
+the signature's names. No symbolic axes (`"n+1"`): without `jaxtyped` they
+raise `AnnotationError` on every call. Unpacking into pre-declared locals
+(`r: X; r, s = f()`) is never checked: annotate the function's return instead.
 
 ## Names carry meaning; types carry dtype and shape
 
-The jaxtyping annotation is the only place dtype and shape live, and it is
-checked (beartype at function boundaries, pyrefly statically). Names never
+The jaxtyping annotation is the only place dtype and shape live, and beartype
+checks it in the dev environment (pyrefly sees only `ndarray`/`Tensor` until
+shape checking is on, below). Names never
 repeat it: `cam_T_world`, not `cam_T_world_v44`; `points_xyz`, not
 `points_xyz_n3`; no `_f64` / `_np` / `_t` dtype tags. Names keep what the type
 cannot say: units (`_px`, `_m`, `_deg`), frame direction (`cam_T_world`,
@@ -61,14 +123,20 @@ and batched `@`: adopt per package as coverage allows, baseline meanwhile.
 
 ## Type aliases: TypeAlias, never PEP 695
 
-beartype does not support PEP 695 `type X = ...` statements (ruff's UP040 is
-ignored for exactly this reason). Always:
+Use `TypeAlias`, never PEP 695 `type X = ...` (keep ruff's UP040 ignored).
+beartype accepts both, but `type` does not parse on Python 3.10/3.11, which
+some environments importing shared packages still run, and beartype's error
+for a `type` alias shows only the alias name, not the expected shape.
 
 ```python
 from typing import TypeAlias
-ImageBGR: TypeAlias = UInt8[ndarray, "H W 3"]
+ImageBGR: TypeAlias = UInt8[ndarray, "h w 3"]
 DeviceChoice: TypeAlias = Literal["auto", "cuda", "cpu"]
 ```
+
+Aliases are for names that repeat, not for speed. Define them once at module
+level; nesting one at a use site (`Shaped[ImageBGR, "t"]`) builds a new class
+every time it runs.
 
 Strings with a fixed set of values are `Literal` aliases, never bare `str`;
 reuse the alias for params, returns, dict keys, and fields. No `Any`/`object`
