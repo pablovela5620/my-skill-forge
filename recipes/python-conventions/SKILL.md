@@ -25,7 +25,7 @@ if os.environ.get("PIXI_DEV_MODE") == "1":
 - The dev environment checks everything, annotated locals included, and is
   allowed to be slower. Never pass `BeartypeConf(claw_is_pep526=False)` to
   speed a run up: long jobs (corpus conversions, registrations, full-length
-  captures, training) run in the prod environment, which never loads beartype.
+  captures, training) run in the prod environment, which never activates beartype.
   If one hot local makes the dev gate measurably too slow, drop that local's
   annotation; do not invent aliases for speed.
 - Why annotated locals cost time: every `x: Float32[ndarray, "3"] = ...` runs
