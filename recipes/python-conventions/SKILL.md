@@ -57,10 +57,12 @@ intrinsics: Float64[np.ndarray, "3 3"] = calibration.K
 order: Int64[np.ndarray, "n"] = np.argsort(scores)
 ```
 
-Use a fixed width (`Float32`, `Float64`, `Int64`) whenever the producer fixes
-it: `argsort` returns int64, and a float64 value under `Float32` fails
-beartype. Generic `Float`/`Int` only for genuine dtype polymorphism, marked on
-the line with `# jaxtyping: generic-dtype`. Serialized fields always fix the
+Numpy arrays use a fixed width (`Float32`, `Float64`, `Int64`) whenever the
+producer fixes it: `argsort` returns int64, and a float64 value under
+`Float32` fails beartype. Generic `Float`/`Int` on a numpy array only for
+genuine dtype polymorphism, marked on the line with
+`# jaxtyping: generic-dtype`. Torch tensors may use generic `Float` where
+autocast or half precision varies the dtype. Serialized fields always fix the
 width.
 
 ### Shapes: what each spelling enforces
