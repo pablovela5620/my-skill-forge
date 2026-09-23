@@ -98,9 +98,8 @@ def proj(X: Float32[Tensor, "... 4"], intrinsics: Float32[Tensor, "... 4"]) -> F
 def proj(X: Float32[Tensor, "b e ps ps 4"], intrinsics: Float32[Tensor, "b e 4"]) -> Float32[Tensor, "b e ps ps 2"]: ...
 ```
 
-Spelling: axis names are lowercase snake_case (`h w 3`, not `H W 3`), one
-concept keeps one spelling per package (`ps`, not `ps`/`p`/`P`), and locals use
-the signature's names. No symbolic axes (`"n+1"`): without `jaxtyped` they
+Spelling: one concept keeps one spelling per package (`ps`, not `ps`/`p`/`P`),
+and locals use the signature's names. No symbolic axes (`"n+1"`): without `jaxtyped` they
 raise `AnnotationError` on every call. Unpacking into pre-declared locals
 (`r: X; r, s = f()`) is never checked: annotate the function's return instead.
 
