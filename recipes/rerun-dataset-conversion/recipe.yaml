@@ -1,24 +1,20 @@
 context:
   skill: rerun-dataset-conversion
   upstream_path: skills/rerun-dataset-conversion
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/rerun-io/rerun
-  rev: edb19a77964eaab1b497a3d7a2aa8700ad7dba7b
+  rev: bbd2b6059c36bf49efcc655b0c8a0a4a1b96b20d
   patches:
     - packaging.patch
-
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
-
 tests:
   - package_contents:
       files:
@@ -30,7 +26,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for converting robotics datasets into layered Rerun recordings
   homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-dataset-conversion
