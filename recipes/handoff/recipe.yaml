@@ -1,24 +1,20 @@
 context:
   skill: handoff
   upstream_path: skills/productivity/handoff
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/mattpocock/skills
-  rev: 3cca18b368ae95cdbdebbff572ccafa662551015
+  rev: d28dfdc39beadc3142a33359b5cfa4765dcbd0bc
   patches:
     - fix-frontmatter.patch
-
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
-
 tests:
   - package_contents:
       files:
@@ -30,7 +26,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for handing conversation context to a fresh agent
   description: |
