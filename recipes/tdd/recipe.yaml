@@ -3,10 +3,10 @@ context:
   upstream_path: skills/engineering/tdd
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.4"
+  version: "0.0.5"
 source:
   git: https://github.com/mattpocock/skills
-  rev: 2ab958093e83e0ec752e6c1c5932da465bf23e0c
+  rev: 321658273cb1d20b76026717d027d505790106d4
 build:
   number: 0
   noarch: generic
