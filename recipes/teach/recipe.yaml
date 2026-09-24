@@ -1,24 +1,20 @@
 context:
   skill: teach
   upstream_path: skills/productivity/teach
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/mattpocock/skills
-  rev: 697d4ce9742da558fd1ba6697c8e9775e2e302dd
+  rev: 321658273cb1d20b76026717d027d505790106d4
   patches:
     - fix-frontmatter.patch
-
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
-
 tests:
   - package_contents:
       files:
@@ -34,7 +30,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for teaching concepts in a guided workspace
   description: |
