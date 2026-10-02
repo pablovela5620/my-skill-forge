@@ -3,10 +3,10 @@ context:
   upstream_path: skills/hf-cli/SKILL.md
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.3"
+  version: "0.0.4"
 source:
   git: https://github.com/huggingface/skills
-  rev: 35e8c35a1ae5b462e0bb23d444d25569c3bb6700
+  rev: ca0325bb20b2d0a1b2efa893670c4c72f79e707b
 build:
   number: 0
   noarch: generic
