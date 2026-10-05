@@ -18,6 +18,10 @@ jobs:
           - skill: chrome-cdp
             strategy: github-latest-release
           # git-main strategy (track main branch)
+          - skill: paseo
+            strategy: git-main
+          - skill: paseo-help
+            strategy: git-main
           - skill: investigate-puffin
             strategy: git-main
           - skill: rerun-blueprint

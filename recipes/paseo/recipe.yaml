@@ -1,0 +1,31 @@
+context:
+  skill: paseo
+  upstream_path: skills/paseo
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+source:
+  git: https://github.com/getpaseo/paseo
+  rev: fdb5540a943586d8e9149101ebc713667b2c36f1
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
+    requirements:
+      run:
+        - skills-ref
+about:
+  summary: Paseo reference for managing projects, workspaces, agents, and schedules
+  homepage: https://github.com/getpaseo/paseo/tree/main/skills/paseo
+  repository: https://github.com/getpaseo/paseo
+  license: Apache-2.0
+  license_file: LICENSE
