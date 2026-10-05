@@ -1,81 +1,68 @@
 # Codex delegation from Claude Code
 
-Read this file only after routing work to Codex.
+Use Paseo for durable Codex workers. The MCP and CLI control the same daemon;
+the worker survives the calling command. Read this file after routing to Codex.
 
-## Boundary
-
-Agent-initiated work uses the Codex CLI. The Claude/Codex plugin remains
-limited to ambient hooks and commands invoked by the user.
-
-## Preflight: identity and model
+## Identity and launch settings
 
 Check `printenv CLAUDE_CONFIG_DIR` and `claude auth status` in the parent
-session's environment. Use the profile directory to select Codex; use the
-reported account to catch mismatches:
+session. Match that account on the execution host:
 
-| Parent profile | Codex profile home |
-|---|---|
-| Personal Claude: unset or the normal `.claude` directory | `$HOME/.codex` |
-| Claude Work: `.claude-work` | `$HOME/.codex-work` |
+| Parent account | Paseo provider | Codex home |
+|---|---|---|
+| Personal Claude | `codex` | `$HOME/.codex` |
+| Claude Work | `codex-work` | `$HOME/.codex-work` |
 
-Resolve custom paths, missing login, or account mismatches before dispatch.
-Keep accounts separate: never substitute the other login or copy credentials.
-Set `delegation_codex_home` to the selected absolute path on the execution host.
-Pass it explicitly through tmux, SSH, and resumes; non-interactive shells may
-not have the `codexw` alias.
+Fleet config gives each provider its own account directory. Do not substitute
+the other provider or copy credentials if the matching login is unavailable.
+Resolve custom profile paths or an account mismatch before dispatch.
+Use `paseo provider diagnostic <provider> --json` on the selected daemon to
+verify the executable and provider readiness. On that host, verify the matching
+`CODEX_HOME` with `codex login status`; it does not prove the account email.
 
-Default to GPT-6 Astra (`gpt-6-astra`) with low effort; honor explicit user
-overrides. Use normal speed (`service_tier="default"`), not fast/priority mode:
+Use the fleet defaults: `gpt-6-astra`, low thinking, normal speed. Honor explicit
+user model and effort choices. Use `auto` mode for workspace edits; use
+`read-only` for investigation. If a hardware probe needs broader access,
+request approval for only that command. Include the repo's GitHub identity
+rules in the prompt; provider login and GitHub login are separate.
+
+## Dispatch
+
+Use the `paseo` MCP when its tools are available. Call `list_profiles` to read
+any configured launch bundles; retain the matching personal/work provider.
+Use `list_providers`, `list_models`, or `inspect_provider` when settings need
+verification. Create or select the execution workspace, then call `create_agent`
+with its workspace ID, provider/model, initial prompt, and
+`settings.thinkingOptionId` / `settings.modeId`. A profile is launch settings,
+not a `profile` argument. If it defines features, copy them to `settings.features`.
+
+Use the installed CLI when MCP tools are unavailable:
 
 ```bash
-env CODEX_HOME="$delegation_codex_home" codex login status
-env CODEX_HOME="$delegation_codex_home" codex exec -m gpt-6-astra -c 'model_reasoning_effort="low"' -c 'service_tier="default"' ...
+paseo run --background --provider codex --model gpt-6-astra --thinking low --mode auto --cwd /absolute/repo "<task and acceptance criteria>" --json
+paseo wait <agent-id> --timeout 60 --json
+paseo inspect <agent-id> --json
+paseo logs <agent-id> --tail 40 --json
+paseo send <agent-id> "<follow-up>"
 ```
 
-`codex login status` must pass, but does not prove the account email.
-Include the selected profile and repo identity rules in the worker's prompt.
-GitHub is separate: before private-repo access, pushes, or PR changes, check
-`gh auth status` and select the account required by the repo's `AGENTS.md`.
+Choose `codex-work` for the work account. For another machine, use
+`paseo --host <target> ...` and a directory on that host; discover targets with
+the fleet skill. Give concurrent editing workers separate worktrees. Use
+`paseo run --help` for workspace options instead of building a tmux launcher.
 
-**Complete when:** the parent profile is verified, the matching Codex login
-passes, and the launch uses the selected home, model, and effort.
+## Collect
 
-Use `--sandbox read-only` for investigation and `--sandbox workspace-write`
-for edits. Start hardware probes in the sandbox; if device isolation blocks
-the probe, request approval for only that command — do not broaden the
-sandbox.
+Record the daemon target, agent ID, provider, and workspace. In Paseo-hosted
+sessions, keep `notifyOnFinish` enabled and use the completion notification.
+Outside Paseo, wait in bounded calls, inspect status, and read the final
+activity with `get_agent_activity` or CLI logs. Idle alone does not prove the
+task succeeded: assess the result and acceptance criteria.
 
-## Durable execution — the only mode
-
-Never run `codex exec` directly through a tool call: a run the harness
-backgrounds at a tool timeout wedges silently and never finishes. Every Codex
-launch is durable:
-
-1. Use a teardown-proof tmux server. An agent-spawned tmux server dies with
-   the agent session's cgroup, killing every session on it — boot the server
-   via `ssh <this-host> 'tmux new-session -d …'` or `systemd-run --user`.
-   Use absolute binary paths in ssh-launched scripts (`~/.pixi/bin` is not
-   on a non-interactive PATH).
-2. Start Codex in a uniquely named tmux session. Redirect its log to a file
-   and capture the final response with `--output-last-message`.
-3. Pick the wake-up: a background watcher on the output file for work
-   collected this session; `paseo heartbeat create` when the work must
-   outlive the session.
-4. Verify the tmux session, first log output, report path, and wake-up
-   before promising completion. On heartbeat wake-up, re-check the status
-   sentinel and re-boot the work if it has gone stale.
-
-Track the exact tmux session. A live session remains in progress; a valid
-final report is complete; a missing session without a valid report is failed.
-Required permission or information is blocked and must name the user's next
-action.
-
-Remove the heartbeat after a terminal outcome. Resume the recorded Codex
-session when recovery is possible. Launch the primary job before optional
-research.
-
-**Complete when:** Codex survival and the wake-up path are both verified, and
-the final report has been read and assessed.
+Resume the recorded agent with `send_agent_prompt` or `paseo send`; avoid
+duplicate launches. Report a permission request or failure with the next
+required action. Use a heartbeat only when the user asks for follow-up that
+outlives this conversation, and remove it when that work ends.
 
 ## Desktop tasks
 
@@ -83,5 +70,4 @@ Use the same Astra/low default for computer use. Include the target host and
 application, ask the worker to read `cua-driver`, and require fresh visual or
 application-state evidence. Confirm that its execution host has the driver,
 skill, graphical session, and OS grants. Keep one active computer-use worker
-per desktop session; isolated desktops may run in parallel. An unavailable
-model or desktop is a reported blocker, not permission to switch accounts.
+per desktop session; isolated desktops may run in parallel.
