@@ -30,22 +30,19 @@ converge fails, onboarding stops, or a machine behaves unexpectedly.
    NB: pixi treats a per-env solve failure as a WARNING (exit 0) — a broken
    pin can silently leave an env missing; the CI solve gate exists to catch
    this at PR time (`pixi run solve-check`, three-platform matrix).
-5. Skill symlinks: forge envs (`agent-skill-*`) plus this repo's `skills/`
-   dir, linked into `~/.claude/skills` and `~/.codex/skills`; dangling links
+5. Skill symlinks: installed forge envs (`agent-skill-*`), linked into
+   `~/.claude/skills` and `~/.codex/skills`; dangling links
    pruned.
-6. Instruction symlinks + work profile (`~/.claude/CLAUDE.md`,
-   `~/.claude-work/CLAUDE.md`, `~/.codex/AGENTS.md`,
-   `~/.claude-work/skills`; pre-existing real files backed up once) and the
-   managed rc line sourcing `config/shell/fleet.sh`.
+6. Prepare both work profiles, share their skills, apply Codex defaults, and
+   add the managed rc line sourcing `config/shell/fleet.sh`.
 7. `paseo_apply.py` — fleet paseo config (tailnet-IP listen) + service
    unit; restarts the daemon only on fleet-initiated config change (shadow
    copy `.fleet-config-applied`); no-op without the pixi paseo binary.
-8. `mcp_apply.py` — rendered `.mcp.json` → user-scope MCP servers on
-   claude (personal + work) and codex via their own `mcp add/remove` CLIs.
-   Gates: command must resolve (`~/.pixi/bin` prepended), capability probes
-   hold entries back on too-old binaries (`mcp: skip …` note, converge
-   stays green), 120s CLI timeouts. Only fleet-declared names are touched;
-   drift is corrected on the next converge.
+8. Ruler reads shared instructions and MCP declarations, then writes both
+   agents' personal and work profile files. Sync supplies output paths,
+   installed stdio command paths, and the live Paseo endpoint. Ruler performs
+   the native merges; unrelated MCPs and settings remain. Invalid agent
+   configuration fails convergence without writing a success stamp.
 
 ## Failure signatures
 

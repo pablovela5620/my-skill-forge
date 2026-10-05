@@ -46,12 +46,13 @@ bar.
 - Launch Claude workers through Agent or Workflow calls.
 - Before launching Codex, read
   [`references/codex.md`](references/codex.md) completely and follow its
-  durable execution contract — never a bare `codex exec` tool call.
+  Paseo dispatch and account selection. Use the MCP when available or the
+  installed CLI; Paseo owns the worker's lifetime.
 - Give parallel editing workers separate worktrees.
 - Launch the primary requested work before optional supporting research.
 
-**Complete when:** the worker has returned a result, or its durable execution
-and wake-up path are verified.
+**Complete when:** the worker has returned a result, or its Paseo agent ID
+and collection path are recorded.
 
 ## 3. Collect
 

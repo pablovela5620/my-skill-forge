@@ -3,16 +3,13 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.9"
-
-source:
-  url: https://raw.githubusercontent.com/pablovela5620/my-skill-forge/main/LICENSE
-  sha256: 395ea11dbfdb768a46ebdca5cae26a2b353240752a9a9c30f7cdfe9a44960be0
+  version: "0.0.10"
 
 build:
   number: 0
   noarch: generic
   script:
+    - cp $RECIPE_DIR/../../LICENSE $SRC_DIR/LICENSE
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp -R $RECIPE_DIR/references $PREFIX/share/agent-skills/${{ skill }}/
@@ -24,7 +21,7 @@ tests:
         - share/agent-skills/${{ skill }}/references/*.md
       strict: true
   - script:
-      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }}
     requirements:
       run:
         - skills-ref

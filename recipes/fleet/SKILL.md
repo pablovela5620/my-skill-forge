@@ -74,7 +74,7 @@ Skills are `agent-skill-<name>` conda packages from
 `https://prefix.dev/my-skill-forge`. Three steps, each explicit:
 
 1. Recipe in the my-skill-forge repo (vendored SKILL.md, `noarch: generic`,
-   `agentskills validate` in tests — copy an existing recipe). Merging
+   `agentskills read-properties` in tests — copy an existing recipe). Merging
    publishes to the channel.
 2. Pin it in the fleet: add `agent-skill-<name> = "==<version>"` under
    `[envs.agent-skill-forge.dependencies]` in agent-fleet's
@@ -90,19 +90,22 @@ converged machine.
 
 ## MCP servers (fleet-managed since 2026-07-07)
 
-ONE declared MCP set in git lands on claude (personal), claude-work, AND
-codex on every machine: `[mcp_servers.<name>]` blocks in agent-fleet's
-`.ruler/ruler.toml` → `pixi run render` (committed `.mcp.json`) → converge
-(`scripts/mcp_apply.py` applies at user scope through each CLI's own
-`mcp add/remove` — it never writes their state files directly).
+Declare MCPs once in `[mcp_servers.<name>]` blocks in agent-fleet's
+`.ruler/ruler.toml`. Sync runs Ruler for personal and work Claude/Codex
+profiles. Ruler owns instruction generation and native MCP configuration
+merges. The source is linked at `~/.config/ruler` (or `$XDG_CONFIG_HOME/ruler`).
 
 - NEVER hand-run `claude mcp add` / `codex mcp add` for a fleet server —
   hand edits are drift and revert on the next converge. Hand-added servers
-  under OTHER names are ignored (the applier only touches declared names).
-- Entries persist the machine's RESOLVED binary path (a capability probe
-  vouches for the exact binary sessions will run); too-old binaries are
-  skipped with a `mcp: skip <name> …` note and apply automatically once the
-  pin catches up (e.g. rerun viewer-mcp needs >= 0.34).
+  under other names remain through Ruler's merge strategy.
+- Sync resolves stdio commands from the installed fleet tools and skips
+  optional tools absent from that machine. Package pins own compatibility.
+- Paseo's existing package supplies its CLI and HTTP MCP. Sync reads the
+  daemon's listen address from `~/.paseo/config.json`; agents launched by
+  Paseo receive its caller-scoped MCP connection automatically.
+- Ruler preserves unrelated configuration values; Codex TOML comments and
+  formatting are normalized on update. Skill packages stay linked by fleet
+  sync, with Ruler skill copying disabled.
 - New sessions pick changes up automatically; running sessions restart.
 
 ## Holds
@@ -126,7 +129,7 @@ gui/$UID/sh.paseo.daemon` on macOS (starts at LOGIN). NEVER `paseo daemon
 start` by hand — the unit owns the daemon. `paseo daemon status` for health.
 
 Config: ONE file in git, `agent-fleet/config/paseo/config.json` — edit,
-push, converge (`scripts/paseo_apply.py` seds in the machine's tailnet IP
+push, converge (`scripts/paseo_apply.py` renders the machine's tailnet IP
 and restarts only on fleet-initiated change via the `.fleet-config-applied`
 shadow copy; UI edits are drift that reverts on the next fleet change).
 State lives in `~/.paseo` (machine-local, survives binary swaps). There is

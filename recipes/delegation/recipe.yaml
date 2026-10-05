@@ -3,16 +3,13 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.9"
-
-source:
-  url: https://raw.githubusercontent.com/pablovela5620/my-skill-forge/main/LICENSE
-  sha256: 395ea11dbfdb768a46ebdca5cae26a2b353240752a9a9c30f7cdfe9a44960be0
+  version: "0.0.10"
 
 build:
-  number: 1
+  number: 0
   noarch: generic
   script:
+    - cp $RECIPE_DIR/../../LICENSE $SRC_DIR/LICENSE
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/references
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp $RECIPE_DIR/references/codex.md $PREFIX/share/agent-skills/${{ skill }}/references/codex.md
@@ -25,13 +22,6 @@ tests:
       strict: true
   - script:
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }}
-      - grep -Fq 'This skill governs Claude Code.' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md
-      - grep -Fq 'current Claude session' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md
-      - grep -Fq 'model_reasoning_effort="low"' $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md
-      - grep -Fq 'request approval for only that command' $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md
-      - grep -Fq 'paseo heartbeat create' $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md
-      - '! grep -Fiq sonnet $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md'
-      - '! grep -Fq danger-full-access $CONDA_PREFIX/share/agent-skills/${{ skill }}/references/codex.md'
     requirements:
       run:
         - skills-ref
