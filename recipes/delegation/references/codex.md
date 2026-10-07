@@ -24,7 +24,10 @@ Use the fleet defaults: `gpt-6-astra`, low thinking, normal speed, `auto` mode.
 Honor explicit user model and effort choices. Pass `auto` at launch for every
 task, reviews and investigation included; a read-only task says so in its
 prompt. If a hardware probe needs broader access, request approval for only
-that command. Include the repo's GitHub identity rules in the prompt; provider
+that command. `auto` is sandboxed: the worker cannot commit in a git worktree
+(the git dir is outside the workspace), write outside its workspace and `/tmp`,
+or use the GPU, and the parent cannot approve its requests. For such work, ask
+the user, then launch with `--mode full-access`. Include the repo's GitHub identity rules in the prompt; provider
 login and GitHub login are separate.
 
 ## Dispatch
