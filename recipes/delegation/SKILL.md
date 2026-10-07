@@ -43,7 +43,12 @@ bar.
 
 ## 2. Dispatch
 
-- Launch Claude workers through Agent or Workflow calls.
+- Launch Claude workers through Agent or Workflow calls, or through Paseo
+  (`claude-work` or `claude` provider) when the work must outlive the conversation.
+- Launch every Paseo worker, Codex or Claude, in `auto` mode: pass
+  `--mode auto` (MCP: `settings.modeId: "auto"`). Never switch a running
+  worker's mode; the auto-mode classifier blocks that as creating an unsafe
+  agent. Right after launch, check `currentModeId` and `pendingPermissions`.
 - Before launching Codex, read
   [`references/codex.md`](references/codex.md) completely and follow its
   Paseo dispatch and account selection. Use the MCP when available or the

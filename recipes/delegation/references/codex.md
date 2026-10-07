@@ -20,11 +20,12 @@ Use `paseo provider diagnostic <provider> --json` on the selected daemon to
 verify the executable and provider readiness. On that host, verify the matching
 `CODEX_HOME` with `codex login status`; it does not prove the account email.
 
-Use the fleet defaults: `gpt-6-astra`, low thinking, normal speed. Honor explicit
-user model and effort choices. Use `auto` mode for workspace edits; use
-`read-only` for investigation. If a hardware probe needs broader access,
-request approval for only that command. Include the repo's GitHub identity
-rules in the prompt; provider login and GitHub login are separate.
+Use the fleet defaults: `gpt-6-astra`, low thinking, normal speed, `auto` mode.
+Honor explicit user model and effort choices. Pass `auto` at launch for every
+task, reviews and investigation included; a read-only task says so in its
+prompt. If a hardware probe needs broader access, request approval for only
+that command. Include the repo's GitHub identity rules in the prompt; provider
+login and GitHub login are separate.
 
 ## Dispatch
 
@@ -33,7 +34,7 @@ any configured launch bundles; retain the matching personal/work provider.
 Use `list_providers`, `list_models`, or `inspect_provider` when settings need
 verification. Create or select the execution workspace, then call `create_agent`
 with its workspace ID, provider/model, initial prompt, and
-`settings.thinkingOptionId` / `settings.modeId`. A profile is launch settings,
+`settings.thinkingOptionId` / `settings.modeId` (`auto`). A profile is launch settings,
 not a `profile` argument. If it defines features, copy them to `settings.features`.
 
 Use the installed CLI when MCP tools are unavailable:
@@ -46,7 +47,10 @@ paseo logs <agent-id> --tail 40 --json
 paseo send <agent-id> "<follow-up>"
 ```
 
-Choose `codex-work` for the work account. For another machine, use
+Choose `codex-work` for the work account. An agent-scoped `paseo run` runs in
+the caller's workspace and ignores `--cwd`, so a Codex worker can write only
+there and in `/tmp`. Give a worker that writes elsewhere its own workspace
+(`--new-workspace`), or name a `/tmp` output path. For another machine, use
 `paseo --host <target> ...` and a directory on that host; discover targets with
 the fleet skill. Give concurrent editing workers separate worktrees. Use
 `paseo run --help` for workspace options instead of building a tmux launcher.
