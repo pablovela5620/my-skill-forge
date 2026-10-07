@@ -20,15 +20,16 @@ Use `paseo provider diagnostic <provider> --json` on the selected daemon to
 verify the executable and provider readiness. On that host, verify the matching
 `CODEX_HOME` with `codex login status`; it does not prove the account email.
 
-Use the fleet defaults: `gpt-6-astra`, low thinking, normal speed, `auto` mode.
-Honor explicit user model and effort choices. Pass `auto` at launch for every
+Use the fleet defaults: `gpt-6-astra`, low thinking, normal speed, `auto-review` mode.
+Honor explicit user model and effort choices. Pass `auto-review` at launch for every
 task, reviews and investigation included; a read-only task says so in its
 prompt. If a hardware probe needs broader access, request approval for only
-that command. Never use `full-access`. `auto` is sandboxed: the worker cannot
-commit in a git worktree (the git dir is outside the workspace), write outside
-its workspace and `/tmp`, or use the GPU, and the parent cannot approve its
-requests. Tell it to leave changes uncommitted and to write reports under
-`/tmp`; the parent commits, runs the gates and does the GPU work. Include the
+that command. Never use `full-access`. `auto-review` keeps the workspace-write
+sandbox and routes eligible requests (a commit in a git worktree, whose git dir
+is outside the workspace; a write outside the workspace and `/tmp`; the GPU) to
+Codex's auto-reviewer. Plain `auto` waits for a human on each request, and the
+parent session cannot approve them. If the reviewer refuses a step, the worker
+leaves its changes uncommitted and reports it; the parent does that step. Include the
 repo's GitHub identity rules in the prompt; provider login and GitHub login are
 separate.
 
@@ -39,13 +40,13 @@ any configured launch bundles; retain the matching personal/work provider.
 Use `list_providers`, `list_models`, or `inspect_provider` when settings need
 verification. Create or select the execution workspace, then call `create_agent`
 with its workspace ID, provider/model, initial prompt, and
-`settings.thinkingOptionId` / `settings.modeId` (`auto`). A profile is launch settings,
+`settings.thinkingOptionId` / `settings.modeId` (`auto-review`). A profile is launch settings,
 not a `profile` argument. If it defines features, copy them to `settings.features`.
 
 Use the installed CLI when MCP tools are unavailable:
 
 ```bash
-paseo run --background --provider codex --model gpt-6-astra --thinking low --mode auto --cwd /absolute/repo "<task and acceptance criteria>" --json
+paseo run --background --provider codex --model gpt-6-astra --thinking low --mode auto-review --cwd /absolute/repo "<task and acceptance criteria>" --json
 paseo wait <agent-id> --timeout 60 --json
 paseo inspect <agent-id> --json
 paseo logs <agent-id> --tail 40 --json
