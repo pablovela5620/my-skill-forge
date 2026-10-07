@@ -33,6 +33,9 @@ Lifecycle gotchas (both modes):
 - The MCP **never spawns a viewer**. Always: spawn viewer → `connect` → work.
 - `ViewerClient.spawn` resolves `rerun` from PATH — stale global installs win. **Always pass `executable_path=` pointing at the project env's rerun binary.**
 - `detach_process` defaults: headless → attached (dies with your script / `close()`); headed → detached (survives; only explicit `close()` kills it). Clean up detached viewers when done.
+- **A viewer you start yourself (`subprocess.Popen`, a shell `&`) is yours to stop, and a headless viewer never idles**: it renders at full speed until killed. With the PyPI wheel, `<env>/bin/rerun` is a launcher that forks the real viewer, so `terminate()` / `kill <pid>` stops only the launcher and the viewer keeps running. Start it with `start_new_session=True` and stop it with `os.killpg(os.getpgid(pid), signal.SIGTERM)` (as `scripts/rrd_to_video.py` does), or launch `<site-packages>/rerun_sdk/rerun_cli/rerun` directly. `ViewerClient.spawn` already does this.
+- **Never reuse a port that already answers.** A leftover viewer keeps its port; the new one fails to bind, and `ViewerClient(url=…)` / the MCP talk to the old viewer — screenshots of the wrong data, no error. Probe the port before spawning.
+- **End by confirming nothing you started still holds a port** — check by port (`ss -ltnp`, `lsof -iTCP -sTCP:LISTEN`), not `pgrep -f "--port N"` from a shell whose own command line contains that text (it matches itself). Never kill by name (`pkill rerun`): shared catalog servers are also named `rerun`.
 
 ### Linux aarch64: temporary AV1 fix for 0.38.1
 
