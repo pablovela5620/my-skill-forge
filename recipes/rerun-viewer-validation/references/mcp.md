@@ -4,7 +4,7 @@
 
 Run `tools/list` against the actual project's `rerun viewer-mcp` binary. Tool names and argument shapes vary by release; do not infer them from the installed skill version. The examples below were checked against 0.37.0 and 0.38.1. Use the returned schema if it differs.
 
-Spawn a viewer separately with `rerun --headless --port <port>`. Its control endpoint is `http://127.0.0.1:<port>` from the MCP host. The SDK sink `rerun+http://…/proxy` and the web viewer port are different endpoints. Over SSH, run MCP beside the viewer or use a tunnel to the control port.
+Spawn a viewer separately with `rerun --headless --port <port>`. You own that process: stop it as a process group when done (see Lifecycle gotchas in SKILL.md). Its control endpoint is `http://127.0.0.1:<port>` from the MCP host. The SDK sink `rerun+http://…/proxy` and the web viewer port are different endpoints. Over SSH, run MCP beside the viewer or use a tunnel to the control port.
 
 Each MCP process has one viewer connection. A legacy disconnect can return `not connected` on a fresh process; treat that specific response as already disconnected and continue to connect. Other errors still need inspection. Disconnect, then connect before opening data; repeat after reconnecting a session, changing ports, or restarting the viewer. On newer servers a repeated connect can reuse the connection, but disconnect → connect also works with legacy servers.
 
