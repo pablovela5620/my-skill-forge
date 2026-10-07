@@ -43,16 +43,16 @@ bar.
 
 ## 2. Dispatch
 
-- Launch Claude workers through Agent or Workflow calls, or through Paseo
-  (`claude-work` or `claude` provider) when the work must outlive the conversation.
-- Launch every Paseo worker, Codex or Claude, in `auto` mode: pass
-  `--mode auto` (MCP: `settings.modeId: "auto"`). Never switch a running
-  worker's mode; the auto-mode classifier blocks that as creating an unsafe
-  agent. Right after launch, check `currentModeId` and `pendingPermissions`.
-- Exception: a Codex worker that must commit in a git worktree, write outside
-  its workspace, or use the GPU cannot do that in `auto`, and the classifier
-  does not let you approve its requests. Ask the user before the launch, then
-  use `--mode full-access` with the user's limits stated in the prompt.
+- Launch Opus and Fable workers through Agent or Workflow calls. Do not run
+  Anthropic models through Paseo.
+- Launch Codex workers through Paseo in `auto` mode: pass `--mode auto`
+  (MCP: `settings.modeId: "auto"`). Never switch a running worker's mode; the
+  auto-mode classifier blocks that as creating an unsafe agent. Right after
+  launch, check `currentModeId` and `pendingPermissions`.
+- Never launch a worker in `full-access`. An `auto` Codex worker cannot commit
+  in a git worktree, write outside its workspace and `/tmp`, or use the GPU.
+  Have it leave its changes uncommitted (or write output under `/tmp`); you
+  commit, run the gates and do the GPU work.
 - Before launching Codex, read
   [`references/codex.md`](references/codex.md) completely and follow its
   Paseo dispatch and account selection. Use the MCP when available or the
