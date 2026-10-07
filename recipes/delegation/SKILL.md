@@ -45,14 +45,16 @@ bar.
 
 - Launch Opus and Fable workers through Agent or Workflow calls. Do not run
   Anthropic models through Paseo.
-- Launch Codex workers through Paseo in `auto` mode: pass `--mode auto`
-  (MCP: `settings.modeId: "auto"`). Never switch a running worker's mode; the
-  auto-mode classifier blocks that as creating an unsafe agent. Right after
-  launch, check `currentModeId` and `pendingPermissions`.
-- Never launch a worker in `full-access`. An `auto` Codex worker cannot commit
-  in a git worktree, write outside its workspace and `/tmp`, or use the GPU.
-  Have it leave its changes uncommitted (or write output under `/tmp`); you
-  commit, run the gates and do the GPU work.
+- Launch Codex workers through Paseo in `auto-review` mode: pass
+  `--mode auto-review` (MCP: `settings.modeId: "auto-review"`). Codex's own
+  reviewer then decides its sandbox requests. Plain `auto` waits for a human on
+  each request, and you cannot approve them. Never switch a running worker's
+  mode; the auto-mode classifier blocks that as creating an unsafe agent. Right
+  after launch, check `currentModeId` and `pendingPermissions`.
+- Never launch a worker in `full-access`. If the reviewer refuses a step the
+  task needs (a commit in a git worktree, a write outside the workspace and
+  `/tmp`, the GPU), the worker leaves its changes uncommitted and reports the
+  step; you do it.
 - Before launching Codex, read
   [`references/codex.md`](references/codex.md) completely and follow its
   Paseo dispatch and account selection. Use the MCP when available or the
