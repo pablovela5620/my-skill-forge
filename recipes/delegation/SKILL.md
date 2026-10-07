@@ -49,6 +49,10 @@ bar.
   `--mode auto` (MCP: `settings.modeId: "auto"`). Never switch a running
   worker's mode; the auto-mode classifier blocks that as creating an unsafe
   agent. Right after launch, check `currentModeId` and `pendingPermissions`.
+- Exception: a Codex worker that must commit in a git worktree, write outside
+  its workspace, or use the GPU cannot do that in `auto`, and the classifier
+  does not let you approve its requests. Ask the user before the launch, then
+  use `--mode full-access` with the user's limits stated in the prompt.
 - Before launching Codex, read
   [`references/codex.md`](references/codex.md) completely and follow its
   Paseo dispatch and account selection. Use the MCP when available or the
