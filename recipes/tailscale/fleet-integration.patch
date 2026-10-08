@@ -1,3 +1,5 @@
+diff --git a/skills/tailscale/SKILL.md b/skills/tailscale/SKILL.md
+index 75a7030..77bbcbf 100644
 --- a/skills/tailscale/SKILL.md
 +++ b/skills/tailscale/SKILL.md
 @@ -1,19 +1,11 @@
@@ -23,13 +25,12 @@
 +  Serve, Funnel, Taildrop, tsnet, and Aperture; not generic file sharing,
 +  containers, or AI cost questions without a Tailscale connection.
  ---
- 
+
  # Tailscale
-@@ -21,6 +13,14 @@
- Tailscale is a zero-config mesh VPN that creates a secure peer-to-peer network (called a **tailnet**) between your devices. It uses WireGuard for encryption and connects devices directly rather than routing through a central gateway.
- 
+@@ -22,6 +14,28 @@ Tailscale is a zero-config mesh VPN that creates a secure peer-to-peer network (
+
  Beyond the core VPN, Tailscale offers a family of products built on the same identity and networking layer. This skill covers all of them — consult the reference file for whichever topic is relevant.
-+
+
 +## Fleet integration
 +
 +On fleet-managed machines, read the `fleet` skill for machine discovery,
@@ -37,6 +38,86 @@
 +OS-managed service. Keep the fleet's artifact publishing route; the Serve and
 +Funnel examples below do not override it. Use the installed CLI help and
 +current official documentation to verify changing flags and policy syntax.
- 
++
++Use the fleet manifest for persistent user-level CLI tools, then push and
++converge with the fleet sync script. Never install them globally by hand.
++For one-off helper tools, use `pixi exec --spec <package> <command>` (for
++example, `pixi exec --spec jq jq --version`). For project work, declare the
++toolchain and dependencies in `pixi.toml` and run commands with `pixi run`.
++Do not use pip, uv, npm, or Go commands to install global tools. Native
++services such as Tailscale and Docker remain OS-managed, not Pixi packages.
++
++Check `tailscale version` and service status before using installation
++examples. On an existing fleet host, use its OS package/update workflow;
++the bootstrap examples are for new, unmanaged hosts. Keep secrets out of
++repositories and synced configuration; use the fleet's machine-local
++`~/.secrets.env` or the CI secret store.
++
  ## How references work
- 
+
+ References fall into two shapes depending on what the skill needs to do for the user.
+diff --git a/skills/tailscale/references/enterprise.md b/skills/tailscale/references/enterprise.md
+index 26cc73c..87bf3bb 100644
+--- a/skills/tailscale/references/enterprise.md
++++ b/skills/tailscale/references/enterprise.md
+@@ -37,11 +37,15 @@ jobs:
+           oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+           tags: tag:ci
+
+-      - run: |
+-          export DATABASE_URL="postgresql://user:pass@prod-db.example.ts.net:5432/myapp"
+-          npm run migrate
++      - uses: actions/checkout@v4
++      - uses: prefix-dev/setup-pixi@v0.9.6
++      - run: pixi run migrate
++        env:
++          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+ ```
+
++Define the `migrate` task and its dependencies in the project's `pixi.toml`.
++
+ The node auto-removes when the workflow ends. The OAuth client must be scoped to the same tag (`tag:ci`) so it can mint auth keys for that tag. For zero-secret setups, switch to workload identity federation — same action, different `with:` fields. Fetch the GitHub Action page for the current set.
+
+ ### Ephemeral auth key (CLI use)
+diff --git a/skills/tailscale/references/installation.md b/skills/tailscale/references/installation.md
+index 4368ef6..bfaa62c 100644
+--- a/skills/tailscale/references/installation.md
++++ b/skills/tailscale/references/installation.md
+@@ -1,5 +1,10 @@
+ # Installation
+
++On fleet-managed hosts, first follow the Fleet integration section in
++`../SKILL.md`. Tailscale is an OS-managed service. Do not install a second
++copy with Pixi or rerun a bootstrap script on an existing installation.
++The examples below describe native setup for new hosts.
++
+ ## Linux (mainstream distributions)
+
+ Works on Ubuntu, Debian, RHEL, CentOS, Fedora, Raspberry Pi OS, Amazon Linux, openSUSE, Oracle Linux, and VMware Photon OS.
+diff --git a/skills/tailscale/references/tsnet.md b/skills/tailscale/references/tsnet.md
+index be379ee..2ad758b 100644
+--- a/skills/tailscale/references/tsnet.md
++++ b/skills/tailscale/references/tsnet.md
+@@ -81,13 +81,17 @@ func main() {
+ func firstLabel(s string) string { s, _, _ = strings.Cut(s, "."); return s }
+ ```
+
+-Bootstrap:
++Bootstrap with a project-local Go toolchain in `pixi.toml`. Go module
++dependencies remain in `go.mod` and `go.sum`; commit these with the Pixi
++manifest and lockfile. Save the example as `tshello.go` before running it.
+
+ ```shell
+-mkdir tshello && cd tshello
+-go mod init tshello
+-go get tailscale.com/tsnet
+-go run .
++pixi init tshello
++cd tshello
++pixi add go
++pixi run go mod init tshello
++pixi run go get tailscale.com/tsnet
++pixi run go run .
+ ```
+
+ On first run the program logs an auth URL — open it to add the device to your tailnet. Then from any other tailnet device: `curl http://tshello`.
