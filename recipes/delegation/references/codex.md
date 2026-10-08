@@ -20,7 +20,12 @@ Use `paseo provider diagnostic <provider> --json` on the selected daemon to
 verify the executable and provider readiness. On that host, verify the matching
 `CODEX_HOME` with `codex login status`; it does not prove the account email.
 
-Use the fleet defaults: `gpt-6-astra`, low thinking, normal speed, `auto-review` mode.
+Use the fleet defaults: `gpt-6.1-sol`, low thinking, and `auto-review` mode.
+Personal (`codex`) uses Ultrafast; work (`codex-work`) uses Fast. Inherit the
+service tier from the selected Codex home; do not replace it with a shared
+launch profile's speed setting. Honor an explicit user speed override. If the
+selected tier is unsupported or omitted, report it rather than claiming it is
+active.
 Honor explicit user model and effort choices. Pass `auto-review` at launch for every
 task, reviews and investigation included; a read-only task says so in its
 prompt. If a hardware probe needs broader access, request approval for only
@@ -46,7 +51,7 @@ not a `profile` argument. If it defines features, copy them to `settings.feature
 Use the installed CLI when MCP tools are unavailable:
 
 ```bash
-paseo run --background --provider codex --model gpt-6-astra --thinking low --mode auto-review --cwd /absolute/repo "<task and acceptance criteria>" --json
+paseo run --background --provider codex --model gpt-6.1-sol --thinking low --mode auto-review --cwd /absolute/repo "<task and acceptance criteria>" --json
 paseo wait <agent-id> --timeout 60 --json
 paseo inspect <agent-id> --json
 paseo logs <agent-id> --tail 40 --json
@@ -76,8 +81,8 @@ outlives this conversation, and remove it when that work ends.
 
 ## Desktop tasks
 
-Use the same Astra/low default for computer use. Include the target host and
-application, ask the worker to read `cua-driver`, and require fresh visual or
+Use the same Sol/low and account-specific speed defaults for computer use.
+Include the target host and application, ask the worker to read `cua-driver`, and require fresh visual or
 application-state evidence. Confirm that its execution host has the driver,
 skill, graphical session, and OS grants. Keep one active computer-use worker
 per desktop session; isolated desktops may run in parallel.
