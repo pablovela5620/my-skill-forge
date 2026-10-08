@@ -1,0 +1,39 @@
+context:
+  skill: tailscale
+  upstream_path: skills/tailscale
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/tailscale/tailscale-skill
+  rev: 4f05d353efc56962546aa26ccc59bb08ca699ad1
+  patches:
+    - fleet-integration.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/references/*.md
+      strict: true
+  - script:
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Official Tailscale networking and troubleshooting skill with fleet integration
+  homepage: https://github.com/tailscale/tailscale-skill
+  repository: https://github.com/tailscale/tailscale-skill
+  license: BSD-3-Clause
+  license_file: LICENSE

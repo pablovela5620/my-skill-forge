@@ -73,6 +73,8 @@ jobs:
             strategy: git-main
           - skill: simplify-code
             strategy: git-main
+          - skill: tailscale
+            strategy: git-main
           - skill: tdd
             strategy: git-main
           - skill: teach

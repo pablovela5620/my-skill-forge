@@ -22,6 +22,11 @@ deletes what's unlisted.
 Query platform and hardware facts through Rackpeek. Read the overlay directory
 instead of copying its current members into documentation.
 
+For Tailscale-specific connectivity, DNS, routing, access policy, or service
+configuration, also read the `tailscale` skill. This fleet skill still owns
+machine discovery and installation rules; repository instructions own artifact
+publishing routes.
+
 ## Reaching machines
 
 SSH rides the tailnet: any hostname from `tailscale status` is an SSH target

@@ -1,0 +1,42 @@
+--- a/skills/tailscale/SKILL.md
++++ b/skills/tailscale/SKILL.md
+@@ -1,19 +1,11 @@
+ ---
+ name: tailscale
+ description: >-
+-  Guide for installing, configuring, and managing Tailscale, headscale, and the
+-  Tailscale product family. Covers core mesh VPN (exit nodes, subnet routers,
+-  access controls, SSH, MagicDNS), Docker and Kubernetes integration, CI/CD
+-  pipelines, ephemeral nodes, infrastructure access, site-to-site networking,
+-  app connectors, Aperture (AI/LLM gateway for governance, cost control, usage
+-  visibility), device posture, MDM, SCIM provisioning, SSH and kubectl session
+-  recording, tsrecorder, Taildrop, Tailscale Serve, Funnel, and building Go
+-  applications that embed Tailscale via the tsnet library. Use when someone
+-  asks about Tailscale networking, mesh VPN, VPN replacement, containers,
+-  Kubernetes operator, CI/CD runners, device management, session recording,
+-  audit logging, LLM API access, AI cost control, file sharing, exposing
+-  internal services, or writing a Go program that joins a tailnet as its own
+-  device — even when they describe the scenario without naming the product.
++  Configure and troubleshoot Tailscale networking, tailnet access controls,
++  SSH, MagicDNS, subnet routers, exit nodes, and Tailscale integrations.
++  Use for Tailscale-specific connectivity or administration, including
++  Serve, Funnel, Taildrop, tsnet, and Aperture; not generic file sharing,
++  containers, or AI cost questions without a Tailscale connection.
+ ---
+ 
+ # Tailscale
+@@ -21,6 +13,14 @@
+ Tailscale is a zero-config mesh VPN that creates a secure peer-to-peer network (called a **tailnet**) between your devices. It uses WireGuard for encryption and connects devices directly rather than routing through a central gateway.
+ 
+ Beyond the core VPN, Tailscale offers a family of products built on the same identity and networking layer. This skill covers all of them — consult the reference file for whichever topic is relevant.
++
++## Fleet integration
++
++On fleet-managed machines, read the `fleet` skill for machine discovery,
++installation ownership, and local operating rules. Tailscale remains an
++OS-managed service. Keep the fleet's artifact publishing route; the Serve and
++Funnel examples below do not override it. Use the installed CLI help and
++current official documentation to verify changing flags and policy syntax.
+ 
+ ## How references work
+ 
