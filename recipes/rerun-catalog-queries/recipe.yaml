@@ -1,22 +1,18 @@
 context:
   skill: rerun-catalog-queries
   upstream_path: skills/rerun-catalog-queries
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/rerun-io/rerun
-  rev: 79b328a35b5a4eab7c30e2ea0ab4d4ea11dc0b86
-
+  rev: 2ea211afdea8dd17738a30b63871cbcc05910ab8
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
-
 tests:
   - package_contents:
       files:
@@ -27,7 +23,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for efficient queries against a Rerun catalog
   homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-catalog-queries
