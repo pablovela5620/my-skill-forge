@@ -1,22 +1,18 @@
 context:
   skill: rerun-lerobot
   upstream_path: skills/rerun-lerobot
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/rerun-io/rerun
-  rev: e3f73ea0f1b646e2f21ca1170b3335127a704f9a
-
+  rev: b2ac64e1dbe4c078c8bbfa7fec3bf9dc71f4f932
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
-
 tests:
   - package_contents:
       files:
@@ -29,7 +25,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for importing and splitting LeRobot datasets in Rerun
   homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-lerobot
