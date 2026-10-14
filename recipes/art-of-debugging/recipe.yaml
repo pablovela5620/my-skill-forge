@@ -3,10 +3,10 @@ context:
   upstream_path: SKILL.md
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 source:
   git: https://github.com/stas00/the-art-of-debugging
-  rev: 0ece41765dad7fc250a76593dc0e22d08b64b669
+  rev: d5eada83270eb00c0c27c8f973b7281b660b5a63
   patches:
     - pixi-only.patch
 build:
