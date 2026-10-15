@@ -1,158 +1,99 @@
 # Artifact Patterns
 
-Choose the smallest pattern that makes the material easier to understand than markdown.
+Each pattern is a storyboard: one row per scene, "heading | visual | caption".
+Keep only rows with a visual. Dense detail goes on the reference page.
 
-## Option Comparison
+## Contents
 
-Use for architecture choices, implementation approaches, vendor/tool selection, design directions.
+- Choose a pattern
+- Proposal or implementation plan
+- Option comparison
+- Code review or PR map
+- Research explainer
+- Report or status update
+- Incident timeline
+- Deck
+- Lightweight tool
+- Reference page
 
-Structure:
-- Top recommendation strip with chosen option and why.
-- Side-by-side columns for options.
-- Shared criteria rows: complexity, risk, time, dependencies, reversibility.
-- A risk table below the comparison.
-- "When to choose this" bullets per option.
+## Choose a pattern
 
-Useful additions:
-- Weighted score sliders only if the user needs to tune priorities.
-- Inline code snippets for implementation choices.
-- Sticky criteria column on desktop.
+| The reader must | Pattern |
+|---|---|
+| approve a plan | Proposal or implementation plan |
+| choose | Option comparison |
+| review a change | Code review or PR map |
+| learn how something works | Research explainer |
+| catch up | Report or status update |
+| rebuild what happened | Incident timeline |
+| present | Deck |
+| change inputs and export | Lightweight tool |
 
-## Implementation Plan
+## Proposal or implementation plan
 
-Use for multi-step engineering work.
+1. The result: real capture, or `hero-mock` labeled as an illustration.
+2. How it works: `pipeline` with tokens for what flows.
+3. What changes: `toggle`, today and proposed.
+4. Behaviour under stress: `presets` with counters.
+5. Proof so far: `evidence` screenshots of tests that ran.
+6. Roadmap: `metro`.
+7. Decisions: `flip-cards` with the tradeoff on the back.
 
-Structure:
-- Outcome statement.
-- Milestone timeline.
-- Dependency map or data-flow diagram.
-- Work packages with owner/scope/test notes.
-- Risk register.
-- Verification checklist.
+Reference page: sources, file and line map, risk table, commands.
 
-Useful additions:
-- Expandable details for each milestone.
-- Copyable command blocks.
-- Status chips for `ready`, `blocked`, `risky`, `optional`.
+## Option comparison
 
-## Code Review or PR Map
+1. The recommended option, shown working.
+2. Each option in one `toggle` view with the same visual.
+3. Behaviour of each option: `presets`, one preset per option.
+4. Cost, size, or time: `capacity` bars side by side.
+5. Tradeoffs: `flip-cards`.
 
-Use for reviews, pull request summaries, and unfamiliar diffs.
+## Code review or PR map
 
-Structure:
-- Review focus at the top.
-- File-by-file map with why each file changed.
-- Annotated diff snippets or behavior before/after.
-- Severity-ranked findings.
-- Test and rollout checklist.
+1. Behaviour before and after: `toggle` or two `evidence` shots.
+2. Changed path: `pipeline`, changed stages amber, new stages green.
+3. Findings: `flip-cards` ordered by severity (rose for high).
+4. Test results: `evidence` crops of real output.
 
-Useful additions:
-- Jump links by severity.
-- Toggle between "reviewer summary" and "implementation detail".
-- Module diagram for call flow.
+Reference page: file list with reasons, line references, full diffs.
 
-## Research Explainer
+## Research explainer
 
-Use for learning a concept, summarizing a library, or explaining how a feature works.
+1. The concept as an interactive model (`hero-mock` or `presets`).
+2. The mechanism: `stepper` or `pipeline`.
+3. Parameters: `presets`, one story per preset.
+4. Real examples: `evidence` or a real Rerun capture.
+5. Terms: `flip-cards` (term on the front, meaning on the back).
 
-Structure:
-- TL;DR.
-- Concept map or request/path diagram.
-- Progressive sections from "what" to "why" to "how".
-- Tabbed examples.
-- Glossary sidebar.
-- Common mistakes.
+## Report or status update
 
-Useful additions:
-- Hover-linked terms.
-- Small interactive simulation when it is genuinely clarifying.
-- Copyable examples.
+1. Status: `metro` with the current stop.
+2. Budgets and quotas: `capacity` bars.
+3. What shipped: `evidence` screenshots.
+4. Trends: an inline SVG chart of real data only.
+5. Decisions needed: `flip-cards`.
 
-## Report or Status Update
+## Incident timeline
 
-Use for weekly status, project health, incident postmortems, research summaries.
-
-Structure:
-- Status headline.
-- Key changes since last update.
-- Timeline or trend chart.
-- What shipped, slipped, and needs attention.
-- Decisions needed.
-- Follow-up list.
-
-Useful additions:
-- Inline SVG charts.
-- Severity bands.
-- Print-friendly CSS.
-
-## Incident Timeline
-
-Use for postmortems, outages, debugging narratives.
-
-Structure:
-- Impact summary.
-- Timeline with timestamps.
-- Detection, mitigation, resolution.
-- Root cause tree.
-- Follow-ups with owners and due dates.
-
-Useful additions:
-- Log excerpts in collapsibles.
-- Highlighted uncertainty or evidence gaps.
-- "What changed" comparison.
+1. The timeline: `hero-mock` layout with real timestamps, one track per
+   service, ticks for events. Label it real, not an illustration.
+2. Detection, mitigation, resolution: `stepper`.
+3. Evidence: cropped log or dashboard screenshots.
+4. Follow-ups: `metro`.
 
 ## Deck
 
-Use when the artifact will be presented or walked through live.
+One scene per slide, the same recipes, arrow-key navigation, and a progress
+bar. Keep speaker notes on the reference page.
 
-Structure:
-- One `<section>` per slide.
-- Keyboard navigation with left/right arrows.
-- Progress indicator.
-- Speaker notes hidden in `<details>` or a notes panel.
+## Lightweight tool
 
-Useful additions:
-- Print stylesheet with one slide per page.
-- Overview mode.
+Controls, a live preview, and copy or export of the result. Offer presets
+before raw inputs. Keep local state in `localStorage` only when it helps.
 
-## Diagram Sheet
+## Reference page
 
-Use for architecture maps, process flows, mental models, figure sets.
-
-Structure:
-- Figure gallery.
-- Each figure has title, caption, and takeaway.
-- Inline SVG with semantic text where possible.
-- Copy/export affordance if the diagram is intended to be reused.
-
-Useful additions:
-- Click-to-highlight paths.
-- Toggle labels or layers.
-- Legend with consistent color semantics.
-
-## Lightweight Editor
-
-Use when the user needs to sort, classify, tune, or transform information.
-
-Structure:
-- Input area or editable controls.
-- Live preview/result.
-- Validation or warnings.
-- Export/copy button that produces markdown, JSON, diff, or a command.
-
-Useful additions:
-- Local-only state in `localStorage` when useful.
-- Reset button.
-- Import textarea for round-tripping.
-
-## Pattern Selection Heuristics
-
-- If the user must choose: option comparison.
-- If the user must execute: implementation plan.
-- If the user must review: code review map.
-- If the user must learn: research explainer.
-- If the user must report: status/report.
-- If the user must reconstruct events: incident timeline.
-- If the user must present: deck.
-- If the user must understand shape: diagram sheet.
-- If the user must manipulate inputs: lightweight editor.
+Name it `<name>-reference.html`. Use the same base blocks and plain sections.
+Tables, long lists, sources, and line numbers belong here. Link to it from the
+guide's last scene and from any scene that needs detail.

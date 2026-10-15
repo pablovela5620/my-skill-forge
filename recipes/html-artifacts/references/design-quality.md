@@ -1,127 +1,96 @@
-# Design Quality Reference
+# Design Quality
 
-Use this when making the HTML artifact visually strong enough that the user wants to read it.
+Use this for theme, colour, type, motion, and accessibility decisions. The
+visual-first rules and bans in `SKILL.md` come first.
 
-## Scene Before Style
+## Contents
 
-Before choosing theme, palette, and density, write a concrete scene sentence:
+- Scene before style
+- Surface and colour
+- Typography
+- Layout
+- Motion
+- Interaction
+- Accessibility
+- Finish line
 
-> The user opens this artifact on [device/context], while [mood/urgency], to decide [primary decision].
+## Scene before style
 
-Let that sentence choose the visual system. A calm weekly status read on Monday morning wants a different surface than an incident report opened during an outage.
+Write one sentence before you choose a theme or density:
 
-When the scene does not force a light surface, prefer a dark one. Use light for print, mandated source-system parity, bright-room projection, or contexts where sharing and legibility clearly benefit from paper-like contrast.
+> The user opens this on [device and place], while [mood or urgency], to
+> decide [the main decision].
 
-## Artifact Role
+A Monday status read and an outage report want different pages. Let the
+sentence choose.
 
-Choose the role before drawing the interface:
+## Surface and colour
 
-- Utility artifact: dense, scannable, restrained, system fonts, low ornament. Use for plans, reviews, reports, status pages, and operational tools.
-- Narrative artifact: stronger hierarchy, richer pacing, and more memorable composition. Use for decks, explainers, and persuasive comparisons.
-- Tool artifact: controls, state, validation, copy/export, and keyboard/touch affordances. Use for calculators, editors, filters, and generators.
-
-The role decides density and expression. A utility artifact should not turn into a landing page, and a narrative artifact should not hide its argument behind decorative controls.
-
-## Hierarchy
-
-- The page should answer "what am I looking at?" in the first viewport.
-- Put the conclusion, current state, or main decision above the supporting detail.
-- Use no more than 3 primary type levels in a small artifact.
-- Make scan paths obvious: summary strip, section headers, numbered steps, or a persistent table of contents.
-- Keep prose columns readable at 65-75 characters. Tables and code can be wider.
-
-## Dark-First Theme
-
-- Start with a dark, tinted base unless the scene says otherwise. Good dark artifacts feel calm and legible, not theatrical.
-- Avoid pure black page backgrounds and pure white text. Use near-black surfaces with a subtle hue, softer foreground text, and a brighter text color only for headings or critical values.
-- Define a real surface ladder: page, section, elevated panel, border, hover, active, and selected. Do not rely on shadows alone for separation.
-- Use one accent color for navigation, focus, and key state. Keep saturation limited so the accent remains meaningful.
-- Use `oklch()` when practical. It makes dark palettes easier to tune without dead grayscale.
-- Keep data states semantic: success, warning, danger, neutral, and active should have both color and text labels or icons.
-- For reports and plans that may be printed, include `@media print` styles that switch to a light paper surface, dark text, and visible table borders.
-
-## Color
-
-- Pick a named color strategy:
-  - Restrained: dark tinted neutrals and one accent. Default for reports, plans, reviews, tools.
-  - Committed: one strong color carries a major surface. Use for decks, editorial explainers, memorable decision artifacts.
-  - Full palette: 3-4 roles with clear semantics. Use for charts, category-heavy reports, systems maps.
-- Use CSS `oklch()` when practical.
-- Tint neutrals toward the accent hue. Avoid dead grayscale.
-- Reserve saturated color for state, emphasis, or navigation. Do not spray accents across every card.
-- Never rely on color alone. Pair color with labels, icons, shape, or position.
+- Start dark and tinted: near-black with a hue, not pure black, and soft
+  off-white text, not pure white. Switch to light for print, projection, or
+  when the user asks.
+- Define a surface ladder: page, alternate band, panel, raised panel, border,
+  strong border. Do not rely on shadows for separation.
+- One colour per meaning, the same on every scene. Default set: blue = reuse
+  or existing, amber = change or warning, green = new or success, rose = risk
+  or failure, teal = navigation and focus.
+- Never use colour alone. Pair it with a label, an icon, or a position.
+- `oklch()` and `color-mix()` help tune tints; keep contrast at WCAG AA or better.
 
 ## Typography
 
-- Product/report artifacts can use system fonts. They should feel native and easy to scan.
-- Editorial/deck artifacts may use a stronger heading font if local or remote fonts are allowed.
-- Avoid negative letter spacing.
-- Avoid viewport-based font scaling. Use fixed rem steps with responsive layout, not fluid text.
-- Use `text-wrap: balance` for short headings and `text-wrap: pretty` for prose when supported.
-- Body text should usually sit between 15px and 18px.
+- Use the system font stack. It renders offline on every machine.
+- Use 3 type levels or fewer per page: scene heading, sub-line, body/caption.
+- Use big numerals (about 2 rem) for counters and totals; they are visuals.
+- Do not scale font size with the viewport. Use fixed `rem` steps and change
+  the layout instead. Use `text-wrap: balance` on headings.
+- Body text is 15 to 17 px; captions about 14 px; never below 12 px.
 
 ## Layout
 
-- Prefer spatial structure over boxed repetition.
-- Use cards only for real repeated units, not as the default page-building material.
-- Do not put cards inside cards.
-- Vary spacing by section importance. Identical padding everywhere feels mechanical.
-- Use sticky navigation or a compact table of contents for long artifacts.
-- Give tables enough structure: sticky headers where useful, zebra rows only when they help tracking, aligned numbers, and clear captions.
+- One idea per full-width scene. Content column about 1120 px wide,
+  left-aligned. Centre only a true deck slide or poster.
+- Put the visual high in the scene: heading, one sub-line, then the visual.
+- Use cards only for real repeated units (flip cards, counters). No cards
+  inside cards. No card grid as page filler.
+- Vary space by importance; identical padding everywhere looks mechanical.
+- Stack in reading order on phones. Long rows turn into columns.
+
+## Motion
+
+- Animate the mechanism: tokens that move along a pipeline, a playhead that
+  moves along tracks, steps that light in order, bars that fill. Motion that
+  only decorates the page is banned.
+- Prefer CSS keyframes. Use JS (`requestAnimationFrame`) only for state that
+  CSS cannot drive, such as a scrubbable timeline.
+- One strong moment per scene. Loops are slow and calm: 2 to 3 s per cycle.
+  State feedback takes 150 to 250 ms. A card flip takes about 0.5 s.
+- Pause animation off screen. Under `prefers-reduced-motion`, show the final or
+  key state and keep manual controls.
 
 ## Interaction
 
-Add interaction only when it changes how the artifact is used:
+- Each control changes what the reader sees: presets, toggles, play/pause,
+  scrub, flip, replay.
+- Use real `<button>` elements with `aria-pressed` for state and an
+  accessible name. Touch targets are at least 44 px.
+- No hover-only meaning. Every control works with keyboard and touch.
+- No modal-first browsing.
 
-- Tabs for alternate views of the same object.
-- Details/summary for optional depth.
-- Search or filters for long lists.
-- Copy buttons for commands, snippets, or generated output.
-- Keyboard navigation for decks.
-- Export buttons for editor-like artifacts.
+## Accessibility
 
-Prefer native HTML controls and patterns: labeled inputs, buttons, tables, `details`/`summary`, and `dialog` only when a modal is truly needed. Every control needs hover, focus-visible, active, and disabled states when applicable. Touch targets should be at least 44px on mobile.
+- Landmarks (`main`, `section`, `nav`), logical heading levels, visible focus.
+- Inline SVG diagrams get `role="img"` and an `aria-label` that states the point.
+- Screenshots get `alt` text that says what the image proves.
+- Live counters and captions use `aria-live="polite"`.
+- Check contrast for text on coloured segments; use dark text on light fills.
 
-## Visual Anti-Slop Checks
+## Finish line
 
-Before finishing, remove or redesign these:
+The page is done when a reader can:
 
-- Purple-blue gradients used as a default identity.
-- Bokeh blobs, decorative orbs, and ambient blobs.
-- Rounded-square icon tiles above every heading.
-- Side-stripe borders on callouts or cards.
-- Hero metric blocks with one huge number plus tiny labels.
-- Repeated icon-heading-body cards that all have the same weight.
-- Overly soft shadows used to fake depth.
-- Decorative dashboards with fake data.
-- Dark mode that depends on glow, neon edges, or high-saturation bloom.
-- All-centered layouts when the artifact needs comparison, scanning, or repeated use.
-- All-primary button rows where every action appears equally important.
-- Modal-first browsing for complex content.
-- Monospace styling used to imply technical depth when the content is ordinary prose.
-- Redundant intros that restate the section heading.
-- UI text rasterized into images or SVG when semantic text would work.
-
-## Accessibility and Robustness
-
-- Use landmarks: `header`, `main`, `nav`, `section`, `article`, `aside`, `footer`.
-- Keep heading levels logical.
-- Give controls accessible names.
-- Preserve focus outlines.
-- Respect `prefers-reduced-motion`.
-- Check contrast in both normal and emphasized states.
-- Test long text, short text, empty sections, and narrow widths.
-- Check browser zoom from 125% to 200% for dense artifacts.
-- Avoid horizontal scrolling except in intentionally scrollable tables or code blocks.
-
-## Finish Line
-
-The artifact is done when a reader can:
-
-1. Understand the point in under 10 seconds.
-2. Find supporting detail without reading linearly.
-3. Trust the visual hierarchy.
-4. Use any interactive control without instructions.
-5. Open the file locally without broken assets or setup.
-6. Print the file acceptably when the artifact is a plan, report, review, or reference.
-7. Confirm there are no dead controls, fake links, placeholder data, external dependencies, clipped labels, or missing assets.
+1. Get the point in 10 seconds from the first viewport.
+2. Follow every scene from its visual and caption alone.
+3. Use every control without instructions.
+4. Open the file offline on a phone with nothing broken or clipped.
+5. Trust every number: each one is measured, computed, or labeled as an example.
