@@ -3,6 +3,8 @@
 One `rerun --headless` viewer loads the recording; `rerun viewer-mcp` (stdio JSON-RPC)
 drives it: set_time -> short settle -> screenshot(save_path) per frame, then one ffmpeg
 pass over the PNGs. Frame times are sampled EVENLY across the timeline's full range.
+Both MCP schemas work: legacy `connect`/`viewer_state`/`set_time` (0.37) and
+`rerun_connect`/`rerun_get_viewer_state`/`rerun_set_time_cursor` (0.38.1); tools/list decides.
 
 Stdlib only (no rerun-sdk import). Requires a rerun binary with the `viewer-mcp` subcommand (0.34+) and ffmpeg.
 120 frames at 1080p take ~10s; raise --settle-ms to 100-400 for overlay-heavy or
@@ -64,6 +66,11 @@ class McpStdioClient:
             },
         )
         self._notify("notifications/initialized")
+        # 0.38 renamed the viewer tools to rerun_* and nested their arguments; pick by what the server lists.
+        names = {t.get("name") for t in self._rpc("tools/list", {}).get("tools", [])}
+        self.new_schema = "rerun_connect" in names
+        self.connect_tool = "rerun_connect" if self.new_schema else "connect"
+        self.state_tool = "rerun_get_viewer_state" if self.new_schema else "viewer_state"
 
     def _send(self, msg: dict[str, Any]) -> None:
         assert self.proc.stdin is not None
@@ -157,15 +164,34 @@ def ranged_timelines(state: Any) -> list[dict[str, Any]]:
 
     Both the boot readiness wait and the timeline selection go through this one
     predicate, so a timeline that is visible but not yet ranged cannot pass boot
-    and then fail selection.
+    and then fail selection. Newer (rerun_*) states are normalized to the legacy
+    shape {"timeline", "type", "min", "max"}.
     """
     recordings = state.get("recordings", []) if isinstance(state, dict) else []
-    return [
-        t
-        for rec in recordings
-        for t in rec.get("timelines", [])
-        if t.get("min") is not None and t.get("max") is not None
-    ]
+    out: list[dict[str, Any]] = []
+    for rec in recordings:
+        for t in rec.get("timelines", []):
+            if isinstance(t.get("timeline"), dict):
+                rng = t.get("time_range")
+                if rng is None:
+                    continue
+                # The state is protobuf JSON: a zero start or end is omitted, so absent means 0.
+                out.append({
+                    "timeline": t["timeline"]["name"],
+                    "type": "sequence" if t.get("time_type") == "TIME_TYPE_SEQUENCE" else "temporal",
+                    "min": int(rng.get("start", 0)),
+                    "max": int(rng.get("end", 0)),
+                })
+            elif t.get("min") is not None and t.get("max") is not None:
+                out.append(t)
+    return out
+
+
+def set_time_call(new_schema: bool, timeline: str, t: int) -> tuple[str, dict[str, Any]]:
+    """Tool name and arguments that move the time cursor (paused) in either MCP schema."""
+    if new_schema:
+        return "rerun_set_time_cursor", {"timeline": {"name": timeline}, "time": {"time": int(t)}, "play": False}
+    return "set_time", {"timeline": timeline, "time": int(t)}
 
 
 def pick_timeline(state: Any, requested: str | None) -> dict[str, Any]:
@@ -249,7 +275,7 @@ def boot_viewer(
                 if viewer_proc.poll() is not None:
                     raise viewer_death_error(viewer_proc.returncode, port, log_path)
                 try:
-                    mcp.call_tool("connect", {"endpoint": f"http://127.0.0.1:{port}"})
+                    mcp.call_tool(mcp.connect_tool, {"endpoint": f"http://127.0.0.1:{port}"})
                     break
                 except RuntimeError as e:
                     if mcp.proc.poll() is not None:
@@ -263,7 +289,7 @@ def boot_viewer(
             while time.monotonic() < deadline:
                 if viewer_proc.poll() is not None:
                     raise viewer_death_error(viewer_proc.returncode, port, log_path)
-                state = mcp.tool_json("viewer_state")
+                state = mcp.tool_json(mcp.state_tool)
                 names = {t["timeline"] for t in ranged_timelines(state)}
                 if names:
                     if require_timeline is None or require_timeline in names:
@@ -351,7 +377,7 @@ def main() -> int:
         for gidx, t in enumerate(times):
             frame_path = frames_dir / f"{gidx:06d}.png"
             try:
-                mcp.call_tool("set_time", {"timeline": timeline_name, "time": int(t)})
+                mcp.call_tool(*set_time_call(mcp.new_schema, timeline_name, int(t)))
                 if args.settle_ms > 0:
                     time.sleep(args.settle_ms / 1000.0)
                 result = mcp.call_tool(

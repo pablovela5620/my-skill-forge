@@ -109,7 +109,7 @@ python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
   --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15] [--collapse-panels]
 ```
 
-**Compatibility gate:** the bundled helper uses the legacy `connect` / `viewer_state` / `set_time` schema. Check `tools/list` first; the newer `rerun_*` schema is not supported by this helper. Use a compatible viewer that can also read the recording, or report the helper limitation and use the appropriate validation branch. Do not downgrade below the writer version.
+**Schemas:** the bundled helper reads `tools/list` and speaks both MCP schemas: legacy `connect` / `viewer_state` / `set_time` (0.37) and `rerun_connect` / `rerun_get_viewer_state` / `rerun_set_time_cursor` (0.38.1, tested). If a later release renames the tools again, the helper fails at connect; then report the limitation and use the MCP branch. Do not downgrade below the writer version.
 
 Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. Capture cost depends on scene and renderer; screenshot calls can take seconds. Measure a short sample before planning a sweep. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and the project env's rerun binary. The default `--settle-ms 30` is a starting point; raise it when decoded video or overlays have not stabilized — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 
