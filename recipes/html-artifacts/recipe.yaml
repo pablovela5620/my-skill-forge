@@ -3,7 +3,7 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.2"
+  version: "0.0.3"
 
 build:
   number: 0
@@ -12,26 +12,41 @@ build:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp -R $RECIPE_DIR/references $PREFIX/share/agent-skills/${{ skill }}/
+    - cp -R $RECIPE_DIR/scripts $PREFIX/share/agent-skills/${{ skill }}/
+    - cp -R $RECIPE_DIR/assets $PREFIX/share/agent-skills/${{ skill }}/
+
+requirements:
+  run_constraints:
+    - nodejs >=22
 
 tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
         - share/agent-skills/${{ skill }}/references/*.md
+        - share/agent-skills/${{ skill }}/scripts/check-artifact.mjs
+        - share/agent-skills/${{ skill }}/assets/gallery.html
+        - share/agent-skills/${{ skill }}/assets/gallery-steps.js
+        - share/agent-skills/${{ skill }}/assets/pick_place_demo.py
       strict: true
   - script:
-      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
     requirements:
       run:
         - skills-ref
+  - script:
+      - node --check $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts/check-artifact.mjs
+    requirements:
+      run:
+        - nodejs >=22
 
 about:
-  summary: Agent skill for creating readable single-file HTML artifacts
+  summary: Agent skill for visual-first single-file HTML artifacts
   description: |
-    Create self-contained browser-openable HTML artifacts:
-    - Plans, reviews, reports, explainers, diagrams, decks, comparisons, and editors
-    - Inline CSS/JS with semantic HTML and responsive layout
-    - Impeccable-inspired design quality for readable, useful artifacts
+    Build self-contained, browser-openable HTML artifacts that explain by showing:
+    - Animated diagrams, interactive simulations, and real screenshots over prose
+    - Real Rerun captures first when the topic has data over time
+    - A tested gallery of copy-paste recipes and a browser checker at phone and desktop widths
   homepage: https://github.com/pablovela5620/my-skill-forge
   repository: https://github.com/pablovela5620/my-skill-forge
   documentation: https://github.com/pablovela5620/my-skill-forge
