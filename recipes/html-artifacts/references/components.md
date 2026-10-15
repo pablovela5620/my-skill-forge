@@ -8,7 +8,7 @@ own `<style>`, markup, and `<script>`. All blocks pass the checker at 390 px and
 
 - Copy a recipe
 - Shared base
-- hero-mock
+- rerun-hero
 - pipeline
 - toggle
 - presets
@@ -55,22 +55,24 @@ gallery in a browser.
   `<svg class="ic"><use href="#i-name"/></svg>`. New symbols use the same
   24×24 line style: stroke 1.8, round caps and joins, no fill.
 
-## hero-mock
+## rerun-hero
 
-**Use for** the end product of a proposal: a run, a recording, a robot task,
-a UI. It mirrors the Rerun viewer: viewport, caption, timeline tracks, one
-playhead, play/pause, and scrub. Use a real capture instead when one exists
-(`rerun.md`).
+**Use for** the end product: a run, a recording, a robot task, any data over
+time. It plays a real sweep video of the Rerun viewer. Chapter buttons seek to
+the recording's own events, and a live caption names the current event.
 
-**Edit** `T` (seconds), `KEYS` (pose keyframes), `TRACKS` (segments
-`[start, end, label, "--colour"]` or ticks `[t]`), and `CAPTIONS`
-(`[t, text]`). Replace the SVG content and `pose()`/`render()` for a new scene.
+**Make it** from a real `.rrd`, or from a synthetic one when no data exists
+yet (`assets/pick_place_demo.py` is a template). Sweep and capture with
+`rerun-viewer-validation`; see `rerun.md`.
 
-**Rules.** Keep the "Illustration, not a real run" badge. Segment times must
-match the real design. It plays only while visible and motion is allowed;
-under reduced motion it shows one key frame and the user can still scrub.
-Segments narrower than 10% hide their label; the legend under the tracks
-names every phase, so touch and keyboard readers still see it.
+**Edit** the `<video>` source, `data-span` (recording seconds the sweep
+covers), and `data-events` (copy `[seconds, text]` from the recording's event
+log, never invent them). Keep the badge true: "Real viewer · synthetic data" or
+"Real viewer · real data".
+
+**Rules.** The video plays only while visible and never starts by itself under
+reduced motion; chapters still seek. Crop the sweep to the view that tells the
+story when phones matter: full viewer chrome is too small to read at 390 px.
 
 ## pipeline
 
@@ -135,8 +137,8 @@ say what the total counts.
 one box, one short label, and the rest dimmed. Box position uses percentages.
 Add `data-label="end"` when the box is near the right edge.
 
-Capture web UIs with playwright (`locator.screenshot()`); capture Rerun with
-`rerun.md`. Crop, scale, compress, and inline:
+Capture web UIs with playwright (`locator.screenshot()`). Capture Rerun at an
+exact time with the viewer MCP (`rerun.md`). Crop, scale, compress, and inline:
 
 ```bash
 ffmpeg -i shot.png -vf "crop=W:H:X:Y,scale=960:-2" -q:v 6 shot.jpg   # aim under 150 KB

@@ -31,7 +31,8 @@ Keep only rows with a visual. Dense detail goes on the reference page.
 
 ## Proposal or implementation plan
 
-1. The result: real capture, or `hero-mock` labeled as an illustration.
+1. The result: `rerun-hero` from a real recording, or from a synthetic
+   recording labeled as synthetic when no data exists yet.
 2. How it works: `pipeline` with tokens for what flows.
 3. What changes: `toggle`, today and proposed.
 4. Behaviour under stress: `presets` with counters.
@@ -60,7 +61,7 @@ Reference page: file list with reasons, line references, full diffs.
 
 ## Research explainer
 
-1. The concept as an interactive model (`hero-mock` or `presets`).
+1. The concept as a real model: `rerun-hero` of a small recording, or `presets`.
 2. The mechanism: `stepper` or `pipeline`.
 3. Parameters: `presets`, one story per preset.
 4. Real examples: `evidence` or a real Rerun capture.
@@ -76,8 +77,8 @@ Reference page: file list with reasons, line references, full diffs.
 
 ## Incident timeline
 
-1. The timeline: `hero-mock` layout with real timestamps, one track per
-   service, ticks for events. Label it real, not an illustration.
+1. The timeline: log the incident's events and metrics to Rerun with real
+   timestamps (one entity per service) and show it with `rerun-hero`.
 2. Detection, mitigation, resolution: `stepper`.
 3. Evidence: cropped log or dashboard screenshots.
 4. Follow-ups: `metro`.

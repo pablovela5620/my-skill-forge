@@ -15,11 +15,12 @@ right. Give each idea a picture that moves or responds. Text only labels it.
 
 - **Visual first.** Every scene has a diagram, animation, simulation, or real
   image. A text-only scene moves to the reference page or goes away.
-- **End product first.** Scene one shows the result: a real capture, or an
-  interactive mock labeled "Illustration, not a real run".
+- **End product first.** Scene one shows the result as a real capture.
 - **Rerun first for data over time.** For robots, sensors, recordings, and
-  pipelines, show real Rerun output before any drawing. Read
-  [references/rerun.md](references/rerun.md).
+  pipelines, show real Rerun viewer output, captured and proven with the
+  `rerun-viewer-validation` skill. With no data yet, log a small synthetic
+  recording with the Rerun SDK, label it synthetic, and capture that. Never
+  draw an imitation of the viewer. Read [references/rerun.md](references/rerun.md).
 - **Truthful motion.** Animate the mechanism (data moves, time passes, state
   changes), not the page. A smooth model must not show behaviour that the real
   system does not have.
@@ -49,7 +50,8 @@ separate linked page (`<name>-reference.html`), not in the guide.
 
 | Content shape | Recipe |
 |---|---|
-| The result, a run, a UI | `hero-mock` timeline player, or a real capture |
+| The result, a run | `rerun-hero`: real Rerun sweep video with event chapters |
+| A UI or page result | `evidence` screenshot |
 | Data moves through stages | `pipeline` with moving tokens |
 | Ordered steps | `stepper` that lights each step in turn |
 | Before and after, hidden and shown | `toggle` |
@@ -91,6 +93,7 @@ looping CSS animations under reduced motion, and a throwing steps file. A PASS
 does not prove the page looks right:
 
 1. Read every screenshot. Look for clipped labels, empty visuals, and overlaps.
+   Read every Rerun frame you embed too: a moved playhead is not proof.
 2. Click every control in a steps file and photograph the result.
 3. Fix the cause, then run again.
 
@@ -105,7 +108,8 @@ Name the pattern to avoid. "Avoid a generic look" only swaps one default for ano
 - Decorative motion: a fade-and-slide entrance on every section, hover effects
   on every card, parallax, spinners.
 - Raw sliders when 2 or 3 presets tell the story.
-- Invented data shown as real. Every mock carries "Illustration, not a real run".
+- A drawn imitation of the Rerun viewer, and invented data shown as real. Log a
+  real recording, or a synthetic one labeled as synthetic, and capture it.
 - Default styles: "01/02/03" labels on content that is not a sequence; ALL-CAPS
   tracked eyebrow labels; monospace for labels that are not code; one accent
   word in a headline; cream or off-white pages; purple gradients; gradient
@@ -119,7 +123,7 @@ Name the pattern to avoid. "Avoid a generic look" only swaps one default for ano
 ## References
 
 - [references/components.md](references/components.md): recipe catalog, copy command, rules per recipe.
-- [references/rerun.md](references/rerun.md): real Rerun screenshots, sweep videos, embeds, labeled mocks.
+- [references/rerun.md](references/rerun.md): real Rerun screenshots, sweep videos, synthetic recordings, embeds.
 - [references/verification.md](references/verification.md): checker, steps files, pitfalls, publishing.
 - [references/design-quality.md](references/design-quality.md): theme, colour, type, accessibility.
 - [references/patterns.md](references/patterns.md): scene lists for plans, reviews, reports, decks.

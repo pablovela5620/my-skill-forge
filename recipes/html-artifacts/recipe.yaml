@@ -27,6 +27,7 @@ tests:
         - share/agent-skills/${{ skill }}/scripts/check-artifact.mjs
         - share/agent-skills/${{ skill }}/assets/gallery.html
         - share/agent-skills/${{ skill }}/assets/gallery-steps.js
+        - share/agent-skills/${{ skill }}/assets/pick_place_demo.py
       strict: true
   - script:
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null

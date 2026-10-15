@@ -4,11 +4,20 @@ const text = sel => page.$eval(sel, el => el.textContent.trim());
 const expect = (what, got, want) => { if (got !== want) throw new Error(`${what}: got ${JSON.stringify(got)}, want ${JSON.stringify(want)}`); };
 
 await go("s-hero");
-await page.click('[data-recipe="hero-mock"] .mock-play');
-await page.$eval('[data-recipe="hero-mock"] input[type=range]', el => { el.value = 400; el.dispatchEvent(new Event("input")); });
-expect("hero time", await text(".mock-time"), "4.00 s");
-expect("hero caption", await text(".mock-caption"), "Contact. Lift and carry to the bin.");
-await shot("hero-paused-4s");
+const hero = '[data-recipe="rerun-hero"] video';
+const playing = await page.$eval(hero, v => ({ ready: v.readyState, paused: v.paused }));
+if (playing.ready < 2 || playing.paused) throw new Error("hero video should play on screen: " + JSON.stringify(playing));
+await page.$eval(hero, v => v.pause());
+await page.click('[data-recipe="rerun-hero"] .rrh-chapters button:nth-child(3)');
+await page.waitForTimeout(500);
+const caption = await text('[data-recipe="rerun-hero"] .rrh-now');
+if (!caption.startsWith("2.6 s") || !caption.includes("contact")) throw new Error("contact chapter: " + caption);
+await shot("hero-contact");
+await page.$eval(hero, v => v.play());
+await page.emulateMedia({ reducedMotion: "reduce" });
+await page.waitForTimeout(300);
+expect("hero paused under reduced motion", await page.$eval(hero, v => v.paused), true);
+await page.emulateMedia({ reducedMotion: "no-preference" });
 
 await go("s-toggle");
 await page.click('[data-recipe="toggle"] button[data-view="visual"]');
