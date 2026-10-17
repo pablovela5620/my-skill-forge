@@ -1,6 +1,6 @@
 ---
 name: rerun-viewer-validation
-description: Prove what the Rerun viewer rendered — pixel evidence over logs. Use when a .rrd, blueprint, or Rerun rendering must be visually verified, when a timeline sweep or video of a recording is wanted, when an .rrd must be embedded in an HTML page, or when a gradio/WebViewer surface needs browser validation.
+description: Prove what the Rerun viewer rendered — pixel evidence over logs. Use when a .rrd, blueprint, or Rerun rendering must be visually verified, when a timeline sweep or video of a recording is wanted, when a recording (catalog segment or .rrd) must be embedded in an HTML page, or when a gradio/WebViewer surface needs browser validation.
 compatibility: Requires the rerun binary (with the viewer-mcp subcommand) and ffmpeg on PATH, plus a GPU or software rasterizer for headless rendering. The web branch additionally needs a browser automation tool (playwright or chrome-devtools) and network access.
 ---
 
@@ -13,9 +13,9 @@ Prove what rendered. Logs, metadata, and `rrd stats` say what was *sent*; only p
 1. **Static render proof** (does the .rrd load? does the blueprint lay out? do views render?) → **scripted ViewerClient**. No MCP needed, deterministic, CI-friendly.
 2. **Time or UI state** (scrub to frame N, verify view X at time T, click/select entities, read panels) → **viewer MCP**.
 3. **Video / timeline sweep** (watch an algorithm run) → **`scripts/rrd_to_video.py`** (this skill's helper). Never loop MCP screenshots for video.
-4. **Web** (embed an .rrd in an HTML page; validate a gradio-rerun app or WebViewer embed) → read **`references/web.md`** — the iframe embed recipe (CORS, Chrome Local Network Access, tailscale) and the playwright validation recipes live there. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial.
+4. **Web** (embed a catalog segment or an .rrd in an HTML page; validate a gradio-rerun app or WebViewer embed) → read **`references/web.md`** — picking the embed, the catalog and file iframe recipes (CORS, HTTPS, Chrome Local Network Access) and the playwright validation recipes live there. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial.
 
-**Video vs embed** (branches 3 vs 4, when both fit): the embedded rrd is the richer artifact — fully inspectable, orbitable, scrubbable — so prefer it when the recording is browser-sized. The WASM viewer holds the whole recording in memory, so check size first (`ls -lh`, `rerun rrd stats`) and gate embeds at a few hundred MB (hard ceiling ~1.5 GiB — see `references/web.md`). Choose video when the recording is huge, when the audience only needs to *watch* (Slack, PR description), or when the data needs a visualizer the web viewer doesn't have (custom visualizers). Best of both, often: a trimmed/downsampled preview rrd for the embed plus a full-fidelity video.
+**Video vs embed** (branches 3 vs 4, when both fit): the embed is the richer artifact — fully inspectable, orbitable, scrubbable. A **catalog segment** embed streams only the slice near the cursor and opens at an exact moment, so it suits long recordings (one measured 288 MB hour moved 8–11 MB). A **file** embed downloads the whole `.rrd` first, so check its size (`ls -lh`, `rerun rrd stats`) and keep it to a few hundred MB. Choose video when the audience only needs to *watch* (Slack, PR description), when the reader is off the network that serves the data, or when the data needs a visualizer the web viewer doesn't have (custom visualizers).
 
 Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data — Rerun has no forward compat, so an `.rrd` written by a newer SDK will not load in an older viewer (including the WASM viewer inside a gradio-rerun app pinned to an older release). Check the writer and actual viewer versions; this skill's minimum version constraint does not guarantee recording or tool-schema compatibility.
 
@@ -118,14 +118,14 @@ Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `
 Collapse the blueprint/selection/time panels whenever the frame should be all content — videos, embeds, clean screenshots:
 
 - **Live viewer, any recording**: inspect `query_tree` for each panel's current state and toggle. Click the fresh ID only when the panel is expanded, then confirm the intended pane disappeared. Saved blueprints can override initial panel state. The video helper does this for you: `--collapse-panels`.
-- **Recordings you author — and therefore embeds**, since panel state rides the saved blueprint: `rrb.Blueprint(<views>, collapse_panels=True)`, or per-panel `rrb.BlueprintPanel(state="collapsed")` / `rrb.SelectionPanel(…)` / `rrb.TimePanel(…)` with `"collapsed" | "hidden" | "expanded"`. An `.rrd` re-saved this way opens chrome-free everywhere, including the WASM viewer iframe.
+- **Recordings you author — and therefore embeds**, since panel state rides the saved blueprint: `rrb.Blueprint(<views>, collapse_panels=True)`, or per-panel `rrb.BlueprintPanel(state="collapsed")` / `rrb.SelectionPanel(…)` / `rrb.TimePanel(…)` with `"collapsed" | "hidden" | "expanded"`. An `.rrd` re-saved this way opens chrome-free everywhere, including a file-embed iframe; a catalog segment takes the panel state from an extra `.rbl` (see `references/web.md`).
 
 ## Evidence & checks
 
 - Reports under `/tmp/rerun-viewer-validation/<timestamp>/`: screenshots, `notes.md` recording Rerun version, command, `.rrd` path/size, chosen timeline + range, wait times, renderer string, pass/fail.
 - Blank or wrong visuals → inspect data before blaming blueprints: `rerun rrd verify|stats|print <file>` (use the project env's binary).
 - Keep viewport fixed; wait after load and after each time change. For encoded video streams, a moved playhead proves nothing about decode — only nonblank, changing pixels do.
-- Remote viewing (optional): `tailscale serve --https <port> --bg <report-dir>`, pick an unused port, `curl -k -I` the URL to confirm reachability. Path mode is fine for plain HTML + screenshots; a report that *embeds* an .rrd needs the CORS proxy setup in `references/web.md`.
+- Share reports through the project's artifact host and confirm the URL answers (`curl -I`). A report that embeds a recording also needs its data endpoint (HTTPS + CORS) from `references/web.md`.
 
 ## Docs
 

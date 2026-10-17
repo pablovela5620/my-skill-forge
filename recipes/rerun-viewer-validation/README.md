@@ -14,48 +14,33 @@ skill.
 - `run:` carries real dependencies (ffmpeg); `run_constraints:` expresses the
   Rerun compatibility floor without forcing an install.
 
-## Open investigations
+## Catalog embeds: history
 
-### Large-recording embeds via OSS catalog server (blocked upstream, 2026-07-06)
+### 2026-10-17: works on 0.38.1 (promoted to `references/web.md`)
 
-The web-embed branch gates recordings at a few hundred MB because the WASM
-viewer holds the whole `.rrd` in memory. A possible way out is registering the
-recording on an OSS catalog server and pointing the viewer at the segment URL,
-so it streams instead of downloading (pattern from
-[rerun-io/so100-hackathon](https://github.com/rerun-io/so100-hackathon)'s
-`tools/apps/dataset_collector.py`):
+Tested end to end on a live OSS catalog (`rerun server` 0.38.1 with
+`--cors-allow-origin`, behind `tailscale serve --https`), hosted
+`app.rerun.io/version/0.38.1` and a self-hosted copy, iframed in an HTTPS page,
+headless Chrome 152–155 on an RTX 5090, 2× GTX 1080 Ti and an M5 Pro. Every
+embed rendered the game video and paused at the requested `#when`.
 
-```bash
-rerun server --cors-allow-origin '<viewer-origin>'   # default allows only localhost + rerun.io
-```
+- Bytes and memory for one 288 MB hour: catalog 8–11 MB moved, 45–130 MB WASM
+  memory; full file 288 MB, 640–720 MB.
+- Found on the way: the SDK's `segment_url()` writes durations with a thin
+  space (`+2.525 964s`) that the viewer's `#when` parser drops silently; the
+  Python `rr.server.Server` has no CORS parameter; `*://rerun.io` does not
+  match `app.rerun.io`; each server restart gives the dataset a new id.
+- Evidence (pablo-ubuntu): `/tmp/rerun-embed-study/` (source study, claims,
+  two adversarial verdict files) and `/tmp/rerun-embed-validate/`
+  (screenshots, metrics, scripts).
 
-```python
-client = rr.catalog.CatalogClient("rerun+http://127.0.0.1:51234")  # RERUN_INSECURE_SKIP_HOST_CHECK=1
-dataset = client.create_dataset("recordings", exist_ok=True)
-segs = dataset.register([path.as_uri()]).wait().segment_ids
-url = dataset.segment_url(segs[0])
-```
+### 2026-07-06: blocked on 0.34.0 (historical)
 
-Status from a 751 MB test (assembly101 episode, rerun 0.34.0):
-
-- Registration is instant (~1.3 s — lazy indexing, no upfront ingest).
-- The **native** viewer connects and browses the dataset/segment fine.
-- The **WASM** viewer fails connection verification with
-  `missing grpc-status trailer` in *every* topology — including same-machine
-  plain-http against the rerun binary's own `--serve-web` viewer, and the
-  exact so100-hackathon pattern (npm `@rerun-io/web-viewer@0.34.0` served
-  same-origin, JS-API `viewer.open(segment_url)`), replicated verbatim.
-  Definitive isolation: a plain `fetch` of the WhoAmI endpoint *in the failing
-  page's own JS* returns all 29 bytes **including the 0x80 trailer frame**
-  (`grpc-status:0`) — the bytes reach the JS boundary intact, so the bug is in
-  the WASM viewer's grpc-web response parsing (re_grpc_client /
-  tonic-web-wasm-client path). **Upstream viewer bug**, not infrastructure.
-  No matching rerun-io/rerun issue as of 2026-07-06; full evidence chain +
-  issue draft: `~/0Dev/personal/grpc-web-trailer-bug/ISSUE_DRAFT.md`.
-- Even once fixed, two more hurdles: `tailscale serve` truncates gRPC streams
-  in both tcp+TLS and https-proxy modes (tailnet transport would need a
-  gRPC-aware proxy), and the OSS server is in-memory (1.6 GB RSS after serving
-  the 751 MB recording), so it has its own ceiling.
-
-When the upstream issue is fixed and the path is validated end-to-end, promote
-the recipe into `references/web.md` and lift the size guidance accordingly.
+A 751 MB recording registered on an OSS catalog loaded in the native viewer,
+but the WASM viewer failed connection verification with
+`missing grpc-status trailer` in every topology tried (plain HTTP same-machine,
+`--serve-web`, the so100-hackathon JS-API pattern). The bytes reached the page
+intact, so the fault was in the viewer's gRPC-web parsing; the 0.34.1 and 0.35.0
+changelogs carry trailer-related fixes. `tailscale serve` also truncated gRPC
+streams then; on 0.38.1 with Tailscale 1.102 the gRPC-web path through
+`tailscale serve --https` works.

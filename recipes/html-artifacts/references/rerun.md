@@ -30,6 +30,7 @@ mechanism better than a diagram, so consider one even for plans.
 | A recording, and motion matters | Sweep video with event chapters | `rerun-hero` |
 | A recording and one key moment | Screenshot at an exact time, boxed | `evidence` |
 | No data yet (a proposal) | A synthetic recording, captured the same way | `rerun-hero`, badge "synthetic data" |
+| A segment in a catalog reachable over HTTPS with CORS | Live embed that opens at exact moments | catalog iframe, below |
 | A small `.rrd` on a host that sends CORS headers | Live embed | iframe, below |
 
 Combine them: a sweep video in the hero, then 2 or 3 exact-time screenshots
@@ -116,7 +117,13 @@ folder and check both URLs.
 
 ## Live embed
 
-The Rerun docs give this embed:
+A recording in a catalog embeds as a **catalog segment**: the viewer streams
+only the slice near the cursor (8–11 MB of a 288 MB hour) and opens at a
+`#when` moment, so one iframe plus "jump to moment" buttons can replace the
+sweep video. Its server, HTTPS, URL and iframe steps are in
+`rerun-viewer-validation` `references/web.md` ("Catalog segment embed").
+
+For a single `.rrd` file, the Rerun docs give this embed:
 
 ```html
 <iframe src="https://app.rerun.io/version/<ver>/index.html?url=<rrd-url>"
@@ -129,8 +136,9 @@ in headless Chrome. It needs all of these. Details are in
 `rerun-viewer-validation` `references/web.md`:
 
 - The `.rrd` host sends `Access-Control-Allow-Origin` for the viewer origin.
-- Chrome may block a public viewer origin from fetching a private (Tailscale)
-  address. Proxy the viewer too, or use another branch.
+- Chrome 142+ asks the reader once to allow a public viewer origin to fetch a
+  private (Tailscale) address; the iframe delegates it with
+  `allow="local-network-access"`.
 - `<ver>` is the same as or newer than the SDK that wrote the `.rrd`.
 - The file is a few hundred MB or less.
 
