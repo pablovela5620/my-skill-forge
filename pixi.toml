@@ -15,6 +15,7 @@ build-all = "rattler-build build -c https://prefix.dev/my-skill-forge -c conda-f
 autobump = ".github/scripts/update.sh"
 
 [dependencies]
+ca-certificates = "==2026.10.19"
 go-yq = "*"
 rattler-build = "*"
 pre-commit = "*"
