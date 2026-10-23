@@ -3,10 +3,10 @@ context:
   upstream_path: skills/productivity/grilling
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 source:
   git: https://github.com/mattpocock/skills
-  rev: 5d78bd0903420f97c791f834201e550c765699f8
+  rev: 95249b0b49782349740fd9b8c6ce32b4e59e497a
 build:
   number: 0
   noarch: generic
