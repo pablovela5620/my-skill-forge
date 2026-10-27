@@ -170,9 +170,14 @@ the code holds typed objects, never dicts.
 - **Records yes, streams no.** A record read whole goes through pyserde, arrays
   included (calibrations, hand models, keypoint rows, reports, whole-sequence
   pose tables). A stream you iterate does not (frames, depth maps, masks, point
-  clouds, trajectories): it lives in npz/npy, Parquet/Arrow or Rerun, and
-  pyserde carries only the metadata that names it. The test is the role of the
-  data, not a size threshold.
+  clouds, trajectories, per-frame model outputs): it lives in Rerun (an `.rrd`,
+  a catalog layer when the segment is on the catalog), tables in Parquet/Arrow,
+  and pyserde carries only the metadata that names it. The test is the role of
+  the data, not a size threshold.
+- **No npz/npy.** Never write them: not for outputs, caches, intermediates, test
+  fixtures or frozen references. A frozen reference a golden test needs is an
+  `.rrd` in the production entity layout holding its arrays bit-exactly. Read
+  npz/npy only when a third party ships that format, once, at ingest.
 - **Arrays carry jaxtyping with an explicit dtype**: `Float32[ndarray, "n 3"]`,
   never `Float[...]` or bare `ndarray` — generic `Float`/`Int` do not fix the
   width and a bare `ndarray` round-trips as float64. Cast explicitly at a
@@ -206,7 +211,7 @@ the code holds typed objects, never dicts.
   `tomli-w` even `from_toml` fails to import). Self-referential classes are
   decorated after the class body with `serde.serde(Node)`;
   `to_dict(reuse_instances=False)` when JSON-ready primitives are needed.
-- **Not pyserde:** per-frame loops over large arrays (npz/Parquet/Rerun);
+- **Not pyserde:** per-frame loops over large arrays (Rerun/Parquet);
   formats it has no codec for — CSV (`csv.DictReader` → `from_dict(Row, ...)`),
   PGM, Arrow, protobuf, streaming JSONL; a measured hot path (msgspec, held in
   reserve, nothing needs it yet).
