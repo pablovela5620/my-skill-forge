@@ -1,22 +1,18 @@
 context:
   skill: rerun-blueprint
   upstream_path: skills/rerun-blueprint
-
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
-
+  version: "0.0.2"
 source:
   git: https://github.com/rerun-io/rerun
-  rev: ccc27e6a7b406a580d6784554c3ace35bb2b7842
-
+  rev: 944162a8e2c5aee89ef9c1ba6815b92a02a8d770
 build:
   number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
-
 tests:
   - package_contents:
       files:
@@ -27,7 +23,6 @@ tests:
     requirements:
       run:
         - skills-ref
-
 about:
   summary: Agent skill for designing Rerun blueprints and checking headless screenshots
   homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-blueprint
