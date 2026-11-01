@@ -52,7 +52,9 @@ Unless the user asks otherwise:
    - Group details by how the user will scan them, not by how the source material arrived.
    - Convert long prose into tables, timelines, callouts, diagrams, tabs, or collapsibles only when those structures reduce effort.
 
-3. Apply the design quality bar.
+3. Apply the house style and the design quality bar.
+   - The house style is Rerun's: read [references/DESIGN.md](references/DESIGN.md) (a [DESIGN.md](https://github.com/google-labs-code/design.md) file: tokens plus rules) and start from [assets/rerun.css](assets/rerun.css). Draw diagrams with [assets/rerun_figure.py](assets/rerun_figure.py). Where DESIGN.md and design-quality.md disagree, DESIGN.md wins.
+   - Use a different style only when the user asks for one or the artifact belongs to another brand.
    - Read [references/design-quality.md](references/design-quality.md) before substantial visual work.
    - Write the scene sentence before theme, palette, density, or motion: the user opens this artifact on what device/context, with what urgency, to decide what.
    - Use restrained but intentional styling. Avoid generic AI-looking decoration.
@@ -73,10 +75,10 @@ Unless the user asks otherwise:
 
 ## Design Defaults
 
-- Prefer a dark theme when the artifact's reading context does not require light. Dark does not mean black: use tinted near-black surfaces, clear contrast, visible borders, and restrained accents.
+- Dark by default, in the Rerun house style: pure black page, neutral greys, hairline borders, colour only on data. Outside the house style, dark means tinted near-black surfaces, clear contrast, visible borders, and restrained accents.
 - Include print-friendly light styling for print-heavy plans, reports, and review artifacts.
 - Use one accent color plus tinted neutrals unless the content genuinely needs a broader palette.
-- Prefer system fonts for utility and report artifacts. Use a distinctive type pairing only when the artifact is closer to editorial, deck, or brand work.
+- Use system fonts: the system sans for text, JetBrains Mono (falling back to the system mono) for labels, buttons and code, as DESIGN.md sets out. Load no web fonts.
 - Use motion sparingly: 150-250ms, ease-out, state feedback only. Respect `prefers-reduced-motion`.
 - Avoid hover-only meaning. Every control must work with keyboard and touch.
 
@@ -88,14 +90,14 @@ Unless the user asks otherwise:
 - No nested card stacks.
 - No endless identical card grids.
 - No everything-centered layouts except for a true deck, poster, or presentation moment.
-- No pure black or pure white as the full visual system. Tint neutrals subtly.
+- No pure black or pure white as the full visual system, except the Rerun house style's black page with neutral greys. Elsewhere, tint neutrals subtly.
 - No gray text on saturated colored backgrounds.
 - No oversized hero section unless the artifact is explicitly a deck, poster, or landing-style narrative.
 - No rounded-square icon tile above every heading.
 - No modal-first interaction for content that should be browsed, compared, or scanned.
 - No all-primary button rows.
 - No decorative fake charts, sparklines, or metrics.
-- No monospace "technical" styling unless code, paths, commands, logs, or structured data are actually being shown.
+- No monospace "technical" styling unless code, paths, commands, logs, or structured data are actually being shown, or it is the house style's uppercase mono labels and buttons.
 - No redundant intro paragraphs that restate the heading.
 - No visible instructional text explaining that the page is an HTML artifact or how the design works.
 - No lorem ipsum, fake links, placeholder content, or controls that do nothing.

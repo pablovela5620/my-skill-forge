@@ -3,7 +3,7 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.4"
+  version: "0.0.5"
 
 build:
   number: 0
@@ -12,12 +12,15 @@ build:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp -R $RECIPE_DIR/references $PREFIX/share/agent-skills/${{ skill }}/
+    - cp -R $RECIPE_DIR/assets $PREFIX/share/agent-skills/${{ skill }}/
 
 tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
         - share/agent-skills/${{ skill }}/references/*.md
+        - share/agent-skills/${{ skill }}/assets/rerun.css
+        - share/agent-skills/${{ skill }}/assets/rerun_figure.py
       strict: true
   - script:
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
@@ -32,6 +35,7 @@ about:
     - Plans, reviews, reports, explainers, diagrams, decks, comparisons, and editors
     - Inline CSS/JS with semantic HTML and responsive layout
     - Impeccable-inspired design quality for readable, useful artifacts
+    - Rerun house style as a DESIGN.md file, a CSS starter, and diagram primitives
   homepage: https://github.com/pablovela5620/my-skill-forge
   repository: https://github.com/pablovela5620/my-skill-forge
   documentation: https://github.com/pablovela5620/my-skill-forge

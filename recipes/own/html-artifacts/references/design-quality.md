@@ -1,5 +1,8 @@
 # Design Quality Reference
 
+> The Rerun house style in [DESIGN.md](DESIGN.md) overrides this file where they disagree: pure black page,
+> neutral (untinted) greys, uppercase mono labels. Everything else here still applies.
+
 Use this when making the HTML artifact visually strong enough that the user wants to read it.
 
 ## Scene Before Style

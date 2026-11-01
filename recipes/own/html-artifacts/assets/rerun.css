@@ -1,0 +1,106 @@
+/* Rerun house style for HTML artifacts. Values mirror references/DESIGN.md; paste this into the artifact's
+   <style> and build on the classes. Dark by default; set data-theme="light" on <html> for print. */
+:root {
+  color-scheme: dark;
+  --rr-bg: #000;
+  --rr-panel: oklch(0.145 0 0);
+  --rr-panel-2: oklch(0.205 0 0);
+  --rr-figure: #0e0f10;
+  --rr-fg: oklch(0.97 0 0);
+  --rr-subtle: oklch(0.922 0 0);
+  --rr-text: oklch(0.708 0 0);
+  --rr-dim: oklch(0.6 0 0);
+  --rr-border: #64646440;
+  --rr-border-strong: oklch(0.371 0 0);
+  --rr-row: #22b5e6;
+  --rr-time: #de7df3;
+  --rr-comp: #6cefb4;
+  --rr-api: #3fe0a0;
+  --rr-good: #6cefb4;
+  --rr-warn: #f6da75;
+  --rr-bad: #ff6b5e;
+  --rr-brand-blue: #186add;
+  --rr-brand-red: #d72f21;
+  --rr-brand-gradient: linear-gradient(90deg, #f6da75, #86d9a6);
+  --rr-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif;
+  --rr-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --rr-r-control: 2px;
+  --rr-r-panel: 8px;
+  --rr-r-figure: 14px;
+  --rr-measure: 70ch;
+}
+[data-theme="light"] {
+  color-scheme: light;
+  --rr-bg: #fff;
+  --rr-panel: oklch(0.97 0 0);
+  --rr-panel-2: oklch(0.922 0 0);
+  --rr-fg: oklch(0.145 0 0);
+  --rr-subtle: oklch(0.371 0 0);
+  --rr-text: oklch(0.439 0 0);
+  --rr-dim: oklch(0.5 0 0);
+  --rr-border: oklch(0.87 0 0);
+  --rr-border-strong: oklch(0.708 0 0);
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--rr-bg); color: var(--rr-text);
+  font: 450 15px/1.5 var(--rr-sans); -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { color: var(--rr-fg); margin: 0 0 .4em; }
+h1 { font-size: clamp(2.5rem, 5vw + 1rem, 3.5rem); font-weight: 450; line-height: 1; letter-spacing: -.01em; }
+h2 { font-size: 1.75rem; font-weight: 500; line-height: 1.15; letter-spacing: -.01em; }
+h3 { font-size: 1.15rem; font-weight: 550; line-height: 1.25; }
+p { max-width: var(--rr-measure); }
+a { color: var(--rr-fg); text-underline-offset: 3px; text-decoration-color: var(--rr-border-strong); }
+a:hover { text-decoration-color: var(--rr-fg); }
+code, pre, kbd { font-family: var(--rr-mono); font-size: .86em; }
+:focus-visible { outline: 2px solid var(--rr-fg); outline-offset: 2px; }
+hr { border: 0; border-top: 1px solid var(--rr-border); margin: 40px 0; }
+
+/* Mono uppercase label: eyebrows, panel titles, table headers. The strongest Rerun cue. */
+.rr-label {
+  font: 500 13px/1.33 var(--rr-mono); letter-spacing: .0125em; text-transform: uppercase; color: var(--rr-dim);
+}
+.rr-label.on { color: var(--rr-fg); }
+.rr-caption { font-size: .85em; font-weight: 500; color: var(--rr-dim); }
+.rr-brand-rule { height: 2px; border: 0; background: var(--rr-brand-gradient); margin: 16px 0 24px; } /* one per artifact */
+
+.rr-btn {
+  display: inline-block; padding: 10px 14px; border-radius: var(--rr-r-control);
+  font: 450 14px/1 var(--rr-mono); text-transform: uppercase; text-decoration: none;
+  border: 1px solid var(--rr-border-strong); color: var(--rr-fg); background: transparent; cursor: pointer;
+}
+.rr-btn.primary { background: var(--rr-fg); color: var(--rr-bg); border-color: var(--rr-fg); }
+
+.rr-pill { display: inline-block; padding: 4px 12px; border-radius: 999px; border: 1px solid var(--rr-border-strong); color: var(--rr-fg); font-size: .85em; }
+
+.rr-panel { background: var(--rr-panel); border: 1px solid var(--rr-border); border-radius: var(--rr-r-panel); padding: 16px; }
+.rr-figure { margin: 0; background: var(--rr-figure); border-radius: var(--rr-r-figure); padding: 20px 24px; }
+.rr-figure svg { display: block; width: 100%; height: auto; }
+.rr-figure figcaption { margin-top: 10px; }
+
+/* rerun.io feature block: sans label, mono uppercase title, body. Grid them without borders. */
+.rr-features { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 28px; }
+.rr-feature .k { color: var(--rr-text); font-size: 15px; }
+.rr-feature h3 { font: 600 17px/1.33 var(--rr-mono); letter-spacing: .0125em; text-transform: uppercase; margin: 4px 0 10px; }
+.rr-feature p { margin: 0; }
+
+.rr-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1px; background: var(--rr-border); border: 1px solid var(--rr-border); border-radius: var(--rr-r-panel); overflow: hidden; }
+.rr-stat { background: var(--rr-bg); padding: 14px 16px; display: grid; gap: 4px; }
+.rr-stat b { color: var(--rr-fg); font: 450 1.8rem/1.1 var(--rr-sans); font-variant-numeric: tabular-nums; }
+
+.rr-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.rr-table th { font: 500 12px/1.33 var(--rr-mono); letter-spacing: .0125em; text-transform: uppercase; color: var(--rr-dim); text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--rr-border-strong); }
+.rr-table td { padding: 9px 10px; border-bottom: 1px solid var(--rr-border); color: var(--rr-subtle); }
+.rr-table td.num, .rr-table th.num { text-align: right; }
+
+.rr-callout { background: var(--rr-panel); border-left: 2px solid var(--rr-k, var(--rr-comp)); border-radius: 0 var(--rr-r-panel) var(--rr-r-panel) 0; padding: 12px 16px; }
+.rr-callout.warn { --rr-k: var(--rr-warn); } .rr-callout.bad { --rr-k: var(--rr-bad); }
+
+pre.rr-code { background: var(--rr-panel); border: 1px solid var(--rr-border); border-radius: var(--rr-r-panel); padding: 14px; color: var(--rr-fg); overflow-x: auto; }
+.rr-code .kw { color: oklch(0.827 0.119 306); } .rr-code .str { color: oklch(0.845 0.143 165); }
+.rr-code .fn { color: oklch(0.808 0.114 19.6); } .rr-code .com { color: var(--rr-dim); }
+
+@media print { :root { color-scheme: light; } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
