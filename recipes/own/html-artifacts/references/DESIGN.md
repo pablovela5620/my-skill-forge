@@ -1,7 +1,7 @@
 ---
 version: alpha
 name: Rerun
-description: House style for HTML artifacts, from rerun.io (measured 2026-11-01), the Rerun docs illustrations, and the 2026 brand.
+description: House style for HTML artifacts, from rerun.io (measured 2026-11-01), the Rerun docs illustrations, the Rerun FigJam diagram kit, and the 2026 brand. Dark by default.
 colors:
   primary: "oklch(0.97 0 0)"
   bg: "#000000"
@@ -34,6 +34,16 @@ colors:
   light-fg: "oklch(0.145 0 0)"
   light-text: "oklch(0.439 0 0)"
   light-border: "oklch(0.87 0 0)"
+  kit-board: "#0a0c10"
+  kit-card: "#14171d"
+  kit-card-2: "#1d2129"
+  kit-stroke: "#34446b"
+  kit-arrow: "#6b93ff"
+  kit-index: "#f28ff0"
+  kit-data: "#30dc9a"
+  kit-note: "#4ed37a"
+  kit-pill: "#2a3bff"
+  kit-caption: "#9aa0a8"
 typography:
   display:
     fontFamily: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif
@@ -69,6 +79,16 @@ typography:
     fontWeight: 600
     lineHeight: 1.33
     letterSpacing: 0.0125em
+  diagram-title:
+    fontFamily: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+    fontSize: 30px
+    fontWeight: 500
+    lineHeight: 1.25
+  diagram-label:
+    fontFamily: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+    fontSize: 15px
+    fontWeight: 400
+    lineHeight: 1.4
   code:
     fontFamily: '"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
     fontSize: 0.86em
@@ -211,6 +231,47 @@ components:
     backgroundColor: "{colors.light-border}"
     textColor: "{colors.light-fg}"
     height: 1px
+  kit-board:
+    backgroundColor: "{colors.kit-board}"
+    textColor: "{colors.fg}"
+    typography: "{typography.diagram-title}"
+    rounded: "{rounded.panel}"
+  kit-card:
+    backgroundColor: "{colors.kit-card}"
+    textColor: "{colors.fg}"
+    typography: "{typography.diagram-label}"
+    rounded: "{rounded.panel}"
+  kit-card-nested:
+    backgroundColor: "{colors.kit-card-2}"
+    textColor: "{colors.fg}"
+    typography: "{typography.diagram-label}"
+    rounded: "{rounded.panel}"
+  kit-stroke:
+    backgroundColor: "{colors.kit-stroke}"
+    textColor: "{colors.fg}"
+    height: 2px
+  kit-arrow:
+    backgroundColor: "{colors.kit-board}"
+    textColor: "{colors.kit-arrow}"
+  kit-table-index:
+    backgroundColor: "{colors.kit-card-2}"
+    textColor: "{colors.kit-index}"
+  kit-table-data:
+    backgroundColor: "{colors.kit-card-2}"
+    textColor: "{colors.kit-data}"
+  kit-note:
+    backgroundColor: "{colors.kit-board}"
+    textColor: "{colors.kit-note}"
+    typography: "{typography.diagram-label}"
+  kit-caption:
+    backgroundColor: "{colors.kit-card}"
+    textColor: "{colors.kit-caption}"
+    typography: "{typography.caption}"
+  kit-file-pill:
+    backgroundColor: "{colors.kit-pill}"
+    textColor: "{colors.fg}"
+    typography: "{typography.code}"
+    rounded: "{rounded.pill}"
 ---
 
 ## Overview
@@ -224,7 +285,8 @@ product renders.
 Sources: rerun.io CSS custom properties and computed styles (2026-11-01); the Rerun docs chunk
 illustration and the D2 diagram on the chunk processing page; brand colours and the heading font
 (Basis Grotesque Pro, licensed for the website only) from the 2026 rebrand. There is no written diagram
-guide; a FigJam diagram starter kit exists. If a Figma frame from it is available, match it.
+guide. The FigJam "Diagram starter kit" (read 2026-11-01) draws light slide boards; this system uses its shapes and
+colours on dark boards, because artifacts are dark by default.
 
 ## Colors
 
@@ -240,7 +302,9 @@ guide; a FigJam diagram starter kit exists. If a Figma frame from it is availabl
 - **brand-blue, brand-red, brand-yellow → brand-green gradient:** at most one brand moment per artifact
   (a rule under the title, one highlighted figure). Never a page background, never gradient text.
   Blue and red are about 4:1 on black: use them as fills and rules with no text on them.
-- **light-*:** the light theme for print or on request: white page, neutral-950 text, neutral-600 body.
+- **kit-*:** the FigJam diagram kit translated to dark (see Diagrams). Read from screenshots, not exact Figma values.
+- **light-*:** the light theme, used only when asked for: white page, neutral-950 text, neutral-600 body.
+- **Dark is the default.** Never switch to light on your own, not even for print.
 
 ## Typography
 
@@ -278,7 +342,10 @@ Flat. No shadows, no glass, no glow. Depth comes from panel greys (`panel`, `pan
 
 ## Diagrams
 
-Follow the Rerun docs illustrations; `assets/rerun_figure.py` has every primitive.
+Two diagram themes, both dark, both in `assets/rerun_figure.py`. Use the **docs figure** to explain a mechanism inside a page; use
+the **kit board** for a slide-like overview of a system or pipeline.
+
+### Docs figure
 
 - One idea per `figure` panel (`#0e0f10`, 14 px corners).
 - Rerun data is drawn with the **chunk glyph**: a header bar, then columns for row ids (`row`), time
@@ -293,11 +360,29 @@ Follow the Rerun docs illustrations; `assets/rerun_figure.py` has every primitiv
   Only measured values, and say what was measured.
 - Render and look: no label may touch a shape or another label.
 
+### Kit board
+
+From the Rerun FigJam diagram starter kit, translated to dark with the kit's own dark rule: step from darkest to
+lightest with minimal steps, and alternate two shades for nesting.
+
+- Board `kit-board` with 8 px corners; optional `diagram-title` top left, mono, normal case.
+- Cards `kit-card`, nested cards `kit-card-2`, all with 2 px `kit-stroke` outlines and 8 px corners. A dashed
+  outline marks an optional group.
+- Labels mono in normal case (`diagram-label`), never uppercase. Group names above glyphs are small grey sans
+  (`kit-caption`).
+- Arrows 2 px `kit-arrow` with open line heads. Relationship lines are dashed with no heads.
+- Table glyph: header of blue dashes, then per row a pink index dot (`kit-index`) and green data dashes (`kit-data`).
+- File glyph: a blank page with a rounded corner and a `kit-pill` extension pill (`.mcap`, `.rrd`).
+- Green mono notes (`kit-note`) above a step say why the step matters.
+- Flat fills only: no gradients, shadows or glow.
+
 ## Do's and Don'ts
 
 - Do keep the page `#000` and the greys neutral; do put colour only on data, API names, status, or one
   brand moment.
 - Do use mono uppercase for labels and buttons, light sans for headings.
-- Do draw Rerun concepts with the chunk glyph and D2 shapes, and check the render.
+- Do draw Rerun concepts with the chunk glyph and D2 shapes, or as a kit board, and check the render.
+- Do default to dark; translate light sources (the FigJam kit, slides) to dark unless light is asked for.
 - Don't tint the neutrals warm or cool, add shadows, load web fonts, or use gradient text.
+- Don't switch to the light theme, a white board or a light print style unless asked.
 - Don't spread brand colours across cards; don't use the data colours for decoration.

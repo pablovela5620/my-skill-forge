@@ -12,6 +12,10 @@ label), para (D2 parallelogram: reader / terminal call), store (D2 cylinder), bo
 plan), leader (dotted line to a plain label), lane_title, speed_svg (measured bars). Render and check that no label
 touches a shape or another label. `example_svg()` is the step-1 figure from the SelfCap guide (logging SDK vs chunk
 pipeline), kept as a worked example.
+
+Second theme, the kit board (bottom of the file): the Rerun FigJam diagram starter kit, translated to dark. Use it for
+slide-like overview figures: kit_board, kit_box, kit_table, kit_file, kit_arrow, kit_note, kit_label, kit_caption;
+`kit_example_svg()` is a worked example. Both themes are dark; artifacts are dark by default.
 """
 
 BG, PANEL, HEAD, LINE, TXT, DIM = "#0e0f10", "#1a1c1e", "#25282b", "#5b6066", "#e6e8ea", "#8a9097"
@@ -169,3 +173,126 @@ def plan(x: float, y: float, w: float, h: float, title: str, ops: str) -> str:
 def lane_title(x: float, y: float, text: str, recommended: bool = False) -> str:
     """Mono uppercase lane title; green for the recommended lane."""
     return f'<text x="{x}" y="{y}" fill="{GREEN if recommended else DIM}" font-size="12.5" letter-spacing="1.5" font-family="{MONO}">{text}</text>'
+
+
+# ---- Kit board: the Rerun FigJam diagram starter kit, translated to dark ----------------------------------------
+# The kit (Figma "Diagram starter kit") draws slide-style boards: mono labels in normal case, 2 px strokes, ~8 px
+# corners, open line arrowheads, table glyphs (blue header dashes, pink index dot, green data dashes), file glyphs
+# with a violet-blue pill, green annotation text. Its own dark rule: step from darkest to lightest with minimal steps,
+# alternating two shades for nesting. Colours were read from screenshots, not exact Figma values.
+
+KIT_BOARD, KIT_CARD, KIT_CARD_2 = "#0a0c10", "#14171d", "#1d2129"
+KIT_STROKE, KIT_ARROW, KIT_PAGE = "#34446b", "#6b93ff", "#26324f"
+KIT_INDEX, KIT_DATA, KIT_HEAD, KIT_NOTE, KIT_PILL = "#f28ff0", "#30dc9a", "#6b93ff", "#4ed37a", "#2a3bff"
+KIT_TXT, KIT_CAPTION = "#e6e8ea", "#9aa0a8"
+
+
+def _lines(x: float, y: float, text: str, fill: str, size: float, family: str, anchor: str = "middle") -> str:
+    """Multi-line text: '\\n' separates lines, line height 1.4."""
+    return "".join(f'<text x="{x}" y="{y + i * size * 1.4:.1f}" fill="{fill}" font-size="{size}" text-anchor="{anchor}" font-family="{family}">{t}</text>'
+                   for i, t in enumerate(text.split("\n")))
+
+
+def kit_board(w: float, h: float, title: str = "") -> str:
+    """The board: near-black, 8 px corners, optional mono title top left. Open the <svg> yourself."""
+    out = f'<rect width="{w}" height="{h}" rx="8" fill="{KIT_BOARD}"/>'
+    if title:
+        out += f'<text x="40" y="64" fill="{KIT_TXT}" font-size="30" font-weight="500" font-family="{MONO}">{title}</text>'
+    return out
+
+
+def kit_box(x: float, y: float, w: float, h: float, label: str = "", nested: bool = False, dashed: bool = False) -> str:
+    """A card with a 2 px stroke; nested cards take the second shade; dashed = optional group."""
+    dash = ' stroke-dasharray="8 6"' if dashed else ""
+    out = f'<rect x="{x}" y="{y}" width="{w}" height="{h}" rx="8" fill="{KIT_CARD_2 if nested else KIT_CARD}" stroke="{KIT_STROKE}" stroke-width="2"{dash}/>'
+    if label:
+        n = label.count("\n") + 1
+        out += _lines(x + w / 2, y + h / 2 - (n - 1) * 10.5 + 5, label, KIT_TXT, 15, MONO)
+    return out
+
+
+def kit_table(x: float, y: float, w: float, rows: int = 5, dense: bool = True) -> str:
+    """The kit table glyph: header of blue dashes, then rows of a pink index dot and green data dashes."""
+    rh, head = 18, 22
+    out = [f'<rect x="{x}" y="{y}" width="{w}" height="{head + rows * rh + 6}" rx="4" fill="{KIT_CARD_2}"/>',
+           f'<rect x="{x}" y="{y}" width="{w}" height="{head}" rx="4" fill="{KIT_PAGE}"/>']
+    cx = x + 12
+    while cx < x + w - 24:
+        seg = 18 if (cx - x) % 3 else 8
+        out.append(f'<rect x="{cx:.1f}" y="{y + 9}" width="{seg}" height="3" rx="1.5" fill="{KIT_HEAD}"/>')
+        cx += seg + 6
+    for r in range(rows):
+        ry = y + head + 8 + r * rh
+        out.append(f'<rect x="{x + 10}" y="{ry}" width="6" height="3" rx="1.5" fill="{KIT_INDEX}"/>')
+        dx = x + 26
+        i = 0
+        while dx < x + w - 14:
+            if dense or (i + r) % 3 != 1:
+                out.append(f'<rect x="{dx:.1f}" y="{ry}" width="6" height="3" rx="1.5" fill="{KIT_DATA}"/>')
+            dx += 11
+            i += 1
+        if r < rows - 1:
+            out.append(f'<path d="M{x} {ry + 11} H{x + w}" stroke="{KIT_BOARD}" stroke-width="1"/>')
+    return "".join(out)
+
+
+def kit_file(x: float, y: float, ext: str) -> str:
+    """The kit file glyph: a blank page with a rounded lower-right corner and a violet-blue extension pill."""
+    pw = max(8 * len(ext) + 14, 40)
+    return (f'<path d="M{x} {y} h46 v52 q0 12 -12 12 h-34 z" fill="{KIT_PAGE}"/>'
+            f'<rect x="{x + 23 - pw / 2:.1f}" y="{y + 72}" width="{pw}" height="20" rx="10" fill="{KIT_PILL}"/>'
+            f'<text x="{x + 23}" y="{y + 86}" fill="#ffffff" font-size="11.5" text-anchor="middle" font-family="{MONO}">{ext}</text>')
+
+
+def kit_arrow(x1: float, y1: float, x2: float, y2: float, dashed: bool = False) -> str:
+    """A 2 px straight line with an open line arrowhead (the kit's ARROW_LINES cap)."""
+    import math
+    a = math.atan2(y2 - y1, x2 - x1)
+    hx = [x2 - 11 * math.cos(a + s * 0.5) for s in (-1, 1)]
+    hy = [y2 - 11 * math.sin(a + s * 0.5) for s in (-1, 1)]
+    dash = ' stroke-dasharray="6 5"' if dashed else ""
+    return (f'<path d="M{x1} {y1} L{x2} {y2}" stroke="{KIT_ARROW}" stroke-width="2"{dash}/>'
+            f'<path d="M{hx[0]:.1f} {hy[0]:.1f} L{x2} {y2} L{hx[1]:.1f} {hy[1]:.1f}" fill="none" stroke="{KIT_ARROW}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>')
+
+
+def kit_note(x: float, y: float, text: str) -> str:
+    """Green mono annotation above a step: why the step matters."""
+    return _lines(x, y, text, KIT_NOTE, 13, MONO)
+
+
+def kit_label(x: float, y: float, text: str) -> str:
+    """Mono label below a glyph, in normal case."""
+    return _lines(x, y, text, KIT_TXT, 14, MONO)
+
+
+def kit_caption(x: float, y: float, text: str) -> str:
+    """Small grey sans caption: group names above glyphs."""
+    return _lines(x, y, text, KIT_CAPTION, 13, SANS)
+
+
+def kit_example_svg() -> str:
+    """Worked example in the kit style: files into Rerun, a reader and lenses, a layered recording, the catalog."""
+    w, h = 1120, 420
+    p = [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="Kit-style board: mp4, csv and json files go through a reader and lenses into a layered rrd recording, then into the catalog for queries and training." xmlns="http://www.w3.org/2000/svg">',
+         kit_board(w, h, "From capture files to a queryable catalog")]
+    p.append(kit_note(170, 128, "every source file,\nkept lossless"))
+    p.append(kit_box(48, 168, 244, 172, nested=False))
+    p.append(kit_caption(170, 194, "Capture"))
+    for i, ext in enumerate([".mp4", ".csv", ".json"]):
+        p.append(kit_file(74 + i * 74, 214, ext))
+    p.append(kit_arrow(304, 254, 364, 254))
+    p.append(kit_note(470, 128, "readers yield chunks,\nlenses reshape them"))
+    p.append(kit_box(376, 168, 188, 172, "Reader\n+ lenses"))
+    p.append(kit_arrow(576, 254, 636, 254))
+    p.append(kit_note(770, 128, "one recording id,\nstacked layers"))
+    p.append(kit_box(648, 168, 244, 172))
+    p.append(kit_caption(770, 194, "Layered .rrd"))
+    for i in range(3):
+        p.append(kit_table(668 + i * 70, 204, 64, rows=4, dense=i != 0))
+    p.append(kit_label(770, 328, "base · align · keypoints"))
+    p.append(kit_arrow(904, 254, 964, 254))
+    p.append(kit_box(976, 168, 112, 172, "Catalog", dashed=True))
+    p.append(kit_label(1032, 382, "query\n& train"))
+    p.append(kit_arrow(1032, 346, 1032, 362))
+    p.append("</svg>")
+    return "".join(p)

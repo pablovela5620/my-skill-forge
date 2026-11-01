@@ -13,7 +13,7 @@ Before choosing theme, palette, and density, write a concrete scene sentence:
 
 Let that sentence choose the visual system. A calm weekly status read on Monday morning wants a different surface than an incident report opened during an outage.
 
-When the scene does not force a light surface, prefer a dark one. Use light for print, mandated source-system parity, bright-room projection, or contexts where sharing and legibility clearly benefit from paper-like contrast.
+Default to a dark surface. Use light only when the user asks for it, not for print or a light source system on your own.
 
 ## Artifact Role
 
@@ -41,7 +41,6 @@ The role decides density and expression. A utility artifact should not turn into
 - Use one accent color for navigation, focus, and key state. Keep saturation limited so the accent remains meaningful.
 - Use `oklch()` when practical. It makes dark palettes easier to tune without dead grayscale.
 - Keep data states semantic: success, warning, danger, neutral, and active should have both color and text labels or icons.
-- For reports and plans that may be printed, include `@media print` styles that switch to a light paper surface, dark text, and visible table borders.
 
 ## Color
 
@@ -126,5 +125,4 @@ The artifact is done when a reader can:
 3. Trust the visual hierarchy.
 4. Use any interactive control without instructions.
 5. Open the file locally without broken assets or setup.
-6. Print the file acceptably when the artifact is a plan, report, review, or reference.
-7. Confirm there are no dead controls, fake links, placeholder data, external dependencies, clipped labels, or missing assets.
+6. Confirm there are no dead controls, fake links, placeholder data, external dependencies, clipped labels, or missing assets.

@@ -1,5 +1,5 @@
 /* Rerun house style for HTML artifacts. Values mirror references/DESIGN.md; paste this into the artifact's
-   <style> and build on the classes. Dark by default; set data-theme="light" on <html> for print. */
+   <style> and build on the classes. Dark by default; set data-theme="light" on <html> only when light is asked for. */
 :root {
   color-scheme: dark;
   --rr-bg: #000;
@@ -29,6 +29,7 @@
   --rr-r-figure: 14px;
   --rr-measure: 70ch;
 }
+
 [data-theme="light"] {
   color-scheme: light;
   --rr-bg: #fff;
@@ -102,5 +103,4 @@ pre.rr-code { background: var(--rr-panel); border: 1px solid var(--rr-border); b
 .rr-code .kw { color: oklch(0.827 0.119 306); } .rr-code .str { color: oklch(0.845 0.143 165); }
 .rr-code .fn { color: oklch(0.808 0.114 19.6); } .rr-code .com { color: var(--rr-dim); }
 
-@media print { :root { color-scheme: light; } }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }

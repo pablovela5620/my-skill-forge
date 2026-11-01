@@ -58,7 +58,7 @@ Unless the user asks otherwise:
    - Read [references/design-quality.md](references/design-quality.md) before substantial visual work.
    - Write the scene sentence before theme, palette, density, or motion: the user opens this artifact on what device/context, with what urgency, to decide what.
    - Use restrained but intentional styling. Avoid generic AI-looking decoration.
-   - Prefer a dark, tinted reading surface when the scene allows it. Switch to light when the user asks for it, the source system requires it, or the artifact is primarily for printing, bright-room projection, or daytime public sharing.
+   - Dark by default. Use the light theme only when the user asks for it; never switch on your own, not even for print or a light source system.
 
 4. Build the file.
    - Use CSS custom properties for color, spacing, type, and radii.
@@ -76,7 +76,6 @@ Unless the user asks otherwise:
 ## Design Defaults
 
 - Dark by default, in the Rerun house style: pure black page, neutral greys, hairline borders, colour only on data. Outside the house style, dark means tinted near-black surfaces, clear contrast, visible borders, and restrained accents.
-- Include print-friendly light styling for print-heavy plans, reports, and review artifacts.
 - Use one accent color plus tinted neutrals unless the content genuinely needs a broader palette.
 - Use system fonts: the system sans for text, JetBrains Mono (falling back to the system mono) for labels, buttons and code, as DESIGN.md sets out. Load no web fonts.
 - Use motion sparingly: 150-250ms, ease-out, state feedback only. Respect `prefers-reduced-motion`.
