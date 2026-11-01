@@ -3,6 +3,7 @@ version: alpha
 name: Rerun
 description: House style for HTML artifacts, from rerun.io (measured 2026-11-01), the Rerun docs illustrations, and the 2026 brand.
 colors:
+  primary: "oklch(0.97 0 0)"
   bg: "#000000"
   panel: "oklch(0.145 0 0)"
   panel-2: "oklch(0.205 0 0)"
@@ -28,7 +29,7 @@ colors:
   code-keyword: "oklch(0.827 0.119 306)"
   code-string: "oklch(0.845 0.143 165)"
   code-function: "oklch(0.808 0.114 19.6)"
-  code-comment: "oklch(0.556 0 0)"
+  code-comment: "oklch(0.6 0 0)"
   light-bg: "#ffffff"
   light-fg: "oklch(0.145 0 0)"
   light-text: "oklch(0.439 0 0)"
@@ -87,7 +88,7 @@ spacing:
   measure: 70ch
 components:
   button-primary:
-    backgroundColor: "{colors.fg}"
+    backgroundColor: "{colors.primary}"
     textColor: "{colors.on-fg}"
     typography: "{typography.label-caps}"
     rounded: "{rounded.control}"
@@ -128,6 +129,88 @@ components:
     backgroundColor: "{colors.bg}"
     textColor: "{colors.dim}"
     typography: "{typography.caption}"
+  table-cell:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.subtle}"
+    typography: "{typography.body}"
+  bar-track:
+    backgroundColor: "{colors.panel-2}"
+    textColor: "{colors.fg}"
+    rounded: "{rounded.control}"
+  divider:
+    backgroundColor: "{colors.border}"
+    textColor: "{colors.fg}"
+    height: 1px
+  input-outline:
+    backgroundColor: "{colors.border-strong}"
+    textColor: "{colors.fg}"
+    height: 1px
+  chip-row:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.row}"
+    typography: "{typography.code}"
+  chip-time:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.time}"
+    typography: "{typography.code}"
+  chip-component:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.comp}"
+    typography: "{typography.code}"
+  diagram-api-name:
+    backgroundColor: "{colors.figure}"
+    textColor: "{colors.api}"
+    typography: "{typography.code}"
+  status-good:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.good}"
+    typography: "{typography.label-caps}"
+  status-warn:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.warn}"
+    typography: "{typography.label-caps}"
+  status-bad:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.bad}"
+    typography: "{typography.label-caps}"
+  brand-fill-blue:
+    backgroundColor: "{colors.brand-blue}"
+  brand-fill-red:
+    backgroundColor: "{colors.brand-red}"
+  brand-rule-start:
+    backgroundColor: "{colors.brand-yellow}"
+    height: 2px
+  brand-rule-end:
+    backgroundColor: "{colors.brand-green}"
+    height: 2px
+  code-keyword:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.code-keyword}"
+    typography: "{typography.code}"
+  code-string:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.code-string}"
+    typography: "{typography.code}"
+  code-function:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.code-function}"
+    typography: "{typography.code}"
+  code-comment:
+    backgroundColor: "{colors.panel}"
+    textColor: "{colors.code-comment}"
+    typography: "{typography.code}"
+  light-page:
+    backgroundColor: "{colors.light-bg}"
+    textColor: "{colors.light-text}"
+    typography: "{typography.body}"
+  light-heading:
+    backgroundColor: "{colors.light-bg}"
+    textColor: "{colors.light-fg}"
+    typography: "{typography.heading}"
+  light-divider:
+    backgroundColor: "{colors.light-border}"
+    textColor: "{colors.light-fg}"
+    height: 1px
 ---
 
 ## Overview
@@ -145,6 +228,7 @@ guide; a FigJam diagram starter kit exists. If a Figma frame from it is availabl
 
 ## Colors
 
+- **primary:** the key colour is the `fg` white, as on rerun.io's primary buttons. Rerun's interface is monochrome; the brand blue is not the primary colour.
 - **bg (#000000):** the page. Pure black, as on rerun.io; this overrides the "tinted near-black" default.
 - **panel / panel-2:** neutral-950 and neutral-900 for code, cards and bar tracks. Greys have zero chroma.
 - **fg:** headings and key values. **text:** body copy (the rerun.io body colour). **dim:** captions, axes; a step lighter than neutral-500 so small captions pass WCAG AA (4.5:1) on `bg` and `panel`.
@@ -155,7 +239,7 @@ guide; a FigJam diagram starter kit exists. If a Figma frame from it is availabl
 - **good / warn / bad:** status, always paired with a word or icon.
 - **brand-blue, brand-red, brand-yellow → brand-green gradient:** at most one brand moment per artifact
   (a rule under the title, one highlighted figure). Never a page background, never gradient text.
-  Blue and red are about 4:1 on black: use them as fills and rules, not for small text.
+  Blue and red are about 4:1 on black: use them as fills and rules with no text on them.
 - **light-*:** the light theme for print or on request: white page, neutral-950 text, neutral-600 body.
 
 ## Typography
