@@ -1,6 +1,6 @@
 ---
 name: fleet
-description: Fleet operations — use when a task involves other machines (discovering, reaching, or reasoning about them), installing/updating/removing any user-level tool, converging a machine, or working with paseo or the agent-fleet repo.
+description: Fleet operations — use when a task involves other machines (discovering, reaching, or reasoning about them), installing/updating/removing any user-level tool, converging a machine, placing or moving large data on the NAS, or working with paseo or the agent-fleet repo.
 ---
 
 # Fleet Operations
@@ -54,6 +54,16 @@ Moving files — scripted transfers always use SSH; Taildrop is for humans:
 
 Tailscale itself is OS-layer (never pixi-managed); the tailnet is also the
 auth for Tailscale SSH on some machines (e.g. spark).
+
+## NAS storage
+
+Active project data works on the SSD tier, `/mnt/nas/ssd-8tb`. The HDD shares
+hold the stable copy, and Pablo decides what moves there. The SSD is one disk
+with no backup, so report any costly result that exists only on it.
+
+Read `~/agent-fleet/docs/nas-best-practices.md` before you place large data,
+copy to or from the NAS, remove NAS data, or serve a catalog from it. It is the
+source of truth for layout, capacity limits, transfers, and catalogs.
 
 ## Changing a machine's tools
 
