@@ -3,10 +3,10 @@ context:
   upstream_path: skills/engineering/domain-modeling
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 source:
   git: https://github.com/mattpocock/skills
-  rev: 5d78bd0903420f97c791f834201e550c765699f8
+  rev: d80fa0f4ebe0c5714af0adf8670336065233ecc6
 build:
   number: 0
   noarch: generic
