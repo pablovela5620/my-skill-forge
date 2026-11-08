@@ -1,6 +1,6 @@
 ---
 name: fleet
-description: Fleet operations — use when a task reaches another machine, installs, updates, or removes a user-level tool or skill, converges a machine, places large data on the NAS, or changes Paseo daemon, MCP, or agent-fleet configuration.
+description: Fleet operations — use when a task discovers or reaches another machine, installs, updates, or removes a user-level tool or skill, converges a machine, places large data on the NAS, or changes Paseo daemon, MCP, or agent-fleet configuration.
 ---
 
 # Fleet Operations

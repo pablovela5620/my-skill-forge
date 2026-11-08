@@ -73,7 +73,8 @@ the caller's workspace and ignores `--cwd`, so a Codex worker can write only
 there and in `/tmp`. Give a worker that writes elsewhere its own workspace
 (`--new-workspace`), or name a `/tmp` output path. For another machine, use
 `paseo --host <target> ...` and a directory on that host; discover targets with
-the fleet skill. `paseo run --help` lists the workspace options.
+the fleet skill. `paseo run --help` lists the workspace options; use them
+instead of a hand-built tmux launcher.
 
 ## Collect
 
