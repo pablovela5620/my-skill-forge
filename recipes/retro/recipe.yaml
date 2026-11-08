@@ -1,0 +1,38 @@
+context:
+  skill: retro
+  upstream_path: skills/engineering/retro
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+source:
+  git: https://github.com/mattpocock/skills
+  rev: 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
+      strict: true
+  - script:
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
+    requirements:
+      run:
+        - skills-ref
+about:
+  summary: Agent skill for retrospectives on coding-agent sessions
+  description: |
+    Engineering skill, invoked by the user, that reviews a session's logs and
+    proposes environment improvements in order of severity: navigation pointers,
+    automated checks, coding standards, AGENTS.md size, tool economy, no-ops,
+    and information access.
+  homepage: https://github.com/mattpocock/skills/tree/main/skills/engineering/retro
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/engineering/retro
+  license: MIT
+  license_file: LICENSE

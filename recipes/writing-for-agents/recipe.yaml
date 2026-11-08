@@ -1,0 +1,39 @@
+context:
+  skill: writing-for-agents
+  upstream_path: skills/productivity/writing-for-agents
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+source:
+  git: https://github.com/mattpocock/skills
+  rev: 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/SKILL-MECHANICS.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
+      strict: true
+  - script:
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
+    requirements:
+      run:
+        - skills-ref
+about:
+  summary: Agent skill for writing documents agents consume
+  description: |
+    Productivity skill for skills, AGENTS.md and CLAUDE.md:
+    - Context pointers, the two loads, and the information hierarchy
+    - Steps with completion criteria, when to split, leading words
+    - Pruning: single source of truth, sediment, no-ops
+  homepage: https://github.com/mattpocock/skills/tree/main/skills/productivity/writing-for-agents
+  repository: https://github.com/mattpocock/skills
+  documentation: https://github.com/mattpocock/skills/tree/main/skills/productivity/writing-for-agents
+  license: MIT
+  license_file: LICENSE
