@@ -3,10 +3,14 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Autobump dispatches this after it merges: a merge made with GITHUB_TOKEN
+  # does not trigger `push` workflows, but a dispatch does.
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Cancel superseded PR builds; let every main run finish its uploads.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -55,7 +59,7 @@ jobs:
           path: pr-comment.md
           ignore_empty: true
       - name: Upload build artifacts
-        if: github.event_name == 'push' && steps.check.outputs.has-packages == 'true'
+        if: github.event_name != 'pull_request' && steps.check.outputs.has-packages == 'true'
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: output
@@ -68,7 +72,7 @@ jobs:
       contents: read
       id-token: write
     needs: build
-    if: github.event_name == 'push' && needs.build.outputs.has-packages == 'true'
+    if: github.event_name != 'pull_request' && needs.build.outputs.has-packages == 'true'
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
@@ -97,8 +101,7 @@ jobs:
           # mask the response
           echo "::add-mask::$RESPONSE"
           echo "PREFIX_API_KEY=$RESPONSE" >> "$GITHUB_ENV"
-      - name: Upload package to Artifactory
-        if: github.event_name == 'push'
+      - name: Upload packages to prefix.dev
         run: |
           first_file="$(find output -type f -name '*.conda' -print -quit)"
           if [[ -z "$first_file" ]]; then

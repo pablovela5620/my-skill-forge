@@ -3,3 +3,4 @@ output/
 .pixi/*
 !.pixi/config.toml
 __pycache__/
+.pytest_cache/

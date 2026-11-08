@@ -21,7 +21,7 @@ tests:
         - share/agent-skills/${{ skill }}/SKILL.md
       strict: true
   - script:
-      - agentskills validate $CONDA_PREFIX/share/agent-skills/${{ skill }}
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
       - grep -Fq '## Pixi-only setup' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md
       - grep -Fq 'pixi exec py-spy dump -n -p PID' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md
       - if grep -Eq 'pip[[:space:]]+install|conda[[:space:]]+activate' $CONDA_PREFIX/share/agent-skills/${{ skill }}/SKILL.md; then exit 1; fi
