@@ -1,7 +1,9 @@
 # Codex delegation from Claude Code
 
 Paseo runs durable Codex workers. The MCP and CLI control the same daemon; the
-worker survives the calling command. Read this file after routing to Codex.
+worker survives the calling command. Codex does two jobs here: desktop computer
+use and independent review of Claude-authored work. Read this file after
+routing either one to Codex.
 
 ## Account
 
@@ -37,12 +39,14 @@ included; a read-only task says so in its prompt (`--mode auto-review`; MCP:
 `settings.modeId: "auto-review"`). `auto-review` keeps the workspace-write
 sandbox and routes eligible requests to Codex's auto-reviewer: a commit in a
 git worktree, whose git dir is outside the workspace; a write outside the
-workspace and `/tmp`; the GPU. Plain `auto` waits for a human on each request,
-and the parent session cannot approve them. Right after launch, check
+workspace and `/tmp`; the GPU. Plain `auto` stops on each such request until someone answers it. The
+parent can answer with `respond_to_permission`, but each answer costs a parent
+turn: one plain-`auto` worker needed 769. Right after launch, check
 `currentModeId` and `pendingPermissions`.
 
-Set the mode only at launch: the auto-mode classifier blocks switching a
-running worker's mode as creating an unsafe agent. Never use `full-access`. If
+Set the mode at launch. A mid-run switch is no fix: one worker kept asking
+(464 more requests) after a switch to `auto-review`, and the auto-mode
+classifier can block the switch as creating an unsafe agent. Never use `full-access`. If
 a hardware probe needs broader access, request approval for only that command.
 If the reviewer refuses a step, the worker leaves its changes uncommitted and
 reports it; the parent does that step.
@@ -88,6 +92,13 @@ Resume the recorded agent with `send_agent_prompt` or `paseo send` instead
 of launching a duplicate. Report a permission request or failure with the next
 required action. Use a heartbeat only when the user asks for follow-up that
 outlives this conversation, and remove it when that work ends.
+
+## Reviews
+
+Give the reviewer the diff or PR and the acceptance criteria, not the author's
+conclusions, and say the task is read-only. Ask for findings with `file:line`,
+severity, and a failure scenario. Verify each finding before you act on it:
+the reviewer reports, the parent decides.
 
 ## Desktop tasks
 

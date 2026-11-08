@@ -1,6 +1,6 @@
 ---
 name: delegation
-description: "Delegation from Claude Code: use before spawning a subagent, Workflow, or Codex worker, or when choosing which model runs a task."
+description: "Delegation from Claude Code: use before spawning a subagent or Workflow, launching a Codex worker for computer use or review, or choosing which model runs a task."
 ---
 
 # Delegation
@@ -13,15 +13,16 @@ own delegation instructions and native tools instead.
 ## 1. Route
 
 Keep small or tightly coupled work in the current Claude session. Delegate work
-that benefits from separation, specialization, or parallel execution. Workers
-are Codex, Opus, or Fable:
+that benefits from separation, specialization, or parallel execution. Claude
+workers (Opus, Fable) do the work; Codex does only the two jobs it does better
+here, computer use and independent review:
 
 | Work | Worker |
 |---|---|
-| Native app or desktop computer use | Codex, GPT-6.1 Sol at low effort |
-| Implementation, testing, migrations, research, or codebase sweeps | Codex |
+| Implementation, testing, migrations, research, or codebase sweeps | Opus |
 | Ambiguous architecture, user-facing judgment, or synthesis | Fable or Opus |
-| Independent review | A different runtime from the author |
+| Native app or desktop computer use | Codex, GPT-6.1 Sol at low effort |
+| Independent review of Claude-authored work | Codex: a different runtime from the author |
 
 Launch Opus with `model: opus` and Fable with `model: inherit`, at their
 default effort. Opus 5.5 defaults to `medium`, which matches or beats Opus 5 at
@@ -38,7 +39,7 @@ outrank cost: when the first worker misses the bar, escalate to a stronger one.
 
 - Launch Opus and Fable workers through Agent or Workflow calls. Anthropic
   models run there, not through Paseo.
-- Launch Codex workers through Paseo in `auto-review` mode; never
+- Launch Codex workers (computer use, review) through Paseo in `auto-review` mode; never
   `full-access`. Before launching, read
   [`references/codex.md`](references/codex.md) completely and follow its
   account selection, mode rules, and dispatch. Paseo owns the worker's
