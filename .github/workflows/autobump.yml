@@ -3,21 +3,30 @@ on:
   workflow_dispatch:
     inputs:
       skill:
-        description: Skill to bump.
-        required: true
+        description: Skill to bump. Leave empty to check every skill.
+        required: false
+        default: ""
   schedule:
     - cron: "0 5 * * *"
 
+# Jobs merge into main; a manual run waits for the scheduled one instead of
+# racing it on the same bump-<skill> branch.
+concurrency:
+  group: autobump
+  cancel-in-progress: false
+
+# Per skill: bump the recipe, keep one PR on bump-<skill> updated in place,
+# build and test the package, merge, then dispatch Package to publish.
+# GITHUB_TOKEN events do not start workflows, so this job is the only gate
+# a bump passes; Package runs only because it is dispatched explicitly.
 jobs:
   bump:
     strategy:
       fail-fast: false
       matrix:
         include:
-          # cua-driver is release-paired with ai-demos; see its PROMPT.md.
           - skill: chrome-cdp
             strategy: github-latest-release
-          # git-main strategy (track main branch)
           - skill: paseo
             strategy: git-main
           - skill: paseo-help
@@ -56,9 +65,6 @@ jobs:
             strategy: git-main
           - skill: gh-cli
             strategy: git-main
-          # grill-me and grill-with-docs are intentionally frozen at 0.0.2:
-          # upstream turned them into disable-model-invocation alias stubs that
-          # fail `agentskills validate`. Superseded by grilling + domain-modeling.
           - skill: grilling
             strategy: git-main
           - skill: handoff
@@ -84,35 +90,64 @@ jobs:
     name: Bump ${{ matrix.skill }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      actions: write # dispatch package.yml
+      contents: write # push bump-<skill> and merge
       pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SKILL: ${{ matrix.skill }}
+      STRATEGY: ${{ matrix.strategy }}
+      SELECTED: ${{ github.event_name == 'schedule' || inputs.skill == '' || inputs.skill == matrix.skill }}
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        if: github.event_name == 'schedule' || github.event.inputs.skill == matrix.skill
+        if: env.SELECTED == 'true'
 
       - name: Set up Pixi
-        if: github.event_name == 'schedule' || github.event.inputs.skill == matrix.skill
+        if: env.SELECTED == 'true'
         uses: prefix-dev/setup-pixi@5185adfbffb4bd703da3010310260805d89ebb11 # v0.9.6
 
-      - name: Bump version
-        if: github.event_name == 'schedule' || github.event.inputs.skill == matrix.skill
-        run: pixi run autobump ${{ matrix.skill }} ${{ matrix.strategy }}
+      - name: Bump recipe
+        if: env.SELECTED == 'true'
         id: bump
+        run: pixi run autobump "$SKILL" "$STRATEGY"
+
+      - name: Open or update the pull request
+        if: env.SELECTED == 'true' && steps.bump.outputs.old-version != steps.bump.outputs.new-version
+        id: pr
         env:
-          GH_TOKEN: ${{ github.token }}
+          OLD: ${{ steps.bump.outputs.old-version }}
+          NEW: ${{ steps.bump.outputs.new-version }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          branch="bump-$SKILL"
+          title="Bump $SKILL from $OLD to $NEW"
+          body="Strategy: \`$STRATEGY\`. [Autobump]($RUN_URL) builds and tests this package, merges it, and dispatches Package to publish."
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -C "$branch"
+          git commit -am "$title"
+          git push --force origin "$branch"
+          url=$(gh pr list --head "$branch" --state open --json url --jq '.[0].url // empty')
+          if [[ -n "$url" ]]; then
+            gh pr edit "$url" --title "$title" --body "$body"
+          else
+            url=$(gh pr create --base main --head "$branch" --title "$title" --body "$body")
+          fi
+          echo "url=$url" >> "$GITHUB_OUTPUT"
 
-      - name: Create Pull Request
-        if: (github.event_name == 'schedule' || github.event.inputs.skill == matrix.skill) && steps.bump.outputs.old-version != steps.bump.outputs.new-version
-        uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
-        with:
-          token: ${{ github.token }}
-          title: Bump ${{ matrix.skill }} from ${{ steps.bump.outputs.old-version }} to ${{ steps.bump.outputs.new-version }}
-          commit-message: Bump ${{ matrix.skill }} from ${{ steps.bump.outputs.old-version }} to ${{ steps.bump.outputs.new-version }}
-          branch: bump-${{ matrix.skill }}
-          delete-branch: true
-          body: |
-            # ${{ matrix.skill }}
+      - name: Build and test the package
+        if: steps.pr.outputs.url
+        run: pixi run build "$SKILL"
 
-            `${{ steps.bump.outputs.old-version }}` -> `${{ steps.bump.outputs.new-version }}`
-
-            Strategy: `${{ matrix.strategy }}`
+      - name: Merge and publish
+        if: steps.pr.outputs.url
+        env:
+          PR_URL: ${{ steps.pr.outputs.url }}
+        run: |
+          # Parallel jobs merging at once can briefly refuse a merge; retry.
+          for attempt in 1 2 3; do
+            gh pr merge "$PR_URL" --repo "$GITHUB_REPOSITORY" --squash --delete-branch && break
+            [[ $attempt == 3 ]] && exit 1
+            sleep 15
+          done
+          gh workflow run package.yml --ref main
