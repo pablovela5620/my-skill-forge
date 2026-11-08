@@ -24,7 +24,8 @@ This repo packages coding-agent skills as `noarch: generic` conda packages named
 
 A local skill starts from `examples/example-skill`: no `source`, files copied
 from `$RECIPE_DIR`. Put special build or update instructions in `PROMPT.md`
-beside the recipe; the package leaves it out.
+beside the recipe, and copy only the skill files so `PROMPT.md` stays out of
+the package.
 
 A mirrored upstream skill:
 
@@ -47,8 +48,8 @@ A mirrored upstream skill:
 ## Versions and publishing
 
 Builds use `--skip-existing=all`: a build skips any name, version, and build
-string the channel already has, and editing the recipe does not change the
-build string.
+string the channel already has. The build string changes only with
+`build.number` (or a variant), so editing files or tests alone keeps it.
 
 - A change to installed files needs a new `package.version`, or a new
   `build.number` when the version tracks upstream.
