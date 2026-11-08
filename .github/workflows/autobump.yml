@@ -87,8 +87,6 @@ jobs:
             strategy: git-main
           - skill: thermo-nuclear-code-quality-review
             strategy: git-main
-          - skill: writing-for-agents
-            strategy: git-main
     name: Bump ${{ matrix.skill }}
     runs-on: ubuntu-latest
     permissions:
