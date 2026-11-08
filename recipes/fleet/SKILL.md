@@ -1,59 +1,55 @@
 ---
 name: fleet
-description: Fleet operations — use when a task involves other machines (discovering, reaching, or reasoning about them), installing/updating/removing any user-level tool, converging a machine, placing or moving large data on the NAS, or working with paseo or the agent-fleet repo.
+description: Fleet operations — use when a task discovers or reaches another machine, installs, updates, or removes a user-level tool or skill, converges a machine, places large data on the NAS, or changes Paseo daemon, MCP, or agent-fleet configuration.
 ---
 
 # Fleet Operations
 
 The fleet is defined by the `agent-fleet` repo (`~/agent-fleet` on every
-managed machine). One version-controlled pixi-global manifest (base + per-machine
-overlay) declares each machine's tools; a machine **converges** to it — the
-manifest is the complete state, and converging installs what's missing AND
-deletes what's unlisted.
+managed machine). One version-controlled pixi-global manifest (base plus a
+per-machine overlay) declares each machine's tools. A machine **converges** to
+it: the manifest is the complete state, so converging installs what is missing
+and deletes what is unlisted.
 
-## Discovering machines — query, never hardcode
+## Discovering machines
+
+Query these sources each time; machine lists in documents go stale.
 
 | Question | Source of truth | Command |
 |---|---|---|
 | What exists / is online? | Tailscale (self-updating) | `tailscale status` |
 | Specs, GPUs, roles? | Rackpeek (curated, can lag) | `ssh pablo-dl-server docker exec rackpeek rpk summary` (also `rpk servers describe <name>`, `rpk systems list`) |
-| Fleet-managed? | agent-fleet repo | an overlay in `manifests/machines/` and a `~/agent-fleet` checkout; the overlay uses the local identity selected by `sync.sh`, which can differ from the Tailscale name |
-
-Query platform and hardware facts through Rackpeek. Read the overlay directory
-instead of copying its current members into documentation.
+| Fleet-managed? | agent-fleet repo | an overlay in `manifests/machines/` and a `~/agent-fleet` checkout; the overlay name is the local identity sync selects, which can differ from the Tailscale name |
 
 For Tailscale-specific connectivity, DNS, routing, access policy, or service
-configuration, also read the `tailscale` skill. This fleet skill still owns
-machine discovery and installation rules; repository instructions own artifact
+configuration, also read the `tailscale` skill. This skill still owns machine
+discovery and installation rules; repository instructions own artifact
 publishing routes.
 
 ## Reaching machines
 
 SSH rides the tailnet: any hostname from `tailscale status` is an SSH target
-(`ssh pablo-ubuntu`, `ssh dgx-spark`; `~/.ssh/config` may hold shorter
-aliases). Patterns that matter:
+(`~/.ssh/config` may hold shorter aliases). On some machines the tailnet is
+also the auth for Tailscale SSH. Tailscale itself is OS-layer, not
+pixi-managed.
 
-- Non-interactive commands: `ssh -o ConnectTimeout=5 -o BatchMode=yes <host> '…'`
-  — BatchMode fails fast instead of hanging on a password prompt.
-- PATH gotcha: non-interactive SSH does NOT load the shell rc, so pixi tools
-  are missing. Prefix every remote command chain with
+- Non-interactive commands: `ssh -o ConnectTimeout=5 -o BatchMode=yes <host> '…'`.
+  BatchMode fails fast instead of hanging on a password prompt.
+- Non-interactive SSH does not load the shell rc, so pixi tools are missing
+  from PATH. Start every remote command chain with
   `export PATH="$HOME/.pixi/bin:$PATH"`.
-- `pkill -f <pattern>` over SSH can match and kill your own SSH session's
-  command line — prefer `pgrep -a` first, then kill exact PIDs.
+- `pkill -f <pattern>` over SSH can match your own SSH session's command line.
+  Find the process with `pgrep -a`, then kill exact PIDs.
 
-Moving files — scripted transfers always use SSH; Taildrop is for humans:
+Scripted transfers use SSH:
 
 - Single file, exact destination: `scp file <host>:path`.
-- Directory trees / preserving structure:
-  `COPYFILE_DISABLE=1 tar czf - . | ssh <host> 'tar xzf - -C <dest>'`
+- Directory trees: `COPYFILE_DISABLE=1 tar czf - . | ssh <host> 'tar xzf - -C <dest>'`
   (COPYFILE_DISABLE strips macOS xattr noise).
-- Phone/iPad ↔ machine: Taildrop (share sheet / `tailscale file cp`) — its
-  niche is devices without SSH. No destination control: macOS receives to
-  ~/Downloads; headless Linux needs a second step (`tailscale file get`).
-  Alpha; requires the tailnet "Send Files" setting.
-
-Tailscale itself is OS-layer (never pixi-managed); the tailnet is also the
-auth for Tailscale SSH on some machines (e.g. spark).
+- Phone or iPad: Taildrop (share sheet / `tailscale file cp`) is for devices
+  without SSH. It has no destination control: macOS receives to `~/Downloads`;
+  headless Linux needs `tailscale file get`. Alpha; requires the tailnet
+  "Send Files" setting.
 
 ## NAS storage
 
@@ -68,93 +64,56 @@ source of truth for layout, capacity limits, transfers, and catalogs.
 ## Changing a machine's tools
 
 1. Edit `manifests/base.toml` (fleet-wide) or `manifests/machines/<host>.toml`
-   (one machine). Use exact `==` pins by default; preserve deliberate range
-   pins and `# pin-bump: hold` lines (see Holds below and the fleet manifest
-   rules in `.ruler/AGENTS.md`). Base packages must solve on linux-64,
-   linux-aarch64, AND osx-arm64. Channels: conda-forge → own channels
-   (`prefix.dev/ai-demos`, `prefix.dev/my-skill-forge`) →
-   `prefix.dev/github-releases` as gap-filler.
+   (one machine). Use exact `==` pins. Two forms are holds that pin-bump
+   skips; keep them as written:
+   - a range pin (`tmux = "3.3.*"`): the range is the hold;
+   - `# pin-bump: hold` on an `==` pin line: a frozen exact pin.
+
+   Base packages must solve on linux-64, linux-aarch64, and osx-arm64.
+   Channel order: conda-forge, then the own channels (`prefix.dev/ai-demos`,
+   `prefix.dev/my-skill-forge`), then `prefix.dev/github-releases` as
+   gap-filler. JS CLIs get rattler-build recipes in the ai-demos repo
+   (npm-tarball pattern, see `recipes/ruler` there) and arrive via the channel.
 2. `pixi run check`, commit, push.
 3. Converge each machine: `~/agent-fleet/scripts/sync.sh`.
 
-Done when every target machine prints `✓ <host> converged to <rev>` at the
-pushed revision — not before.
-
-JS CLIs get rattler-build recipes in the ai-demos repo (npm-tarball pattern,
-see `recipes/ruler` there) and arrive via the channel.
+**Done when** every target machine prints `✓ <host> converged to <rev>` at the
+pushed revision.
 
 ## Adding a skill fleet-wide
 
 Skills are `agent-skill-<name>` conda packages from
-`https://prefix.dev/my-skill-forge`. Three steps, each explicit:
+`https://prefix.dev/my-skill-forge`.
 
 1. Recipe in the my-skill-forge repo (vendored SKILL.md, `noarch: generic`,
-   `agentskills read-properties` in tests — copy an existing recipe). Merging
+   `agentskills read-properties` in tests; copy an existing recipe). Merging
    publishes to the channel.
-2. Pin it in the fleet: add `agent-skill-<name> = "==<version>"` under
+2. Pin it: add `agent-skill-<name> = "==<version>"` under
    `[envs.agent-skill-forge.dependencies]` in agent-fleet's
    `manifests/base.toml`, push.
-3. Converge machines — `link_skills` in sync.sh symlinks it into
-   `~/.claude/skills` and `~/.codex/skills` (work profile shares via
-   `~/.claude-work/skills`).
+3. Converge machines. Sync links each installed skill into `~/.claude/skills`
+   and `~/.codex/skills`; the work profiles share those directories.
 
-Publishing alone does NOT propagate: the pin is the membership act (weekly
-pin-bump only bumps versions of skills already pinned — it never adds new
-ones). Done when the skill dir appears under `~/.claude/skills/` on every
-converged machine.
-
-## MCP servers (fleet-managed since 2026-07-07)
-
-Declare MCPs once in `[mcp_servers.<name>]` blocks in agent-fleet's
-`.ruler/ruler.toml`. Sync runs Ruler for personal and work Claude/Codex
-profiles. Ruler owns instruction generation and native MCP configuration
-merges. The source is linked at `~/.config/ruler` (or `$XDG_CONFIG_HOME/ruler`).
-
-- NEVER hand-run `claude mcp add` / `codex mcp add` for a fleet server —
-  hand edits are drift and revert on the next converge. Hand-added servers
-  under other names remain through Ruler's merge strategy.
-- Sync resolves stdio commands from the installed fleet tools and skips
-  optional tools absent from that machine. Package pins own compatibility.
-- Paseo's existing package supplies its CLI and HTTP MCP. Sync reads the
-  daemon's listen address from `~/.paseo/config.json`; agents launched by
-  Paseo receive its caller-scoped MCP connection automatically.
-- Ruler preserves unrelated configuration values; Codex TOML comments and
-  formatting are normalized on update. Skill packages stay linked by fleet
-  sync, with Ruler skill copying disabled.
-- New sessions pick changes up automatically; running sessions restart.
-
-## Holds
-
-- Range pin (`tmux = "3.3.*"`): the range IS the hold — pin-bump ignores it.
-- `# pin-bump: hold` on an `==` pin line: frozen exact pin.
+The pin is the membership act: publishing alone reaches no machine, and the
+weekly pin-bump only bumps skills already pinned. **Done when** the skill
+directory appears under `~/.claude/skills/` on every converged machine.
 
 ## Updates
 
-Mon 05:00 UTC: ai-demos autobump PRs recipe bumps (auto-merges on green CI,
-publishes). Mon 06:00: agent-fleet pin-bump PRs base.toml updates —
-human-gated; merging converges the fleet on next sync. Rollback = revert the
-pin PR.
+Monday 05:00 UTC: ai-demos autobump opens recipe-bump PRs, which auto-merge on
+green CI and publish. Monday 06:00 UTC: agent-fleet pin-bump opens
+`base.toml` PRs, which a human merges; machines pick them up on the next
+converge. Rollback is a revert of the pin PR.
 
-## Paseo (orchestration layer)
+## Agent configuration and Paseo
 
-Fleet-managed on every machine (2026-07-06): CLI daemon from the pixi
-`paseo` pin, run by a service unit — `systemctl --user status|restart paseo`
-on Linux (linger required for boot start), `launchctl print|kickstart -k
-gui/$UID/sh.paseo.daemon` on macOS (starts at LOGIN). NEVER `paseo daemon
-start` by hand — the unit owns the daemon. `paseo daemon status` for health.
-
-Config: ONE file in git, `agent-fleet/config/paseo/config.json` — edit,
-push, converge (`scripts/paseo_apply.py` renders the machine's tailnet IP
-and restarts only on fleet-initiated change via the `.fleet-config-applied`
-shadow copy; UI edits are drift that reverts on the next fleet change).
-State lives in `~/.paseo` (machine-local, survives binary swaps). There is
-NO daemon password — auth is the daemon keypair + relay pairing. One web UI:
-`https://pablo-dl-server.ilish-ruler.ts.net:8767` (PWA); pair a daemon into
-it with `paseo daemon pair` → Add connection.
+MCP servers and the Paseo daemon are fleet-managed: edit agent-fleet, push,
+converge. Before you add or change an MCP server, or touch the Paseo daemon or
+its config, read [`references/agent-config.md`](references/agent-config.md).
 
 ## When a converge fails or a machine misbehaves
 
-Read [`references/internals.md`](references/internals.md) — sync.sh's
-pipeline and safety gates, capture/overlay onboarding, and known failure
-signatures (dead OAuth masquerading as "model unavailable", stale stamps,
-app configs broken by version bumps).
+Read [`references/internals.md`](references/internals.md): the sync pipeline
+and its safety gates, overlay onboarding, and known failure signatures (dead
+OAuth that looks like "model unavailable", stale stamps, app configs broken by
+version bumps, PATH shadowing).
