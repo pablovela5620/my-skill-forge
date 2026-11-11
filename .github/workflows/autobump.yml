@@ -73,6 +73,10 @@ jobs:
             strategy: git-main
           - skill: simplify-code
             strategy: git-main
+          - skill: svelte-code-writer
+            strategy: git-main
+          - skill: svelte-core-bestpractices
+            strategy: git-main
           - skill: tailscale
             strategy: git-main
           - skill: tdd

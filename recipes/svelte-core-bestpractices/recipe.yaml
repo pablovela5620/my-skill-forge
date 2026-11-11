@@ -1,0 +1,38 @@
+context:
+  skill: svelte-core-bestpractices
+  upstream_path: tools/skills/svelte-core-bestpractices
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/sveltejs/ai-tools
+  rev: 1a3ba88bba598c6734533c48e23cb5d37424b618
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/references/*.md
+      strict: true
+  - script:
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Official Svelte reactivity, component, and styling best practices
+  homepage: https://github.com/sveltejs/ai-tools/tree/main/tools/skills/${{ skill }}
+  repository: https://github.com/sveltejs/ai-tools
+  documentation: https://svelte.dev/docs/ai/skills
+  license: MIT
+  license_file: LICENSE
