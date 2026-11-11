@@ -1,0 +1,39 @@
+context:
+  skill: svelte-code-writer
+  upstream_path: tools/skills/svelte-code-writer
+
+package:
+  name: agent-skill-${{ skill }}
+  version: "0.0.1"
+
+source:
+  git: https://github.com/sveltejs/ai-tools
+  rev: f47bce873ee2dd090bb776bb4058f5d431c34380
+  patches:
+    - use-fleet-mcp.patch
+
+build:
+  number: 0
+  noarch: generic
+  script:
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
+    - cp -R ${{ upstream_path }}/. $PREFIX/share/agent-skills/${{ skill }}/
+
+tests:
+  - package_contents:
+      files:
+        - share/agent-skills/${{ skill }}/SKILL.md
+      strict: true
+  - script:
+      - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
+    requirements:
+      run:
+        - skills-ref
+
+about:
+  summary: Svelte documentation and code analysis through the fleet-managed MCP server
+  homepage: https://github.com/sveltejs/ai-tools/tree/main/tools/skills/${{ skill }}
+  repository: https://github.com/sveltejs/ai-tools
+  documentation: https://svelte.dev/docs/ai/skills
+  license: MIT
+  license_file: LICENSE

@@ -1,0 +1,100 @@
+diff --git a/tools/skills/svelte-code-writer/SKILL.md b/tools/skills/svelte-code-writer/SKILL.md
+index 491c425..3ff98e4 100644
+--- a/tools/skills/svelte-code-writer/SKILL.md
++++ b/tools/skills/svelte-code-writer/SKILL.md
+@@ -1,64 +1,49 @@
+ ---
+ name: svelte-code-writer
+-description: CLI tools for Svelte 5 documentation lookup and code analysis. MUST be used whenever creating, editing or analyzing any Svelte component (`.svelte`) or Svelte module (`.svelte.ts`/`.svelte.js`). If possible, this skill should be executed within the `svelte-file-editor` subagent for optimal results.
++description: Svelte MCP tools for documentation lookup and code analysis. Use when creating, editing or analyzing Svelte components (`.svelte`), Svelte modules (`.svelte.ts`/`.svelte.js`), or SvelteKit code.
+ ---
+
+-## CLI tools
++## MCP tools
+
+-You have access to `@sveltejs/mcp` CLI for Svelte-specific assistance. Use these commands via `npx`:
++Use the connected Svelte MCP server for documentation and code analysis. The
++fleet manages this connection; do not install or download a separate CLI. If
++the server is unavailable, report that limitation and continue with the checks
++available in the project. Do not claim the MCP validation passed.
+
+ ### List documentation sections
+
+-```bash
+-npx @sveltejs/mcp list-sections
+-```
+-
+-Lists all available Svelte 5 and SvelteKit documentation sections with titles and paths.
++Call `list-sections` to discover Svelte and SvelteKit documentation sections.
++Use their titles, paths, and use cases to select the relevant documentation.
+
+ ### Get documentation
+
+-```bash
+-npx @sveltejs/mcp get-documentation "<section1>,<section2>,..."
+-```
+-
+-Retrieves full documentation for specified sections. Use after `list-sections` to fetch relevant docs.
+-
+-**Example:**
+-
+-```bash
+-npx @sveltejs/mcp get-documentation "$state,$derived,$effect"
+-```
++Call `get-documentation` with `section` set to the relevant section name or
++array of names, such as `["svelte/$state", "svelte/$derived"]`. Fetch the
++sections needed for the task after reviewing `list-sections`.
+
+ ### Svelte autofixer
+
+-```bash
+-npx @sveltejs/mcp svelte-autofixer "<code_or_path>" [options]
+-```
+-
+-Analyzes Svelte code and suggests fixes for common issues.
+-
+-**Options:**
+-
+-- `--async` - Enable async Svelte mode (default: false)
+-- `--svelte-version` - Target version, ideally the full version from `package.json` (e.g. `5.16.0`) so version-specific suggestions are enabled. The major must be 4 or 5 (default: 5)
+-
+-**Examples:**
+-
+-```bash
+-# Analyze inline code (escape $ as \$)
+-npx @sveltejs/mcp svelte-autofixer '<script>let count = \$state(0);</script>'
+-
+-# Analyze a file
+-npx @sveltejs/mcp svelte-autofixer ./src/lib/Component.svelte
+-
+-# Target Svelte 4
+-npx @sveltejs/mcp svelte-autofixer ./Component.svelte --svelte-version 4
+-```
++Call `svelte-autofixer` with the component or module source in `code`. The remote
++server cannot read a local file path; read the file and send its source text.
+
+-**Important:** When passing code with runes (`$state`, `$derived`, etc.) via the terminal, escape the `$` character as `\$` to prevent shell variable substitution.
++- Set `desired_svelte_version` from the project's installed Svelte version or
++  package.json. Use the full version when known; otherwise use major 4 or 5.
++- Set `filename` to the basename, such as `Counter.svelte`.
++- Set `async` only when the project's async Svelte mode is enabled.
++- Follow the connected server's tool schema if its arguments change.
+
+ ## Workflow
+
+-1. **Uncertain about syntax?** Run `list-sections` then `get-documentation` for relevant topics
+-2. **Reviewing/debugging?** Run `svelte-autofixer` on the code to detect issues
+-3. **Always validate** - Run `svelte-autofixer` before finalizing any Svelte component
++1. Check the project's Svelte version and conventions; do not migrate its
++   version merely to follow a newer example.
++2. Fetch relevant documentation when implementing or resolving uncertain
++   Svelte behavior.
++3. Run `svelte-autofixer` on changed components or supported modules, resolve
++   applicable findings, then rerun it to check the result. Report any finding
++   that remains unresolved.
++4. Run the project's relevant type checks, tests, and build. For UI changes,
++   check the result in the browser. Static analysis does not prove runtime
++   behavior.
++
++Use subagents only when the caller's workflow calls for them; this skill does
++not require the upstream plugin's `svelte-file-editor` subagent.
