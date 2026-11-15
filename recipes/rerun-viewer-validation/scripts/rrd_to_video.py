@@ -284,9 +284,10 @@ def main() -> int:
                 raise SystemExit(f"screenshot at {t} is empty ({path})")
             return data
 
-        if embed is not None:
-            capture(parse_time(args.poster_at, tl["kind"]) if args.poster_at else lo, frames_dir / "poster.png")
         hashes = [hashlib.md5(capture(t, frames_dir / f"{i:06d}.png")).hexdigest() for i, t in enumerate(times)]
+        if embed is not None:
+            # After the sweep: the startup notices ("Headless viewer running", version check) are gone by now.
+            capture(parse_time(args.poster_at, tl["kind"]) if args.poster_at else lo, frames_dir / "poster.png")
         cap_done = time.monotonic()
 
         # Stale-frame tripwire: identical consecutive frames are legal for a static scene, but a
