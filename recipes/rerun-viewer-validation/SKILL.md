@@ -29,6 +29,12 @@ Default **headless** for both `ViewerClient.spawn(headless=True)` and `rerun --h
 
 Go **headed only when a human co-views**: the user wants to watch you scrub, or wants the viewer left open afterwards. All tools work identically against either — headed vs headless is user preference, not capability.
 
+**Start and stop a native headless viewer with `scripts/headless_viewer.py`** (the video helper uses it too): it picks a free port (never 9876), waits until the port answers, runs `viewer-mcp` from the same rerun binary with `endpoint=`, and stops the viewer by process group. CLI: `python scripts/headless_viewer.py start --rerun-bin <env>/bin/rerun <file-or-url>…` prints `PID=`, `PORT=`, `ENDPOINT=`, `LOG=`, `VERSION=`; `python scripts/headless_viewer.py stop <PID>`. Run `viewer-mcp` on the viewer's host. After the viewer stops, an SDK that was connected to it logs `ERROR re_sdk::recording_stream: Failed to flush previous sink: gRPC connection severed` (and `re_grpc_client::write … transport error`): expected at teardown, not a failure.
+
+**Versions first.** Before you validate, print `rerun --version` for the viewer binary, for any catalog server (`rerun server`), and note the SDK version that wrote the `.rrd` (`rerun rrd stats` or the Selection panel's "Source RRD version"). A warning that the data stream is `newer than the local Rerun version`, a Sorbet version mismatch, or `Operation is not implemented` from a server means a version skew: switch to the project env's binary; do not judge the recording. `A newer version of Rerun is available` is only a notice.
+
+**GPU, not a CPU rasterizer.** Start the viewer with `RUST_LOG=info,re_renderer=debug` and read the `re_renderer::device_caps: Picked adapter:` line (or "Software rasterizer detected"): an adapter with `device_type: Cpu` or named llvmpipe, lavapipe or SwiftShader is a CPU render, so timing and video-decode evidence from it is invalid. Record the adapter name in `notes.md`. In a sandbox that blocks the GPU or Xvfb (the Codex sandbox does), rerun the command outside the sandbox on the GPU host (ask for an elevated run); do not keep going on a CPU adapter.
+
 Lifecycle gotchas (both modes):
 - The MCP **never spawns a viewer**. Always: spawn viewer → `connect` → work.
 - `ViewerClient.spawn` resolves `rerun` from PATH — stale global installs win. **Always pass `executable_path=` pointing at the project env's rerun binary.**
@@ -37,7 +43,10 @@ Lifecycle gotchas (both modes):
 - **Never reuse a port that already answers.** A leftover viewer keeps its port; the new one fails to bind, and `ViewerClient(url=…)` / the MCP talk to the old viewer — screenshots of the wrong data, no error. Probe the port before spawning.
 - **End by confirming nothing you started still holds a port** — check by port (`ss -ltnp`, `lsof -iTCP -sTCP:LISTEN`), not `pgrep -f "--port N"` from a shell whose own command line contains that text (it matches itself). Never kill by name (`pkill rerun`): shared catalog servers are also named `rerun`.
 
-### Linux aarch64: temporary AV1 fix for 0.38.1
+### Linux aarch64: AV1 decode
+
+0.42: agents on the Spark (aarch64) still saw AV1 decode-error placeholders in native video panes, although its `rerun --version` lists `Video features: av1` (not decode proof). Take video-decode evidence, and record embed videos of recordings that hold AV1 VideoStreams, on an x86_64 GPU host (pablo-dl-server). When you trim a VideoStream recording, start and end on keyframes. The 0.38.1 stopgap below applies only to 0.38.1:
+
 
 Stock Rerun 0.38.1 on Linux aarch64 reports "Rerun does not yet support native AV1 decoding on Linux ARM64" for AV1 video ([upstream issue #7755](https://github.com/rerun-io/rerun/issues/7755)). This error alone does not mean the recording is broken: text logs, phases, and overlays still load, so read those before judging the recording.
 
@@ -69,8 +78,9 @@ Use this order. Read **[MCP schemas and recovery](references/mcp.md)** before th
 2. **Loaded:** open the recording, then poll viewer state until it lists the intended recording and a nonempty timeline range. Bound the polling; an accepted open request is not a loaded recording.
 3. **Observe:** choose the recording, timeline, range, and time units from viewer state. Read `query_tree` for current UI locators.
 4. **Act:** make timeline/control calls separately. `batch` accepts only egui UI tools, for example click → `wait_for` → screenshot. For UI actions, prefer a fresh widget ID; verify the action result and resulting state.
-5. **Settle:** call `wait_for` with nonzero `min_steps` before every screenshot, including retries. A presence filter must come from accessible tree text; check nonempty `matched`, not just `ok: true`.
-6. **Prove:** inspect the returned or saved image. Keep viewport fixed and capture only the evidence needed (usually ≤10 MCP images). A moved playhead or successful RPC does not prove video decoding.
+5. **Screenshots:** `rerun_save_screenshot` does not create folders: `mkdir -p` the report folder first. View ids change when a blueprint is set or loaded: read them again with `rerun_get_state` before you screenshot one view.
+6. **Settle:** call `wait_for` with nonzero `min_steps` before every screenshot, including retries. A presence filter must come from accessible tree text; check nonempty `matched`, not just `ok: true`.
+7. **Prove:** inspect the returned or saved image. Keep viewport fixed and capture only the evidence needed (usually ≤10 MCP images). A moved playhead or successful RPC does not prove video decoding.
 
 ## ViewerClient: scripted static proof
 

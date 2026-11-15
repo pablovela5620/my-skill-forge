@@ -17,6 +17,7 @@ build:
     - cp $RECIPE_DIR/agents/openai.yaml $PREFIX/share/agent-skills/${{ skill }}/agents/openai.yaml
     - cp $RECIPE_DIR/scripts/rrd_to_video.py $PREFIX/share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
     - cp $RECIPE_DIR/scripts/gpu_chrome.sh $PREFIX/share/agent-skills/${{ skill }}/scripts/gpu_chrome.sh
+    - cp $RECIPE_DIR/scripts/headless_viewer.py $PREFIX/share/agent-skills/${{ skill }}/scripts/headless_viewer.py
     - cp $RECIPE_DIR/references/mcp.md $PREFIX/share/agent-skills/${{ skill }}/references/mcp.md
     - cp $RECIPE_DIR/references/web.md $PREFIX/share/agent-skills/${{ skill }}/references/web.md
 
@@ -35,6 +36,7 @@ tests:
         - share/agent-skills/${{ skill }}/agents/openai.yaml
         - share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
         - share/agent-skills/${{ skill }}/scripts/gpu_chrome.sh
+        - share/agent-skills/${{ skill }}/scripts/headless_viewer.py
         - share/agent-skills/${{ skill }}/references/mcp.md
         - share/agent-skills/${{ skill }}/references/web.md
       strict: true

@@ -32,11 +32,8 @@ import functools
 import hashlib
 import itertools
 import json
-import os
-import select
 import shutil
 import signal
-import socket
 import subprocess
 import sys
 import tempfile
@@ -46,118 +43,12 @@ from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
-RPC_TIMEOUT_S = 90.0  # per-call bound; a wedged viewer-mcp must fail loudly, not hang forever
+sys.path.insert(0, str(Path(__file__).resolve().parent))  # `python -I` does not add the script dir
+from headless_viewer import HeadlessViewer, McpStdioClient, connect_mcp, rerun_version, start_viewer  # noqa: E402
+
 LOAD_TIMEOUT_S = 180.0
-SPAWN_ATTEMPTS = 3  # retries against the free-port race (port stolen between probe and viewer bind)
 FFMPEG_TIMEOUT_S = 600.0
 KINDS = {"TIME_TYPE_SEQUENCE": "sequence", "TIME_TYPE_DURATION_NS": "duration", "TIME_TYPE_TIMESTAMP_NS": "timestamp"}
-
-
-class McpStdioClient:
-    """Minimal JSON-RPC client for an MCP server speaking newline-delimited stdio."""
-
-    def __init__(self, command: list[str]) -> None:
-        stderr_f = tempfile.NamedTemporaryFile(prefix="viewer-mcp-stderr-", suffix=".log", delete=False)
-        self.stderr_path = stderr_f.name
-        self.proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=stderr_f)
-        stderr_f.close()  # the child owns a dup'd fd; we only keep the name for diagnostics
-        self._buf = bytearray()
-        self._id = 0
-        self._keep_stderr = False  # set when an error message points the user at the log
-        try:
-            self._rpc(
-                "initialize",
-                {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "rrd-to-video", "version": "1.0"}},
-            )
-            self._send({"jsonrpc": "2.0", "method": "notifications/initialized"})
-        except BaseException:
-            self.close()
-            raise
-
-    def _send(self, msg: dict[str, Any]) -> None:
-        assert self.proc.stdin is not None
-        self.proc.stdin.write((json.dumps(msg) + "\n").encode())
-        self.proc.stdin.flush()
-
-    def _readline(self, deadline: float) -> bytes:
-        """One complete line from the server, read in binary chunks into our own buffer.
-
-        A TextIOWrapper.readline would over-read into a buffer select() cannot see, and would
-        block past the deadline on a partial line.
-        """
-        assert self.proc.stdout is not None
-        scanned = 0  # resume the newline scan where the previous chunk ended
-        while True:
-            nl = self._buf.find(b"\n", scanned)
-            if nl >= 0:
-                line = bytes(self._buf[:nl])
-                del self._buf[: nl + 1]
-                return line
-            scanned = len(self._buf)
-            remaining = deadline - time.monotonic()
-            if remaining <= 0 or not select.select([self.proc.stdout], [], [], remaining)[0]:
-                self._keep_stderr = True
-                raise RuntimeError(f"MCP read timed out after {RPC_TIMEOUT_S:.0f}s (stderr: {self.stderr_path})")
-            chunk = os.read(self.proc.stdout.fileno(), 1 << 16)
-            if not chunk:
-                self._keep_stderr = True
-                raise RuntimeError(f"MCP server closed its stdout (stderr: {self.stderr_path})")
-            self._buf += chunk
-
-    def _rpc(self, method: str, params: dict[str, Any]) -> dict[str, Any]:
-        self._id += 1
-        self._send({"jsonrpc": "2.0", "id": self._id, "method": method, "params": params})
-        deadline = time.monotonic() + RPC_TIMEOUT_S
-        while True:
-            line = self._readline(deadline)
-            if not line.lstrip().startswith(b"{"):
-                continue  # not a JSON-RPC message
-            msg = json.loads(line)
-            if msg.get("id") == self._id:
-                if "error" in msg:
-                    raise RuntimeError(f"{method} failed: {msg['error']}")
-                return msg["result"]
-
-    def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
-        result = self._rpc("tools/call", {"name": name, "arguments": arguments or {}})
-        if result.get("isError"):
-            texts = [c.get("text", "") for c in result.get("content", [])]
-            raise RuntimeError(f"tool {name} errored: {' '.join(texts)}")
-        return result
-
-    def tool_json(self, name: str) -> Any:
-        """A tool's JSON answer; the viewer appends its log lines after the JSON text."""
-        result = self.call_tool(name)
-        if isinstance(result.get("structuredContent"), dict):
-            return result["structuredContent"]
-        text = "".join(c.get("text", "") for c in result.get("content", []) if c.get("type") == "text")
-        return json.JSONDecoder().raw_decode(text.lstrip())[0]
-
-    def close(self) -> None:
-        try:
-            self.proc.terminate()
-            try:
-                self.proc.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.proc.kill()
-                self.proc.wait(timeout=5)
-        except Exception:
-            pass  # never let teardown mask the primary failure
-        if not self._keep_stderr:
-            with contextlib.suppress(OSError):
-                os.unlink(self.stderr_path)
-
-
-def free_port() -> int:
-    """Grab a free TCP port via bind(:0), then release it for the viewer to reuse."""
-    with socket.create_server(("127.0.0.1", 0)) as s:
-        return s.getsockname()[1]
-
-
-def kill_group(proc: subprocess.Popen, sig: int) -> None:
-    """Signal the whole process group — the rerun launcher forks the real viewer as a child."""
-    with contextlib.suppress(ProcessLookupError):
-        os.killpg(os.getpgid(proc.pid), sig)
 
 
 class _QuietHandler(SimpleHTTPRequestHandler):
@@ -242,25 +133,12 @@ def compute_frame_times(lo: int, hi: int, n_req: int, is_sequence: bool) -> list
     return list(dict.fromkeys(times))
 
 
-class PortStolen(RuntimeError):
-    """Our viewer lost its port to another process before binding (free_port TOCTOU)."""
-
-
-def viewer_death_error(returncode: int | None, port: int, log_path: Path) -> BaseException:
-    """Diagnose a viewer that died: only a port steal is retryable; the rest fails with the viewer's words."""
-    tail = (log_path.read_text(errors="replace")[-1500:] if log_path.exists() else "").strip()
-    if "address already in use" in tail.lower():
-        return PortStolen(f"viewer lost port {port} to another process (address already in use)")
-    return SystemExit(f"viewer exited (rc={returncode}):\n{tail or f'(no viewer output; see {log_path})'}")
-
-
-def wait_loaded(mcp: McpStdioClient, viewer: subprocess.Popen, port: int, log_path: Path, require: str | None) -> Any:
+def wait_loaded(mcp: McpStdioClient, viewer: HeadlessViewer, require: str | None) -> Any:
     """Poll the state until nothing is loading and the (requested) timeline has a range."""
     deadline = time.monotonic() + LOAD_TIMEOUT_S
     seen_at: float | None = None
     while time.monotonic() < deadline:
-        if viewer.poll() is not None:
-            raise viewer_death_error(viewer.returncode, port, log_path)
+        viewer.check_alive()
         state = mcp.tool_json("rerun_get_state")
         names = {t["name"] for t in timelines(state)}
         if names and not state.get("loading"):
@@ -270,54 +148,7 @@ def wait_loaded(mcp: McpStdioClient, viewer: subprocess.Popen, port: int, log_pa
             if time.monotonic() - seen_at > 5.0:
                 raise SystemExit(f"timeline {require!r} not found; recording has {sorted(names)}")
         time.sleep(0.1)
-    raise SystemExit(f"recording did not load within {LOAD_TIMEOUT_S:.0f}s; see {log_path}")
-
-
-def boot_viewer(
-    rerun_bin: str, rrd_url: str, size: str | None, log_path: Path, require: str | None
-) -> tuple[subprocess.Popen, McpStdioClient, int]:
-    """Spawn a headless viewer + MCP client and connect, guarded against the port race.
-
-    Our viewer process must stay alive through connect and load; only a diagnosed port steal is
-    retried on a fresh port — deterministic failures raise at once with the viewer's own output.
-    """
-    last_err: Exception | None = None
-    for _attempt in range(SPAWN_ATTEMPTS):
-        port = free_port()
-        cmd = [rerun_bin, "--headless", "--port", str(port), "--hide-welcome-screen", "--expect-data-soon"]
-        if size is not None:
-            cmd += ["--window-size", size]
-        cmd.append(rrd_url)
-        with open(log_path, "a") as log_f:
-            viewer = subprocess.Popen(cmd, stdout=log_f, stderr=subprocess.STDOUT, start_new_session=True)
-        mcp: McpStdioClient | None = None
-        try:
-            mcp = McpStdioClient([rerun_bin, "viewer-mcp"])
-            connect_deadline = time.monotonic() + 30.0
-            while True:
-                if viewer.poll() is not None:
-                    raise viewer_death_error(viewer.returncode, port, log_path)
-                try:
-                    mcp.call_tool("rerun_connect", {"endpoint": f"http://127.0.0.1:{port}"})
-                    break
-                except RuntimeError as e:
-                    if mcp.proc.poll() is not None:
-                        raise SystemExit(f"viewer-mcp died during connect: {e}") from e
-                    if time.monotonic() > connect_deadline:
-                        raise SystemExit(f"could not connect to the viewer on port {port} within 30s: {e}") from e
-                    time.sleep(0.05)
-            wait_loaded(mcp, viewer, port, log_path, require)
-            return viewer, mcp, port
-        except BaseException as e:
-            if mcp is not None:
-                mcp.close()
-            kill_group(viewer, signal.SIGKILL)
-            with contextlib.suppress(subprocess.TimeoutExpired):
-                viewer.wait(timeout=5)
-            if not isinstance(e, PortStolen):
-                raise
-            last_err = e
-    raise SystemExit(f"viewer boot failed after {SPAWN_ATTEMPTS} attempts: {last_err}")
+    raise SystemExit(f"recording did not load within {LOAD_TIMEOUT_S:.0f}s; see {viewer.log_path}")
 
 
 def apply_blueprint(mcp: McpStdioClient, rbl_url: str) -> None:
@@ -413,15 +244,18 @@ def main() -> int:
     frames_dir = work / "frames"
     frames_dir.mkdir()
     log_path = work / "viewer.log"
-    viewer: subprocess.Popen | None = None
+    viewer: HeadlessViewer | None = None
     mcp: McpStdioClient | None = None
     server: ThreadingHTTPServer | None = None
     try:
+        print(f"rerun: {rerun_version(args.rerun_bin)}")
         urls, server = serve_local([args.rrd, *([args.rbl] if args.rbl else [])], work / "files")
-        viewer, mcp, port = boot_viewer(args.rerun_bin, urls[0], size, log_path, None if args.rbl else args.timeline)
+        viewer = start_viewer(args.rerun_bin, [urls[0]], log_path, size)
+        mcp = connect_mcp(args.rerun_bin, viewer)
+        wait_loaded(mcp, viewer, None if args.rbl else args.timeline)
         if args.rbl:
             apply_blueprint(mcp, urls[1])
-        state = wait_loaded(mcp, viewer, port, log_path, args.timeline)
+        state = wait_loaded(mcp, viewer, args.timeline)
         tl = pick_timeline(state, args.timeline)
         lo = parse_time(args.start, tl["kind"]) if args.start else tl["start"]
         hi = parse_time(args.end, tl["kind"]) if args.end else tl["end"]
@@ -477,11 +311,7 @@ def main() -> int:
         if mcp is not None:
             mcp.close()
         if viewer is not None:
-            kill_group(viewer, signal.SIGTERM)
-            try:
-                viewer.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                kill_group(viewer, signal.SIGKILL)
+            viewer.stop()
         if server is not None:
             server.shutdown()
             server.server_close()

@@ -114,6 +114,19 @@ confirm before the live viewer. In normal mode, videos below the fold load
 no bytes until they scroll into view (`preload="none"`). Bound each `get_state()` call with a timeout; a call on a viewer
 that is stopping can hang.
 
+Expected console noise, nothing else: egui `Unhandled egui viewport command`
+warnings (Decorations, Transparent, RequestUserAttention); traces also report
+`EyeControls3D … fallback provider already registered` and `Transparent window
+was requested` on some 0.42 starts. Every page carries
+`<link rel="icon" href="data:,">`, so there is no favicon 404. Any other
+warning or error fails the check.
+
+Never open pages through `file://` (Playwright blocks it, and the viewer
+needs HTTP). Serve the folder with `python -m http.server --bind 127.0.0.1
+<free port>`, or check the published NAS URL. Use the global `playwright-cli`
+or `connectOverCDP` to GPU Chrome; do not add Playwright to a project env
+just to validate.
+
 ## Validating gradio apps & WebViewer embeds
 
 **Playwright to prove, chrome-devtools to diagnose.** Playwright is the default for validation evidence: headless by default with a pinned viewport, so screenshots are deterministic and no browser window pops up on the user's desktop. chrome-devtools defaults to a *headed* browser at a small window — screenshots pick up scrollbars and cramped layouts unless you resize or pass headless flags — but it's the right tool when something misbehaves: inspecting network requests (gradio queue SSE bodies, rrd fetch status codes) and the WASM viewer's console debug stream is its home turf. Whichever you use, set the viewport explicitly (e.g. 1920×1080).

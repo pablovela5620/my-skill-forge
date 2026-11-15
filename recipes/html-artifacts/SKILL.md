@@ -37,6 +37,7 @@ Unless the user asks otherwise:
 - Use inline SVG, CSS, and small data structures for diagrams and charts.
 - Include export/copy controls for editor-like artifacts.
 - Keep text real and specific. No placeholder lorem ipsum, fake links, or dead controls.
+- Add `<link rel="icon" href="data:,">` to the `<head>`, so the browser does not request a missing favicon.
 - Exception: a page that embeds a Rerun recording loads the shared viewer and `embed.js` from the NAS. Read [references/nas-publishing.md](references/nas-publishing.md) before you publish to the NAS or embed an `.rrd`.
 
 ## Workflow

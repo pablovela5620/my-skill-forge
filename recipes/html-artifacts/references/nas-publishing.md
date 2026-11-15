@@ -13,6 +13,14 @@
   Gradio app, a preview on another host) cannot fetch NAS files.
 - Quirks: directory URLs need a trailing slash, and `<dir>/index.html?query`
   redirects to the site root. Link to `<dir>/?query`.
+- `/volume1/...` exists only on the NAS: check a folder with
+  `ssh pablos-4800gt ls <dir>`, and each published file with
+  `curl -sI <url>` (expect 200). From the Spark, use the full name
+  `pablos-4800gt.ilish-ruler.ts.net` (the short name can resolve to a LAN
+  address). Files written through the NFS mounts can arrive with odd modes
+  (even 000): `chmod 644` files and `chmod 755` folders after you write them.
+- Put `<link rel="icon" href="data:,">` in every page, so the console check
+  has no favicon 404.
 - The source for the viewer tree, embed.js and the install script is in
   `~/agent-fleet` (`config/html-artifacts/`, `scripts/rerun_viewer_install.py`).
 
