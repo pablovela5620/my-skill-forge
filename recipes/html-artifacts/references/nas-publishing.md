@@ -59,8 +59,10 @@ opt-in.
 - "Open live viewer (NN MB)" shows the `.rrd` + `.rbl` size from HEAD
   requests and starts the `@rerun-io/web-viewer` JS viewer only on a click;
   one live viewer runs at a time; a "Video | Live viewer" toggle switches
-  back. "Open full screen" opens the app build; "Copy rerun command" copies
-  `rerun <rrd url>` for the native viewer. The `<a>` is the no-JS fallback.
+  back. "Open full screen" opens `embed.html` with the start time when
+  `data-time` is set, else the app page; "Copy rerun command" copies
+  `rerun <rrd url> [<rbl url>]` for the native viewer. The `<a>` is the
+  no-JS fallback. Full attribute reference: `~/agent-fleet/config/html-artifacts/README.md`.
 - Low-data mode (`navigator.connection.saveData`, or 2g/3g): no video bytes
   until a tap, and the first live viewer asks before it loads.
 - `data-version`: pin it, and keep it at or above the SDK version that wrote

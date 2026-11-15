@@ -9,32 +9,21 @@ Use the shared viewer and the embed script; never vendor another viewer copy.
 - `/rerun-viewer/<ver>/` is the app build from `app.rerun.io/version/<ver>/`;
   `/rerun-viewer/<ver>/npm/` is `@rerun-io/web-viewer` `<ver>`. Installed: 0.42.0.
   Add a version with `cd ~/agent-fleet && pixi run python -m scripts.rerun_viewer_install <ver>`.
-- Mark each embed with one element; `/rerun-viewer/embed.js` shows the video
-  (`data-video` stem: `.av1.mp4` first, `.h264.mp4` fallback) with the poster,
-  "Open live viewer (NN MB)" (lazy JS viewer, one at a time), a
-  "Video | Live viewer" toggle, "Open full screen" and "Copy rerun command".
-  Every embed has a video and a poster; the live viewer is opt-in:
-
-```html
-<link rel="stylesheet" href="/rerun-viewer/embed.css">
-<script type="module" src="/rerun-viewer/embed.js"></script>
-<figure class="rr-embed" data-rrd="run.rrd" data-rbl="run.rbl" data-video="run"
-        data-poster="run.poster.jpg" data-version="0.42.0" data-time="frame@805">
-  <a href="/rerun-viewer/0.42.0/embed.html?url=<abs rrd url>&url=<abs rbl url>&seek=frame@805"><img src="run.poster.jpg" alt="..."></a>
-  <figcaption>...</figcaption>
-</figure>
-```
-
+- Every embed is one `<figure class="rr-embed" data-rrd data-rbl data-video
+  data-poster data-version data-time>` that `/rerun-viewer/embed.js` turns
+  into a video (AV1 first, H.264 fallback) with an opt-in live viewer. The
+  markup and rules are in the `html-artifacts` skill
+  (`references/nas-publishing.md`); the attribute reference is
+  `~/agent-fleet/config/html-artifacts/README.md`.
 - Make the video and poster with
   `cd ~/agent-fleet && pixi run python -m scripts.rerun_embed_video <rrd> --rbl <rbl> --out <dir>/run --timeline <tl> --start <t0> --end <t1> --poster-at <t>`.
-  It drives `rerun --headless` through `viewer-mcp` (set time, screenshot)
-  and encodes AV1 (SVT-AV1 CRF 38, screen content, keyframe every 2 s) and
-  H.264. Two traps it handles: the native viewer registers a local `.rrd`
-  with its Viewer catalog, which gives the recording a random application id
-  so the `.rbl` does not apply (it serves local files over 127.0.0.1 HTTP
-  instead), and an `.rbl` passed with the `.rrd` on the command line applies
-  only some of the time (it opens the `.rbl` after the recording has loaded
-  and waits until the views change).
+  It drives `rerun --headless` through `viewer-mcp` (set time, screenshot).
+  Two native-viewer traps it handles: a local `.rrd` goes through the Viewer
+  catalog, which gives the recording a random application id, so the `.rbl`
+  does not apply (it serves local files over 127.0.0.1 HTTP instead); and an
+  `.rbl` passed with the `.rrd` on the command line applies only some of the
+  time (it opens the `.rbl` after the recording has loaded and waits until
+  the views change).
 - Same origin, so no CORS: the page, the viewer and the `.rrd` (published
   next to the page) are all on `https://pablos-4800gt.ilish-ruler.ts.net:8768`.
   That server is Tailscale Serve path mode: no CORS headers, and
@@ -107,10 +96,12 @@ Check every page with an embedded viewer at 1400 px (desktop), 1133x744 and
 titles, the viewer fits its box (full-screen apps: no page scroll), touch
 targets of 44 px or more. Keep layouts fluid from 700 to 1200 px.
 
-On the RTX 5090 host, start headed Chrome on a private Xvfb display with
-`/tmp/simplerecon-pages/latency/gpu_chrome.sh <profile> 1400x1000 <port>` (it
-prints `PID`, `XVFB_PID`, `CDP`; stop both by PID). Prove the GPU with
-`gpu_proof.sh <cdp> <out_prefix> <page_url>` in the same directory, then drive
+On a host with an NVIDIA GPU, start headed Chrome on a private Xvfb display
+with this skill's `scripts/gpu_chrome.sh <profile> 1400x1000 <port>` (it
+prints `PID`, `XVFB_PID`, `CDP`; stop both by PID). Prove the GPU before you
+trust a screenshot: `chrome://gpu` must show WebGPU and WebGL "Hardware
+accelerated" and a Dawn "Vulkan backend - NVIDIA" adapter, and a page's
+`navigator.gpu.requestAdapter()` must not be a fallback adapter. Then drive
 the page with `playwright-cli attach --cdp=<cdp>` or `playwright-core`
 `connectOverCDP`. Never use display `:1` (Pablo's desktop) or port 9876
 (Rerun's default). In the sandbox, Chrome cannot reach the GPU: run it outside.
