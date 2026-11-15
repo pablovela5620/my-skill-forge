@@ -7,7 +7,7 @@
 Use the shared viewer and the embed script; never vendor another viewer copy.
 
 - `/rerun-viewer/<ver>/` is the app build from `app.rerun.io/version/<ver>/`;
-  `/rerun-viewer/<ver>/npm/` is `@rerun-io/web-viewer` `<ver>`. Installed: 0.42.0.
+  `/rerun-viewer/<ver>/npm/` is `@rerun-io/web-viewer` `<ver>`. Installed versions: `/rerun-viewer/versions.json`.
   Add a version with `cd ~/agent-fleet && pixi run python -m scripts.rerun_viewer_install <ver>`.
 - Every embed is one `<figure class="rr-embed" data-rrd data-rbl data-video
   data-poster data-version data-time>` that `/rerun-viewer/embed.js` turns
@@ -15,15 +15,14 @@ Use the shared viewer and the embed script; never vendor another viewer copy.
   markup and rules are in the `html-artifacts` skill
   (`references/nas-publishing.md`); the attribute reference is
   `~/agent-fleet/config/html-artifacts/README.md`.
-- Make the video and poster with
-  `cd ~/agent-fleet && pixi run python -m scripts.rerun_embed_video <rrd> --rbl <rbl> --out <dir>/run --timeline <tl> --start <t0> --end <t1> --poster-at <t>`.
-  It drives `rerun --headless` through `viewer-mcp` (set time, screenshot).
-  Two native-viewer traps it handles: a local `.rrd` goes through the Viewer
-  catalog, which gives the recording a random application id, so the `.rbl`
-  does not apply (it serves local files over 127.0.0.1 HTTP instead); and an
-  `.rbl` passed with the `.rrd` on the command line applies only some of the
-  time (it opens the `.rbl` after the recording has loaded and waits until
-  the views change).
+- Make the video and poster with this skill's helper:
+  `python scripts/rrd_to_video.py --rrd <rrd> --rbl <rbl> --embed <dir>/run --rerun-bin <env>/bin/rerun --timeline <tl> --start <t0> --end <t1> --poster-at <t>`
+  (see "Video" in SKILL.md). It handles two native-viewer traps: a local
+  `.rrd` goes through the Viewer catalog, which gives the recording a random
+  application id, so the `.rbl` does not apply (it serves local files over
+  127.0.0.1 HTTP instead); and an `.rbl` passed with the `.rrd` on the command
+  line applies only some of the time (it opens the `.rbl` after the recording
+  has loaded and waits until the views change).
 - Same origin, so no CORS: the page, the viewer and the `.rrd` (published
   next to the page) are all on `https://pablos-4800gt.ilish-ruler.ts.net:8768`.
   That server is Tailscale Serve path mode: no CORS headers, and
@@ -114,7 +113,8 @@ loaded (AV1 in Chrome); click "Open live viewer", poll `get_state()` until
 empty view), and read the console (only egui "viewport command" warnings are
 expected). Once more with low data: `Network.emulateNetworkConditions`
 (3G-like) plus `saveData` true; pass = no autoplay, no video bytes, one
-confirm before the live viewer. Bound each `get_state()` call with a timeout; a call on a viewer
+confirm before the live viewer. In normal mode, videos below the fold load
+no bytes until they scroll into view (`preload="none"`). Bound each `get_state()` call with a timeout; a call on a viewer
 that is stopping can hang.
 
 ## Validating gradio apps & WebViewer embeds

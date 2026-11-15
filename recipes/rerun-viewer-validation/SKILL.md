@@ -107,9 +107,12 @@ for chunk in r.stream(store=r.blueprints()[0]).to_chunks():
 ```bash
 python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
   --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15] [--collapse-panels]
+# embed video set (AV1 + H.264 + poster) for a NAS embed.js figure:
+python scripts/rrd_to_video.py --rrd run.rrd --rbl run.rbl --embed <dir>/run \
+  --rerun-bin <env>/bin/rerun --timeline video_time --start 26s --end 28s --poster-at 26.8s
 ```
 
-**Compatibility gate:** the bundled helper uses the legacy `connect` / `viewer_state` / `set_time` schema. Check `tools/list` first; the newer `rerun_*` schema is not supported by this helper. Use a compatible viewer that can also read the recording, or report the helper limitation and use the appropriate validation branch. Do not downgrade below the writer version.
+**Compatibility:** the helper drives the 0.42 `rerun_*` MCP tools (`rerun_connect`, `rerun_get_state`, `rerun_set_time_cursor`, `rerun_save_screenshot`, `rerun_open`). Use a `--rerun-bin` from the same release as the viewer that will show the result, and at least the writer version. Check `tools/list` if a call fails with an unknown tool name. `--rbl` opens the blueprint after the recording has loaded; local files go over 127.0.0.1 HTTP so the blueprint's application id matches.
 
 Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. Capture cost depends on scene and renderer; screenshot calls can take seconds. Measure a short sample before planning a sweep. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and the project env's rerun binary. The default `--settle-ms 30` is a starting point; raise it when decoded video or overlays have not stabilized — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 

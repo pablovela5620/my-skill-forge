@@ -52,9 +52,10 @@ opt-in.
 
 - `data-video` is a stem: `run.av1.mp4` (AV1, tried first) and
   `run.h264.mp4` (fallback for older Apple devices). The browser downloads
-  only the one it plays. The video is muted, loops, and plays only while on
-  screen. Make both files and the poster from the same `.rrd` + `.rbl`:
-  `cd ~/agent-fleet && pixi run python -m scripts.rerun_embed_video run.rrd --rbl run.rbl --out <dir>/run --timeline <tl> --start <t0> --end <t1> --poster-at <t>`
+  only the one it plays. Videos use `preload="none"` (only the poster loads),
+  are muted, loop, and play only while on screen; if autoplay is blocked
+  (iOS Low Power Mode) they show their controls. Make both files and the poster from the same `.rrd` + `.rbl` with
+  the `rerun-viewer-validation` skill's `scripts/rrd_to_video.py --embed <dir>/run`
   (headless viewer, needs the GPU; keep the AV1 loop under 2 MB).
 - "Open live viewer (NN MB)" shows the `.rrd` + `.rbl` size from HEAD
   requests and starts the `@rerun-io/web-viewer` JS viewer only on a click;
@@ -63,11 +64,12 @@ opt-in.
   `data-time` is set, else the app page; "Copy rerun command" copies
   `rerun <rrd url> [<rbl url>]` for the native viewer. The `<a>` is the
   no-JS fallback. Full attribute reference: `~/agent-fleet/config/html-artifacts/README.md`.
-- Low-data mode (`navigator.connection.saveData`, or 2g/3g): no video bytes
-  until a tap, and the first live viewer asks before it loads.
+- Low-data mode (`navigator.connection.saveData`, or 2g/3g): no autoplay
+  (tap to play), and the first live viewer asks before it loads.
 - `data-version`: pin it, and keep it at or above the SDK version that wrote
-  the recording (Rerun has no forward compatibility). Installed: 0.42.0. A
-  missing version is one command: `cd ~/agent-fleet && pixi run python -m scripts.rerun_viewer_install <version>`.
+  the recording (Rerun has no forward compatibility). Installed versions and
+  the default are in `/rerun-viewer/versions.json`. A missing version is one
+  command: `cd ~/agent-fleet && pixi run python -m scripts.rerun_viewer_install <version>`.
 - `data-time="<timeline>@<value>"`: integer in the timeline's unit (exact),
   or a duration in seconds (`video_time@26.8s`). The `#when=` fragment does
   not work on plain `.rrd` URLs.
