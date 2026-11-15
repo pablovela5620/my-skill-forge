@@ -4,10 +4,10 @@ context:
 package:
   name: agent-skill-${{ skill }}
   # Match the Rerun release targeted by this skill; use build bumps for skill revisions.
-  version: "0.38.1"
+  version: "0.42.0"
 
 build:
-  number: 1
+  number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
@@ -16,6 +16,8 @@ build:
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp $RECIPE_DIR/agents/openai.yaml $PREFIX/share/agent-skills/${{ skill }}/agents/openai.yaml
     - cp $RECIPE_DIR/scripts/rrd_to_video.py $PREFIX/share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
+    - cp $RECIPE_DIR/scripts/gpu_chrome.sh $PREFIX/share/agent-skills/${{ skill }}/scripts/gpu_chrome.sh
+    - cp $RECIPE_DIR/scripts/headless_viewer.py $PREFIX/share/agent-skills/${{ skill }}/scripts/headless_viewer.py
     - cp $RECIPE_DIR/references/mcp.md $PREFIX/share/agent-skills/${{ skill }}/references/mcp.md
     - cp $RECIPE_DIR/references/web.md $PREFIX/share/agent-skills/${{ skill }}/references/web.md
 
@@ -33,6 +35,8 @@ tests:
         - share/agent-skills/${{ skill }}/SKILL.md
         - share/agent-skills/${{ skill }}/agents/openai.yaml
         - share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
+        - share/agent-skills/${{ skill }}/scripts/gpu_chrome.sh
+        - share/agent-skills/${{ skill }}/scripts/headless_viewer.py
         - share/agent-skills/${{ skill }}/references/mcp.md
         - share/agent-skills/${{ skill }}/references/web.md
       strict: true

@@ -13,9 +13,9 @@ Prove what rendered. Logs, metadata, and `rrd stats` say what was *sent*; only p
 1. **Static render proof** (does the .rrd load? does the blueprint lay out? do views render?) → **scripted ViewerClient**. No MCP needed, deterministic, CI-friendly.
 2. **Time or UI state** (scrub to frame N, verify view X at time T, click/select entities, read panels) → **viewer MCP**.
 3. **Video / timeline sweep** (watch an algorithm run) → **`scripts/rrd_to_video.py`** (this skill's helper). Never loop MCP screenshots for video.
-4. **Web** (embed an .rrd in an HTML page; validate a gradio-rerun app or WebViewer embed) → read **`references/web.md`** — the iframe embed recipe (CORS, Chrome Local Network Access, tailscale) and the playwright validation recipes live there. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial.
+4. **Web** (embed an .rrd in an HTML page; validate a gradio-rerun app or WebViewer embed) → read **`references/web.md`** — the shared NAS viewer + `embed.js` convention, cross-origin options, check sizes (1400, 1133x744, 744x1133, 390), the GPU Chrome recipe and the playwright validation recipes live there. The MCP structurally cannot reach a WASM viewer in a browser — no gRPC server to dial.
 
-**Video vs embed** (branches 3 vs 4, when both fit): the embedded rrd is the richer artifact — fully inspectable, orbitable, scrubbable — so prefer it when the recording is browser-sized. The WASM viewer holds the whole recording in memory, so check size first (`ls -lh`, `rerun rrd stats`) and gate embeds at a few hundred MB (hard ceiling ~1.5 GiB — see `references/web.md`). Choose video when the recording is huge, when the audience only needs to *watch* (Slack, PR description), or when the data needs a visualizer the web viewer doesn't have (custom visualizers). Best of both, often: a trimmed/downsampled preview rrd for the embed plus a full-fidelity video.
+**Video vs embed** (branches 3 vs 4, when both fit): the embedded rrd is the richer artifact — fully inspectable, orbitable, scrubbable — so prefer it when the recording is browser-sized. The WASM viewer holds the whole recording in memory, so check size first (`ls -lh`, `rerun rrd stats`) and gate embeds at a few hundred MB (WASM allocation fails near 2 GiB — see `references/web.md`). Choose video when the recording is huge, when the audience only needs to *watch* (Slack, PR description), or when the data needs a visualizer the web viewer doesn't have (custom visualizers). Best of both, often: a trimmed/downsampled preview rrd for the embed plus a full-fidelity video.
 
 Version rule for every branch: the viewer that validates must be ≥ the SDK that wrote the data — Rerun has no forward compat, so an `.rrd` written by a newer SDK will not load in an older viewer (including the WASM viewer inside a gradio-rerun app pinned to an older release). Check the writer and actual viewer versions; this skill's minimum version constraint does not guarantee recording or tool-schema compatibility.
 
@@ -29,6 +29,12 @@ Default **headless** for both `ViewerClient.spawn(headless=True)` and `rerun --h
 
 Go **headed only when a human co-views**: the user wants to watch you scrub, or wants the viewer left open afterwards. All tools work identically against either — headed vs headless is user preference, not capability.
 
+**Start and stop a native headless viewer with `scripts/headless_viewer.py`** (the video helper uses it too): it picks a free port (never 9876), waits until the port answers, runs `viewer-mcp` from the same rerun binary with `endpoint=`, and stops the viewer by process group. CLI: `python scripts/headless_viewer.py start --rerun-bin <env>/bin/rerun <file-or-url>…` prints `PID=`, `PORT=`, `ENDPOINT=`, `LOG=`, `VERSION=`; `python scripts/headless_viewer.py stop <PID>`. Run `viewer-mcp` on the viewer's host. After the viewer stops, an SDK that was connected to it logs `ERROR re_sdk::recording_stream: Failed to flush previous sink: gRPC connection severed` (and `re_grpc_client::write … transport error`): expected at teardown, not a failure.
+
+**Versions first.** Before you validate, print `rerun --version` for the viewer binary, for any catalog server (`rerun server`), and note the SDK version that wrote the `.rrd` (`rerun rrd stats` or the Selection panel's "Source RRD version"). A warning that the data stream is `newer than the local Rerun version`, a Sorbet version mismatch, or `Operation is not implemented` from a server means a version skew: switch to the project env's binary; do not judge the recording. `A newer version of Rerun is available` is only a notice.
+
+**GPU, not a CPU rasterizer.** Start the viewer with `RUST_LOG=info,re_renderer=debug` and read the `re_renderer::device_caps: Picked adapter:` line (or "Software rasterizer detected"): an adapter with `device_type: Cpu` or named llvmpipe, lavapipe or SwiftShader is a CPU render, so timing and video-decode evidence from it is invalid. Record the adapter name in `notes.md`. In a sandbox that blocks the GPU or Xvfb (the Codex sandbox does), rerun the command outside the sandbox on the GPU host (ask for an elevated run); do not keep going on a CPU adapter.
+
 Lifecycle gotchas (both modes):
 - The MCP **never spawns a viewer**. Always: spawn viewer → `connect` → work.
 - `ViewerClient.spawn` resolves `rerun` from PATH — stale global installs win. **Always pass `executable_path=` pointing at the project env's rerun binary.**
@@ -37,7 +43,10 @@ Lifecycle gotchas (both modes):
 - **Never reuse a port that already answers.** A leftover viewer keeps its port; the new one fails to bind, and `ViewerClient(url=…)` / the MCP talk to the old viewer — screenshots of the wrong data, no error. Probe the port before spawning.
 - **End by confirming nothing you started still holds a port** — check by port (`ss -ltnp`, `lsof -iTCP -sTCP:LISTEN`), not `pgrep -f "--port N"` from a shell whose own command line contains that text (it matches itself). Never kill by name (`pkill rerun`): shared catalog servers are also named `rerun`.
 
-### Linux aarch64: temporary AV1 fix for 0.38.1
+### Linux aarch64: AV1 decode
+
+0.42: agents on the Spark (aarch64) still saw AV1 decode-error placeholders in native video panes, although its `rerun --version` lists `Video features: av1` (not decode proof). Take video-decode evidence, and record embed videos of recordings that hold AV1 VideoStreams, on an x86_64 GPU host (pablo-dl-server). When you trim a VideoStream recording, start and end on keyframes. The 0.38.1 stopgap below applies only to 0.38.1:
+
 
 Stock Rerun 0.38.1 on Linux aarch64 reports "Rerun does not yet support native AV1 decoding on Linux ARM64" for AV1 video ([upstream issue #7755](https://github.com/rerun-io/rerun/issues/7755)). This error alone does not mean the recording is broken: text logs, phases, and overlays still load, so read those before judging the recording.
 
@@ -69,8 +78,9 @@ Use this order. Read **[MCP schemas and recovery](references/mcp.md)** before th
 2. **Loaded:** open the recording, then poll viewer state until it lists the intended recording and a nonempty timeline range. Bound the polling; an accepted open request is not a loaded recording.
 3. **Observe:** choose the recording, timeline, range, and time units from viewer state. Read `query_tree` for current UI locators.
 4. **Act:** make timeline/control calls separately. `batch` accepts only egui UI tools, for example click → `wait_for` → screenshot. For UI actions, prefer a fresh widget ID; verify the action result and resulting state.
-5. **Settle:** call `wait_for` with nonzero `min_steps` before every screenshot, including retries. A presence filter must come from accessible tree text; check nonempty `matched`, not just `ok: true`.
-6. **Prove:** inspect the returned or saved image. Keep viewport fixed and capture only the evidence needed (usually ≤10 MCP images). A moved playhead or successful RPC does not prove video decoding.
+5. **Screenshots:** `rerun_save_screenshot` does not create folders: `mkdir -p` the report folder first. View ids change when a blueprint is set or loaded: read them again with `rerun_get_state` before you screenshot one view.
+6. **Settle:** call `wait_for` with nonzero `min_steps` before every screenshot, including retries. A presence filter must come from accessible tree text; check nonempty `matched`, not just `ok: true`.
+7. **Prove:** inspect the returned or saved image. Keep viewport fixed and capture only the evidence needed (usually ≤10 MCP images). A moved playhead or successful RPC does not prove video decoding.
 
 ## ViewerClient: scripted static proof
 
@@ -107,9 +117,12 @@ for chunk in r.stream(store=r.blueprints()[0]).to_chunks():
 ```bash
 python scripts/rrd_to_video.py --rrd recording.rrd --out sweep.mp4 \
   --rerun-bin <env>/bin/rerun [--timeline frame] [--frames 150] [--fps 15] [--collapse-panels]
+# embed video set (AV1 + H.264 + poster) for a NAS embed.js figure:
+python scripts/rrd_to_video.py --rrd run.rrd --rbl run.rbl --embed <dir>/run \
+  --rerun-bin <env>/bin/rerun --timeline video_time --start 26s --end 28s --poster-at 26.8s
 ```
 
-**Compatibility gate:** the bundled helper uses the legacy `connect` / `viewer_state` / `set_time` schema. Check `tools/list` first; the newer `rerun_*` schema is not supported by this helper. Use a compatible viewer that can also read the recording, or report the helper limitation and use the appropriate validation branch. Do not downgrade below the writer version.
+**Compatibility:** the helper drives the 0.42 `rerun_*` MCP tools (`rerun_connect`, `rerun_get_state`, `rerun_set_time_cursor`, `rerun_save_screenshot`, `rerun_open`). Use a `--rerun-bin` from the same release as the viewer that will show the result, and at least the writer version. Check `tools/list` if a call fails with an unknown tool name. `--rbl` opens the blueprint after the recording has loaded; local files go over 127.0.0.1 HTTP so the blueprint's application id matches.
 
 Spawns a headless viewer, drives `rerun viewer-mcp` over stdio (`set_time` → `screenshot save_path` per frame — zero agent context), ffmpeg-encodes. Capture cost depends on scene and renderer; screenshot calls can take seconds. Measure a short sample before planning a sweep. Auto-picks the first non-`log_time` timeline; handles sequence and temporal timelines (`--frames` samples evenly across the range); stdlib-only — needs just `ffmpeg` on PATH and the project env's rerun binary. The default `--settle-ms 30` is a starting point; raise it when decoded video or overlays have not stabilized — a mostly-duplicate sweep fails loudly with that advice (`--allow-static` overrides for genuinely static scenes). Verify 2–3 sampled frames visually (Read start/middle/end PNGs with `--keep-frames`) before trusting the mp4.
 
@@ -125,7 +138,7 @@ Collapse the blueprint/selection/time panels whenever the frame should be all co
 - Reports under `/tmp/rerun-viewer-validation/<timestamp>/`: screenshots, `notes.md` recording Rerun version, command, `.rrd` path/size, chosen timeline + range, wait times, renderer string, pass/fail.
 - Blank or wrong visuals → inspect data before blaming blueprints: `rerun rrd verify|stats|print <file>` (use the project env's binary).
 - Keep viewport fixed; wait after load and after each time change. For encoded video streams, a moved playhead proves nothing about decode — only nonblank, changing pixels do.
-- Remote viewing (optional): `tailscale serve --https <port> --bg <report-dir>`, pick an unused port, `curl -k -I` the URL to confirm reachability. Path mode is fine for plain HTML + screenshots; a report that *embeds* an .rrd needs the CORS proxy setup in `references/web.md`.
+- Remote viewing (optional): publish the report to the NAS html-artifacts share (the `html-artifacts` skill) or, for a live app, run a foreground `tailscale serve --https=<port> http://127.0.0.1:<port>` and stop it when done. A report that *embeds* an .rrd uses the shared NAS viewer and `embed.js` in `references/web.md`.
 
 ## Docs
 
