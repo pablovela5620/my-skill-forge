@@ -17,12 +17,11 @@ Use the shared viewer and the embed script; never vendor another viewer copy.
   `~/agent-fleet/config/html-artifacts/README.md`.
 - Make the video and poster with this skill's helper:
   `python scripts/rrd_to_video.py --rrd <rrd> --rbl <rbl> --embed <dir>/run --rerun-bin <env>/bin/rerun --timeline <tl> --start <t0> --end <t1> --poster-at <t>`
-  (see "Video" in SKILL.md). It handles two native-viewer traps: a local
-  `.rrd` goes through the Viewer catalog, which gives the recording a random
-  application id, so the `.rbl` does not apply (it serves local files over
-  127.0.0.1 HTTP instead); and an `.rbl` passed with the `.rrd` on the command
-  line applies only some of the time (it opens the `.rbl` after the recording
-  has loaded and waits until the views change).
+  (see "Video" in SKILL.md). Native-viewer trap it handles: a local `.rrd`
+  goes through the Viewer catalog under a random application id, and a
+  `.rbl` opened after that does not apply (passed on the same command line,
+  it does). The helper serves local files over 127.0.0.1 HTTP, opens the
+  `.rbl` after the recording has loaded, and waits until its views appear.
 - Same origin, so no CORS: the page, the viewer and the `.rrd` (published
   next to the page) are all on `https://pablos-4800gt.ilish-ruler.ts.net:8768`.
   That server is Tailscale Serve path mode: no CORS headers, and
@@ -39,7 +38,7 @@ Use the shared viewer and the embed script; never vendor another viewer copy.
 | Several `url=` (`.rrd` + `.rbl`) | Works (`query.getAll("url")`; the JS `start` takes an array). |
 | `.rbl` as a URL | Works: applies to the recording with the same application id. |
 | `theme`, `persist`, `renderer`, `hide_welcome_screen` | Work. |
-| `#when=` / `#time_selection=` on an `.rrd` URL | Not applied: only catalog dataset URIs (`rerun+http://`) carry fragments. Set the time with the JS API: `viewer.set_time({ timeline, sequence \| duration_nanos \| timestamp_nanos, play_state: "paused" })`, after `get_state().loading` is empty (a blueprint that loads later resets the cursor). |
+| `#when=` / `#time_selection=` on an `.rrd` URL | Not applied: only catalog dataset URIs (`rerun+http://`) carry fragments. Set the time with the JS API: `viewer.set_time({ timeline, sequence \| duration_nanos \| timestamp_nanos, play_state: "paused" })`, after `get_state().loading` is empty: a blueprint with a time panel (timeline, play state) sets the cursor when it loads. |
 
 0.42 JS API names are snake_case (`get_state`, `set_time`, `set_location`,
 `open`, `close`, `stop`); newer docs show camelCase. Pass
@@ -49,24 +48,22 @@ element it gets; give it an inner element that fills your box.
 
 ### `.rbl` "Blueprint failed validation"
 
-`rrb.Blueprint(...).save(app_id, path)` (0.42.0) writes valid blueprints. A
-blueprint rebuilt from chunks read back with `RrdReader`/`LazyChunkStream`
-and saved again can carry nullable list items, and the 0.42 web viewer then
-drops it and shows the automatic layout. Console:
+Both the 0.42 web and native viewers drop a blueprint whose fixed-size-list
+items are nullable and show the automatic layout. `rrb.Blueprint(...).save()`
+writes non-null items, and reading chunks back with `RrdReader` and saving
+them again keeps them non-null; a pipeline that rebuilds the Arrow schema
+can make them nullable. Web console:
 
 ```text
-WARN re_viewer::app::logic: Failed to make blueprint default: Blueprint failed validation
-ScalarAxis:range of /view/<uuid>/ScalarAxis: found FixedSizeList(2 x Float64), expected FixedSizeList(2 x non-null Float64)
+Blueprint has 3 component(s) with unexpected encodings:
+  ScalarAxis:range of /view/<uuid>/ScalarAxis: found FixedSizeList(2 x Float64), expected FixedSizeList(2 x non-null Float64)
+Failed to make blueprint default: Blueprint failed validation
 ```
 
-(also `VisualBounds2D:range`, `LineGrid3D:plane`). The native viewer
-accepted the same blueprints over `send_blueprint`. Prefer composing
-blueprints with `rrb` and `save()`. If you must re-save read-back chunks,
-rebuild every fixed-size-list item field as non-null before `send_chunks`
-and `save_blueprint` (example:
-`https://pablos-4800gt.ilish-ruler.ts.net:8768/monorepo-guide/rrd/slam-rs/repro/viewers_rbl_fix.py`).
-Check the console of every embed: a blueprint that does not apply shows the
-automatic layout, and the warning names the component.
+(also `VisualBounds2D:range`, `LineGrid3D:plane`). Compose blueprints with
+`rrb` and `save()`; if you rebuild chunks, keep fixed-size-list item fields
+non-null. Check the console of every embed: a blueprint that does not apply
+shows the automatic layout.
 
 ### Other origins
 

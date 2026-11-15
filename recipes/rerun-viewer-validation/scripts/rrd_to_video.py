@@ -10,10 +10,9 @@ Outputs:
   --embed site/run    run.av1.mp4 (SVT-AV1, screen content, keyframe every 2 s), run.h264.mp4
                       (960 px fallback) and run.poster.jpg: the video set for a NAS embed.js figure.
 
---rbl applies a blueprint after the recording has loaded (an .rbl next to the .rrd on the command
-line applies only some of the time). Local files are served over 127.0.0.1 HTTP: the native viewer
-registers a local .rrd with its Viewer catalog, which gives the recording a random application id,
-so a matching blueprint would not apply.
+--rbl applies a blueprint after the recording has loaded and waits until its views appear. Local
+files are served over 127.0.0.1 HTTP: the native viewer registers a local .rrd with its Viewer
+catalog under a random application id, and a blueprint opened after that does not apply.
 
 Stdlib only. Requires a rerun binary (0.42+) with the `viewer-mcp` subcommand, ffmpeg (libx264;
 libsvtav1 for --embed) and a GPU or software rasterizer.
