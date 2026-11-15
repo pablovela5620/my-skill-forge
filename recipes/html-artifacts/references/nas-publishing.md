@@ -34,40 +34,50 @@ viewport can differ a little from 744/1133, so do not tune to one number.
 
 ## Rerun recordings in a page
 
-The self-contained rule has one exception: a Rerun viewer. Use the shared,
+The self-contained rule has one exception: a Rerun recording. Use the shared,
 versioned viewer on the NAS and the embed script; never copy a viewer into a
-project directory.
+project directory. Every embed has a video and a poster; the live viewer is
+opt-in.
 
 ```html
 <link rel="stylesheet" href="/rerun-viewer/embed.css">
 <script type="module" src="/rerun-viewer/embed.js"></script>
 
-<figure class="rr-embed" data-rrd="run.rrd" data-rbl="run.rbl" data-poster="run.png"
-        data-version="0.42.0" data-time="frame@805">
-  <a href="/rerun-viewer/0.42.0/?url=<abs rrd url>&url=<abs rbl url>&theme=dark"><img src="run.png" alt="What the recording shows"></a>
+<figure class="rr-embed" data-rrd="run.rrd" data-rbl="run.rbl" data-video="run"
+        data-poster="run.poster.jpg" data-version="0.42.0" data-time="frame@805">
+  <a href="/rerun-viewer/0.42.0/embed.html?url=<abs rrd url>&url=<abs rbl url>&seek=frame@805"><img src="run.poster.jpg" alt="What the recording shows"></a>
   <figcaption>One line on what to look at.</figcaption>
 </figure>
 ```
 
-- embed.js shows the poster with "Open in viewer" (starts the
-  `@rerun-io/web-viewer` JS viewer on demand; one viewer runs at a time),
-  "Open full screen" (the app build with `?url=`) and "Copy rerun command"
-  (`rerun <rrd url>` for the native viewer). The `<a>` is the no-JS fallback.
+- `data-video` is a stem: `run.av1.mp4` (AV1, tried first) and
+  `run.h264.mp4` (fallback for older Apple devices). The browser downloads
+  only the one it plays. The video is muted, loops, and plays only while on
+  screen. Make both files and the poster from the same `.rrd` + `.rbl`:
+  `cd ~/agent-fleet && pixi run python -m scripts.rerun_embed_video run.rrd --rbl run.rbl --out <dir>/run --timeline <tl> --start <t0> --end <t1> --poster-at <t>`
+  (headless viewer, needs the GPU; keep the AV1 loop under 2 MB).
+- "Open live viewer (NN MB)" shows the `.rrd` + `.rbl` size from HEAD
+  requests and starts the `@rerun-io/web-viewer` JS viewer only on a click;
+  one live viewer runs at a time; a "Video | Live viewer" toggle switches
+  back. "Open full screen" opens the app build; "Copy rerun command" copies
+  `rerun <rrd url>` for the native viewer. The `<a>` is the no-JS fallback.
+- Low-data mode (`navigator.connection.saveData`, or 2g/3g): no video bytes
+  until a tap, and the first live viewer asks before it loads.
 - `data-version`: pin it, and keep it at or above the SDK version that wrote
   the recording (Rerun has no forward compatibility). Installed: 0.42.0. A
   missing version is one command: `cd ~/agent-fleet && pixi run python -m scripts.rerun_viewer_install <version>`.
-- `data-time="<timeline>@<value>"`: integer in the timeline's unit, or a
-  duration in seconds (`video_time@26.8s`). The `#when=` fragment does not
-  work on plain `.rrd` URLs.
-- `data-rbl`: a blueprint saved from the viewer or written with `rrb`.
+- `data-time="<timeline>@<value>"`: integer in the timeline's unit (exact),
+  or a duration in seconds (`video_time@26.8s`). The `#when=` fragment does
+  not work on plain `.rrd` URLs.
 - Publish the `.rrd` next to the page and keep it under ~300 MB; the browser
   holds the whole recording in memory. Log video as `VideoStream`, not as
-  image frames. Make the poster from a viewer screenshot of the same view.
+  image frames.
+- One page can carry many embeds (videos are lazy, one live viewer at a time).
 - Reference page: `https://pablos-4800gt.ilish-ruler.ts.net:8768/rerun-viewer/demo.html`.
 - Public pages (off the tailnet): set
   `data-app="https://rerun.io/viewer/version/{v}/"` and
   `data-npm="https://cdn.jsdelivr.net/npm/@rerun-io/web-viewer@{v}/index.js"`,
-  and host the `.rrd` where it sends CORS headers (for example `static.rerun.io`).
+  and host the files where they send CORS headers (for example `static.rerun.io`).
 
 ## When another origin must open NAS recordings
 
@@ -82,8 +92,10 @@ Not deployed; choose one when the need is real:
 
 ## Verify embedded viewers in GPU Chrome
 
-Logs and a clean exit do not show what rendered. Open each viewer in GPU
-Chrome at the check sizes and look at the screenshot (the
-`rerun-viewer-validation` skill, `references/web.md`, has the recipe). Pass
-means the viewer shows data, `get_state()` reports no sources still loading,
-and the console has no errors.
+Logs and a clean exit do not show what rendered. In GPU Chrome, at the check
+sizes: the video plays and shows data; the network log has no `.rrd`, `.rbl`
+GET or viewer wasm before "Open live viewer"; after the click the viewer
+shows data, `get_state()` reports no sources still loading, and the console
+has no errors. Once more with Save-Data emulated (DevTools network
+conditions): no video bytes and nothing heavy load before a tap. The
+`rerun-viewer-validation` skill (`references/web.md`) has the recipe.

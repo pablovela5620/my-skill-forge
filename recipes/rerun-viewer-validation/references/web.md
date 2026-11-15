@@ -9,20 +9,32 @@ Use the shared viewer and the embed script; never vendor another viewer copy.
 - `/rerun-viewer/<ver>/` is the app build from `app.rerun.io/version/<ver>/`;
   `/rerun-viewer/<ver>/npm/` is `@rerun-io/web-viewer` `<ver>`. Installed: 0.42.0.
   Add a version with `cd ~/agent-fleet && pixi run python -m scripts.rerun_viewer_install <ver>`.
-- Mark each viewer with one element; `/rerun-viewer/embed.js` adds the poster,
-  "Open in viewer" (lazy JS viewer, one open at a time), "Open full screen"
-  and "Copy rerun command":
+- Mark each embed with one element; `/rerun-viewer/embed.js` shows the video
+  (`data-video` stem: `.av1.mp4` first, `.h264.mp4` fallback) with the poster,
+  "Open live viewer (NN MB)" (lazy JS viewer, one at a time), a
+  "Video | Live viewer" toggle, "Open full screen" and "Copy rerun command".
+  Every embed has a video and a poster; the live viewer is opt-in:
 
 ```html
 <link rel="stylesheet" href="/rerun-viewer/embed.css">
 <script type="module" src="/rerun-viewer/embed.js"></script>
-<figure class="rr-embed" data-rrd="run.rrd" data-rbl="run.rbl" data-poster="run.png"
-        data-version="0.42.0" data-time="frame@805">
-  <a href="/rerun-viewer/0.42.0/?url=<abs rrd url>&url=<abs rbl url>&theme=dark"><img src="run.png" alt="..."></a>
+<figure class="rr-embed" data-rrd="run.rrd" data-rbl="run.rbl" data-video="run"
+        data-poster="run.poster.jpg" data-version="0.42.0" data-time="frame@805">
+  <a href="/rerun-viewer/0.42.0/embed.html?url=<abs rrd url>&url=<abs rbl url>&seek=frame@805"><img src="run.poster.jpg" alt="..."></a>
   <figcaption>...</figcaption>
 </figure>
 ```
 
+- Make the video and poster with
+  `cd ~/agent-fleet && pixi run python -m scripts.rerun_embed_video <rrd> --rbl <rbl> --out <dir>/run --timeline <tl> --start <t0> --end <t1> --poster-at <t>`.
+  It drives `rerun --headless` through `viewer-mcp` (set time, screenshot)
+  and encodes AV1 (SVT-AV1 CRF 38, screen content, keyframe every 2 s) and
+  H.264. Two traps it handles: the native viewer registers a local `.rrd`
+  with its Viewer catalog, which gives the recording a random application id
+  so the `.rbl` does not apply (it serves local files over 127.0.0.1 HTTP
+  instead), and an `.rbl` passed with the `.rrd` on the command line applies
+  only some of the time (it opens the `.rbl` after the recording has loaded
+  and waits until the views change).
 - Same origin, so no CORS: the page, the viewer and the `.rrd` (published
   next to the page) are all on `https://pablos-4800gt.ilish-ruler.ts.net:8768`.
   That server is Tailscale Serve path mode: no CORS headers, and
@@ -46,6 +58,27 @@ Use the shared viewer and the embed script; never vendor another viewer copy.
 `check_for_updates_on_startup: false` to skip the GitHub version check (it
 returns 403 on the tailnet). The viewer sets inline styles on the parent
 element it gets; give it an inner element that fills your box.
+
+### `.rbl` "Blueprint failed validation"
+
+`rrb.Blueprint(...).save(app_id, path)` (0.42.0) writes valid blueprints. A
+blueprint rebuilt from chunks read back with `RrdReader`/`LazyChunkStream`
+and saved again can carry nullable list items, and the 0.42 web viewer then
+drops it and shows the automatic layout. Console:
+
+```text
+WARN re_viewer::app::logic: Failed to make blueprint default: Blueprint failed validation
+ScalarAxis:range of /view/<uuid>/ScalarAxis: found FixedSizeList(2 x Float64), expected FixedSizeList(2 x non-null Float64)
+```
+
+(also `VisualBounds2D:range`, `LineGrid3D:plane`). The native viewer
+accepted the same blueprints over `send_blueprint`. Prefer composing
+blueprints with `rrb` and `save()`. If you must re-save read-back chunks,
+rebuild every fixed-size-list item field as non-null before `send_chunks`
+and `save_blueprint` (example:
+`https://pablos-4800gt.ilish-ruler.ts.net:8768/monorepo-guide/rrd/slam-rs/repro/viewers_rbl_fix.py`).
+Check the console of every embed: a blueprint that does not apply shows the
+automatic layout, and the warning names the component.
 
 ### Other origins
 
@@ -82,10 +115,15 @@ the page with `playwright-cli attach --cdp=<cdp>` or `playwright-core`
 `connectOverCDP`. Never use display `:1` (Pablo's desktop) or port 9876
 (Rerun's default). In the sandbox, Chrome cannot reach the GPU: run it outside.
 
-Pass for each viewer: click "Open in viewer", poll `get_state()` until
+Pass for each embed: the video plays and shows data; the network log (CDP
+`Network` events) has no `.rrd`/`.rbl` GET, `npm/` script or wasm before the
+click (HEAD requests for the size are expected) and shows which video source
+loaded (AV1 in Chrome); click "Open live viewer", poll `get_state()` until
 `loading` is empty, screenshot the stage and look at it (data visible, not an
 empty view), and read the console (only egui "viewport command" warnings are
-expected). Bound each `get_state()` call with a timeout; a call on a viewer
+expected). Once more with low data: `Network.emulateNetworkConditions`
+(3G-like) plus `saveData` true; pass = no autoplay, no video bytes, one
+confirm before the live viewer. Bound each `get_state()` call with a timeout; a call on a viewer
 that is stopping can hang.
 
 ## Validating gradio apps & WebViewer embeds
