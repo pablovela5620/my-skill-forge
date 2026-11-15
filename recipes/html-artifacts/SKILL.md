@@ -37,6 +37,7 @@ Unless the user asks otherwise:
 - Use inline SVG, CSS, and small data structures for diagrams and charts.
 - Include export/copy controls for editor-like artifacts.
 - Keep text real and specific. No placeholder lorem ipsum, fake links, or dead controls.
+- Exception: a page that embeds a Rerun recording loads the shared viewer and `embed.js` from the NAS. Read [references/nas-publishing.md](references/nas-publishing.md) before you publish to the NAS or embed an `.rrd`.
 
 ## Workflow
 
@@ -64,7 +65,8 @@ Unless the user asks otherwise:
 
 5. Verify.
    - Open or screenshot the file when tooling is available.
-   - Check mobile and desktop widths.
+   - Check at 1400 px (desktop), 1133x744 and 744x1133 (iPad mini) and 390 px (phone). Keep the layout fluid from 700 to 1200 px; make touch targets at least 44x44 px.
+   - Open every embedded Rerun viewer in GPU Chrome at those sizes and look at the pixels (see [references/nas-publishing.md](references/nas-publishing.md)).
    - Check keyboard navigation for controls.
    - Check there is no horizontal overflow, clipped text, broken asset, console error, or unreadable contrast.
 
