@@ -3,10 +3,10 @@ context:
   upstream_path: skills/paseo
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 source:
   git: https://github.com/getpaseo/paseo
-  rev: fdb5540a943586d8e9149101ebc713667b2c36f1
+  rev: 41c294c7855f3d864337b8628513bf00ece0a644
 build:
   number: 0
   noarch: generic
