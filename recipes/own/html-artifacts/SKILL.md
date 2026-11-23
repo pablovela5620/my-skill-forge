@@ -37,11 +37,18 @@ the role: a *utility* page (plan, review, report, status) is dense and scannable
 persuasive comparison) paces a story; a *tool* page (editor, filter, calculator) is controls, state and export. Pick
 the pattern in [references/patterns.md](references/patterns.md).
 
-Write the storyboard, one row per section: heading | picture | one-line caption. Row one holds the answer, the result or
-the decision. For an explainer, guide, report or deep dive, follow
-[references/visual-first.md](references/visual-first.md).
+Write the storyboard, one row per section: heading | lead picture | evidence | one-line caption. Row one holds the
+answer, the result or the decision. Two kinds of row need more than one picture:
 
-**Done when** every row has a real picture (or is folded into detail or cut), and row one answers the scene sentence.
+- A **concept** row ("what X is") shows the thing itself (a capture) beside its representation (a drawn figure of its
+  parameters, sizes or structure), so the reader sees both what it looks like and what it is made of.
+- A **results** row shows the evidence in full: every comparison, view, scene and failure you have, as a gallery or a
+  grid, not one sample. Depth of evidence is what lets the reader trust the claim.
+
+For an explainer, guide, report or deep dive, follow [references/visual-first.md](references/visual-first.md).
+
+**Done when** every row has its lead picture and all the evidence you hold for it (or is folded into detail or cut),
+every concept row shows the thing and its representation, and row one answers the scene sentence.
 
 ### 2. Publish the skeleton
 
@@ -57,6 +64,8 @@ For each storyboard row, build the section in the house style, then republish an
 (nas-publishing.md). Update the badge's "updated" time and its "now" line.
 
 - Figures and charts: [assets/rerun_figure.py](assets/rerun_figure.py) (docs figures, kit boards, `chart_html()`).
+- Each caption's visible line says how to read the picture: what the colours, axes, panels or formula mean. Fold
+  only the method and provenance (where the picture came from, flags, run IDs).
 - Icons label words, from the bundled Tabler set in `<skill-dir>/assets/tabler-outline/` (grep `INDEX.tsv`), with the
   shared [references/icon-vocabulary.md](references/icon-vocabulary.md).
 - Structure comes from space and hairlines; a card holds a real repeated unit, one level deep.
