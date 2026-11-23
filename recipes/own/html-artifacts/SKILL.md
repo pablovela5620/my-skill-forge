@@ -15,9 +15,12 @@ A page the user opens, refreshes while you work, and decides from. Three leading
 
 - **Files.** One `.html` with inline CSS and JavaScript. A page built on many real pictures, or a set of linked pages
   (a hub and its topic pages), keeps its pictures in a `media/` folder beside the HTML and is generated from data by a
-  small build script.
+  small build script. A page may reuse another published page's media by same-origin path, read-only, to avoid a
+  large copy; name the source page in a comment, since the link breaks if that page moves.
 - **Self-contained.** The page ships everything it shows: system fonts, inline SVG, local media. The one outside load is
   the shared Rerun viewer and `embed.js` on the NAS, for an embedded recording.
+- **Rerun recordings.** For a recording on the page, follow the `rerun-viewer-validation` skill: it decides still,
+  video or viewer, the size budget per connection, slicing, versions and the embed.
 - **Real.** Every number, link, control and picture is real and specific. A picture comes from a Rerun capture, a
   measured run, or a figure drawn from real numbers.
 - **Private data.** A page about a private or restricted dataset shows counts, metadata, and public or labelled
@@ -37,7 +40,7 @@ the role: a *utility* page (plan, review, report, status) is dense and scannable
 persuasive comparison) paces a story; a *tool* page (editor, filter, calculator) is controls, state and export. Pick
 the pattern in [references/patterns.md](references/patterns.md).
 
-Write the storyboard, one row per section: heading | lead picture | evidence | one-line caption. Row one holds the
+Write the storyboard, one row per section: heading | lead picture | evidence | how-to-read caption. Row one holds the
 answer, the result or the decision. Two kinds of row need more than one picture:
 
 - A **concept** row ("what X is") shows the thing itself (a capture) beside its representation (a drawn figure of its
@@ -60,8 +63,9 @@ the user the URL. The URL stays the same from now on.
 
 ### 3. Build section by section
 
-For each storyboard row, build the section in the house style, then republish and run the live-content check
-(nas-publishing.md). Update the badge's "updated" time and its "now" line.
+For each storyboard row, build the section in the house style. Republish after each section or small batch, and at
+least every 15 minutes while you work, so a refresh always shows progress; run the live-content check
+(nas-publishing.md) each time. Update the badge's "updated" time and its "now" line.
 
 - Figures and charts: [assets/rerun_figure.py](assets/rerun_figure.py) (docs figures, kit boards, `chart_html()`).
 - Each caption's visible line says how to read the picture: what the colours, axes, panels or formula mean. Fold
