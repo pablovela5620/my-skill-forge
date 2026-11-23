@@ -1,9 +1,22 @@
 # my-skill-forge
 
 This repo packages coding-agent skills as `noarch: generic` conda packages named
-`agent-skill-<skill>`, built from `recipes/<skill>/recipe.yaml` and published to
+`agent-skill-<skill>`, built from `recipe.yaml` under `recipes/` and published to
 `https://prefix.dev/my-skill-forge`. A skill is a directory with a `SKILL.md`
 (YAML frontmatter) and any files it reads on demand.
+
+## Recipe layout
+
+- Skills that share an upstream live together in `recipes/<owner>/<skill>/`,
+  where `<owner>` is the upstream's GitHub owner (`rerun-io`, `mattpocock`,
+  `sveltejs`, `getpaseo`).
+- Original skills with no upstream live in `recipes/own/<skill>/`.
+- A skill that is the only one from its upstream stays at `recipes/<skill>/`.
+  When a second skill from that upstream arrives, move both into the owner's
+  folder.
+- The folder never enters the package name, so a move changes nothing for
+  consumers. In a group, `$RECIPE_DIR` is one level deeper: the repository
+  `LICENSE` is `$RECIPE_DIR/../../../LICENSE`.
 
 ## Recipe conventions
 
@@ -22,14 +35,15 @@ This repo packages coding-agent skills as `noarch: generic` conda packages named
 
 ## Adding a skill
 
-A local skill starts from `examples/example-skill`: no `source`, files copied
-from `$RECIPE_DIR`. Put special build or update instructions in `PROMPT.md`
-beside the recipe, and copy only the skill files so `PROMPT.md` stays out of
-the package.
+A local skill starts from `examples/example-skill` and goes in
+`recipes/own/<skill>/`: no `source`, files copied from `$RECIPE_DIR`. Put
+special build or update instructions in `PROMPT.md` beside the recipe, and
+copy only the skill files so `PROMPT.md` stays out of the package.
 
 A mirrored upstream skill:
 
-1. Find the exact skill directory upstream.
+1. Find the exact skill directory upstream. Place the recipe by the layout
+   rule above.
 2. Pin `source.git` to a commit, or `source.url` with `sha256` for a release
    archive.
 3. Set `context.upstream_path` to the skill directory and copy only that
@@ -60,8 +74,9 @@ Autobump runs daily. For each skill it bumps the recipe on one `bump-<skill>`
 PR, builds and tests the package, merges, and dispatches Package. When a build
 fails, the PR stays open and the Autobump run is red.
 
-A change is done when `pixi run build <skill>` passes the recipe tests for each
-changed recipe and `pixi run check` passes.
+A change is done when `pixi run build <skill>` (`<group>/<skill>` for a grouped
+recipe) passes the recipe tests for each changed recipe and `pixi run check`
+passes.
 
 ## Installing
 

@@ -1,24 +1,24 @@
 context:
-  skill: delegation
+  skill: fleet
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.16"
+  version: "0.0.13"
 
 build:
   number: 0
   noarch: generic
   script:
-    - cp $RECIPE_DIR/../../LICENSE $SRC_DIR/LICENSE
-    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/references
+    - cp $RECIPE_DIR/../../../LICENSE $SRC_DIR/LICENSE
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
-    - cp $RECIPE_DIR/references/codex.md $PREFIX/share/agent-skills/${{ skill }}/references/codex.md
+    - cp -R $RECIPE_DIR/references $PREFIX/share/agent-skills/${{ skill }}/
 
 tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
-        - share/agent-skills/${{ skill }}/references/codex.md
+        - share/agent-skills/${{ skill }}/references/*.md
       strict: true
   - script:
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }}
@@ -27,7 +27,7 @@ tests:
         - skills-ref
 
 about:
-  summary: Model routing for delegated work - which model for which task, escalation rules, delegation mechanics
+  summary: Fleet operations - machine discovery (Tailscale, Rackpeek), tool management via agent-fleet manifests, converge workflow, NAS storage tiers, holds, paseo, troubleshooting
   repository: https://github.com/pablovela5620/my-skill-forge
   license: MIT
   license_file: LICENSE
