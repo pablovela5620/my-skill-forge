@@ -6,7 +6,7 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.5"
+  version: "0.0.6"
 
 source:
   - url: https://registry.npmjs.org/@tabler/icons/-/icons-${{ tabler_version }}.tgz

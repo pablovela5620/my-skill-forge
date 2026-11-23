@@ -2,7 +2,7 @@
 
 The single source for Rerun media in HTML pages: the medium, the budget, the slice, versions, and the embed. The
 `html-artifacts` skill owns the page itself and points here. Design and measurements:
-`https://pablos-4800gt.ilish-ruler.ts.net:8768/rerun-embed/plan/`.
+`https://artifacts.ilish-ruler.ts.net/rerun-embed/plan/`.
 
 ## Medium: still, video or viewer
 
@@ -101,19 +101,21 @@ Output: `run.av1.mp4` (SVT-AV1, screen content), `run.h264.mp4` (960 px) and `ru
 
 ## Hosting facts
 
-- Pages, the viewer and `.rrd` files share one origin (`:8768`, Tailscale Serve path mode): no CORS needed, and
+- Pages, the viewer and `.rrd` files share one origin, the artifact host `https://artifacts.ilish-ruler.ts.net/`
+  (Caddy on Conductor, published by Docktail; agent-fleet `config/docker/html-artifacts/`): no CORS needed, and
   everything works on the tailnet with no internet.
-- Path mode sends no `Content-Encoding` and no custom headers; it ignores a `.br` file next to the wasm. Brotli
-  (`brotli --quality=11`, Rerun's method: 70 MB npm wasm → 10.9 MB) needs a static server such as Caddy
-  `file_server { precompressed br }` behind Tailscale Serve proxy mode.
+- It serves each wasm's precompressed brotli file (`brotli --quality=11`, Rerun's method: 70 MB npm wasm → 10.9 MB,
+  101 MB gsplat → 15.4 MB) with `Content-Encoding: br`. `scripts/rerun_viewer_install.py` in agent-fleet writes the
+  `.br` files and lists custom builds in `versions.json`.
+- The old origin `https://pablos-4800gt.ilish-ruler.ts.net:8768/` (Tailscale Serve path mode) still serves old links,
+  with no brotli and no CORS.
 - `embed.js` uses the npm build (`/rerun-viewer/<v>/npm/`), which sends no analytics. The app build
   (`/rerun-viewer/<v>/`, the "Open full screen" target) posts analytics to `tel.rerun.io`, checks GitHub for updates
   and loads Google Fonts.
 - Public pages: jsDelivr refuses the 0.42 npm wasm (403, over 50 MB); unpkg serves it (gzip, 17.7 MB).
 - Another origin that must open NAS files (`rerun.io/viewer`, a Gradio app): `rerun server -d <dir>
   --cors-allow-origin <origin>` (catalog; segment URLs take `#when=`), `rerun --serve-web` or `--serve-grpc
-  --cors-allow-origin <origin>` for live streams, or a static server with CORS headers behind Tailscale Serve proxy
-  mode. A public page fetching tailnet addresses meets Chrome's Local Network Access prompt; in headless runs the
+  --cors-allow-origin <origin>` for live streams, or the artifact host, which already allows `https://*.ilish-ruler.ts.net` origins. A public page fetching tailnet addresses meets Chrome's Local Network Access prompt; in headless runs the
   request stays pending.
 - Catalog URLs (`rerun+http://`) in a page need `rerun server --cors-allow-origin <page origin>`, TLS through
   `tailscale serve`, and a long keep-alive; dataset ids change on every server restart, so put no catalog URL in a

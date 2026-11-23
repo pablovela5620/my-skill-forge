@@ -1,6 +1,6 @@
 ---
 name: fleet
-description: Fleet operations — use when a task discovers or reaches another machine, installs, updates, or removes a user-level tool or skill, converges a machine, places large data on the NAS, or changes Paseo daemon, MCP, or agent-fleet configuration.
+description: Fleet operations — use when a task discovers or reaches another machine, installs, updates, or removes a user-level tool or skill, converges a machine, places large data on the NAS, runs or exposes a long-running service, or changes Paseo daemon, MCP, or agent-fleet configuration.
 ---
 
 # Fleet Operations
@@ -60,6 +60,14 @@ with no backup, so report any costly result that exists only on it.
 Read `~/agent-fleet/docs/nas-best-practices.md` before you place large data,
 copy to or from the NAS, remove NAS data, or serve a catalog from it. It is the
 source of truth for layout, capacity limits, transfers, and catalogs.
+
+## Running a service
+
+A long-running service (a web app, a static file server, a catalog front end) is a Docker Compose app in
+`~/agent-fleet/config/docker/<app>/`, run on its assigned host and published by Docktail as a private Tailscale HTTPS
+service, `https://<name>.ilish-ruler.ts.net`. pixi global is for command-line tools on PATH; Paseo is the one service
+every machine runs from pixi. Read `~/agent-fleet/config/docker/README.md` for the host table and "Add an HTTP app".
+Example: HTML artifacts are served by `config/docker/html-artifacts/` on Conductor as `https://artifacts.ilish-ruler.ts.net/`.
 
 ## Changing a machine's tools
 
