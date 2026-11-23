@@ -7,7 +7,7 @@ package:
   version: "0.42.0"
 
 build:
-  number: 1
+  number: 2
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
@@ -18,16 +18,19 @@ build:
     - cp $RECIPE_DIR/scripts/rrd_to_video.py $PREFIX/share/agent-skills/${{ skill }}/scripts/rrd_to_video.py
     - cp $RECIPE_DIR/scripts/gpu_chrome.sh $PREFIX/share/agent-skills/${{ skill }}/scripts/gpu_chrome.sh
     - cp $RECIPE_DIR/scripts/headless_viewer.py $PREFIX/share/agent-skills/${{ skill }}/scripts/headless_viewer.py
+    - cp $RECIPE_DIR/scripts/stills.py $PREFIX/share/agent-skills/${{ skill }}/scripts/stills.py
+    - cp $RECIPE_DIR/scripts/rrd_check.py $PREFIX/share/agent-skills/${{ skill }}/scripts/rrd_check.py
     - cp $RECIPE_DIR/references/mcp.md $PREFIX/share/agent-skills/${{ skill }}/references/mcp.md
     - cp $RECIPE_DIR/references/web.md $PREFIX/share/agent-skills/${{ skill }}/references/web.md
+    - cp $RECIPE_DIR/references/pages.md $PREFIX/share/agent-skills/${{ skill }}/references/pages.md
 
 requirements:
   # The video branch shells out to ffmpeg — a real dependency, so declare it.
   run:
     - ffmpeg
-  # Viewer MCP first shipped in 0.34; later minor lines remain supported.
+  # The scripts use the 0.42 viewer-mcp tool names (rerun_get_state, rerun_set_time_cursor, rerun_save_screenshot).
   run_constraints:
-    - rerun-sdk >=0.34.0
+    - rerun-sdk >=0.42.0
 
 tests:
   - package_contents:
@@ -39,6 +42,9 @@ tests:
         - share/agent-skills/${{ skill }}/scripts/headless_viewer.py
         - share/agent-skills/${{ skill }}/references/mcp.md
         - share/agent-skills/${{ skill }}/references/web.md
+        - share/agent-skills/${{ skill }}/references/pages.md
+        - share/agent-skills/${{ skill }}/scripts/stills.py
+        - share/agent-skills/${{ skill }}/scripts/rrd_check.py
       strict: true
   - script:
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
@@ -47,16 +53,14 @@ tests:
         - skills-ref
 
 about:
-  summary: Agent skill for proving what the Rerun viewer rendered
+  summary: Agent skill for Rerun pixel evidence and Rerun media in pages
   description: |
-    Validate Rerun viewer output with evidence, picking the branch by surface:
-    - Static render proof via scripted headless ViewerClient screenshots
-    - Timeline scrubbing and UI-state checks via the `rerun viewer-mcp` server
-      (including a cold-subagent provisioning pattern when the MCP is not registered)
-    - Timeline-sweep videos via the bundled scripts/rrd_to_video.py helper
-      (headless viewer + MCP set_time/screenshot loop + ffmpeg)
-    - Browser deliverables (gradio-rerun apps, embedded WebViewer reports) via
-      playwright, with WebGL/theme parity checks and Tailscale Serve links
+    Prove what the Rerun viewer rendered, and put recordings into pages:
+    - Versions first: writer, viewer and catalog server; what to do on a skew
+    - Batch stills (scripts/stills.py) and videos (scripts/rrd_to_video.py) from one headless viewer
+    - UI-state checks through `rerun viewer-mcp`
+    - Pages: medium (still, video, viewer), size budget and gate, slicing with rrd split, the embed
+    - Browser checks of embeds, web viewers and gradio apps in GPU Chrome and WebKit
   homepage: https://github.com/pablovela5620/my-skill-forge
   repository: https://github.com/pablovela5620/my-skill-forge
   documentation: https://github.com/pablovela5620/my-skill-forge

@@ -1,7 +1,7 @@
 """Render an .rrd recording to video by sweeping a timeline in a headless Rerun viewer.
 
 One `rerun --headless` viewer loads the recording; `rerun viewer-mcp` (stdio JSON-RPC, the 0.42
-`rerun_*` tools) drives it: set the time cursor -> short settle -> save a screenshot, per frame,
+`rerun_*` tools) drives it: set the time cursor -> save a screenshot (which waits for the frame), per frame,
 then ffmpeg encodes the PNGs. Frame times are sampled evenly across the timeline's range, or
 across --start..--end. Nothing is logged into the recording.
 
@@ -19,9 +19,13 @@ libsvtav1 for --embed) and a GPU or software rasterizer.
 
 Usage:
   python rrd_to_video.py --rrd rec.rrd --out sweep.mp4 [--rerun-bin PATH] [--timeline NAME]
-      [--frames 150] [--fps 15] [--settle-ms 30] [--size WxH] [--collapse-panels]
+      [--frames 150] [--fps 15] [--max-seconds 15] [--size WxH] [--collapse-panels]
   python rrd_to_video.py --rrd run.rrd --rbl run.rbl --embed site/run --timeline video_time \\
-      --start 26s --end 28s --poster-at 26.8s --seconds 15
+      --start 26s --end 28s --poster-at 26.8s
+
+Length: a temporal window plays at real speed up to --max-seconds (default 15; a longer window is
+sped up to fit). --seconds sets an exact length (slow or fast motion). A sequence timeline takes one
+frame per index, up to --max-seconds * --fps.
 """
 
 from __future__ import annotations
@@ -117,6 +121,40 @@ def parse_time(value: str, kind: str) -> int:
     return int(value)
 
 
+def frame_count(lo: int, hi: int, kind: str, fps: int, seconds: float | None, max_seconds: float) -> int:
+    """Frames to capture. --seconds wins; a temporal window plays at real speed, capped at max_seconds;
+    a sequence timeline gets one frame per index, capped at max_seconds * fps (compute_frame_times caps it)."""
+    if seconds is not None:
+        return max(2, round(seconds * fps))
+    if kind == "sequence":
+        return max(2, round(max_seconds * fps))
+    return max(2, round(min((hi - lo) / 1e9, max_seconds) * fps))
+
+
+def view_hash(png: bytes) -> str:
+    """Hash of the PNG's pixel rows above the bottom 22 %: the time panel and its cursor label sit there.
+
+    A full-file hash differs on every frame because the cursor label changes, which hid stale frames.
+    Decoding uses zlib on the PNG's IDAT chunks (stdlib only); filter bytes are hashed with the rows."""
+    import struct
+    import zlib
+
+    pos, idat, width, height, bpp = 8, bytearray(), 0, 0, 4
+    while pos < len(png):
+        length, kind = struct.unpack(">I4s", png[pos : pos + 8])
+        body = png[pos + 8 : pos + 8 + length]
+        if kind == b"IHDR":
+            width, height, depth, color = struct.unpack(">IIBB", body[:10])
+            bpp = {2: 3, 6: 4, 0: 1, 4: 2}.get(color, 4) * max(1, depth // 8)
+        elif kind == b"IDAT":
+            idat += body
+        pos += 12 + length
+    raw = zlib.decompress(bytes(idat))
+    stride = 1 + width * bpp
+    keep = int(height * 0.78)
+    return hashlib.md5(raw[: keep * stride]).hexdigest()
+
+
 def compute_frame_times(lo: int, hi: int, n_req: int, is_sequence: bool) -> list[int]:
     """Evenly sample up to n_req points across [lo, hi], inclusive of both ends.
 
@@ -192,7 +230,7 @@ def encode(frames_dir: Path, fps: int, out: Path | None, embed: Path | None, av1
                "-crf", str(av1_crf), "-svtav1-params", "tune=0:scm=1", *container, str(av1))
         ffmpeg(*source, "-vf", f"scale={h264_width}:-2", "-c:v", "libx264", "-profile:v", "high", "-level", "4.0",
                "-preset", "slow", "-crf", "28", "-tune", "animation", *container, str(h264))
-        ffmpeg("-i", str(frames_dir / "poster.png"), "-q:v", "3", str(poster))
+        ffmpeg("-i", str(frames_dir / "poster.png"), "-q:v", "5", str(poster))  # about 150 KB at 1280x800
         written += [av1, h264, poster]
     return written
 
@@ -208,14 +246,17 @@ def main() -> int:
     ap.add_argument("--start", default=None, help="First time: integer in the timeline's unit, or seconds with an 's' suffix")
     ap.add_argument("--end", default=None, help="Last time, same format")
     ap.add_argument("--poster-at", default=None, help="Poster time for --embed, same format (default: first frame)")
-    ap.add_argument("--frames", type=int, default=None, help="Points sampled evenly across the range (default: seconds*fps)")
-    ap.add_argument("--seconds", type=float, default=None, help="Video length; sets --frames (default 10 for --out, 15 for --embed)")
+    ap.add_argument("--frames", type=int, default=None, help="Points sampled evenly across the range (overrides the length rules)")
+    ap.add_argument("--seconds", type=float, default=None, help="Exact video length in seconds (slow or fast motion)")
+    ap.add_argument("--max-seconds", type=float, default=15.0, help="Longest video when --seconds is not set (default 15)")
     ap.add_argument("--fps", type=int, default=15)
-    ap.add_argument("--settle-ms", type=int, default=30,
-                    help="Wait after each time change before the screenshot; raise to 100-400 for overlay-heavy or video scenes")
+    ap.add_argument("--settle-ms", type=int, default=0,
+                    help="Extra wait after each time change; the screenshot already waits for the frame. Raise it only when "
+                         "the stale-frame check fails")
     ap.add_argument("--size", default=None, help="Viewer window size WxH in logical points (default 1280x800 for --embed)")
     ap.add_argument("--collapse-panels", action="store_true", help="Collapse the blueprint, time and selection panels")
-    ap.add_argument("--allow-static", action="store_true", help="Accept a mostly unchanging sweep instead of failing")
+    ap.add_argument("--allow-static", metavar="REASON", default=None,
+                    help="Accept a sweep whose views barely change; REASON (printed and kept in the log) says why the scene is static")
     ap.add_argument("--av1-crf", type=int, default=38, help="SVT-AV1 CRF for --embed; higher is smaller")
     ap.add_argument("--h264-width", type=int, default=960, help="Width of the --embed H.264 fallback")
     ap.add_argument("--keep-frames", action="store_true")
@@ -231,8 +272,6 @@ def main() -> int:
         if source and "://" not in source and not Path(source).is_file():
             raise SystemExit(f"not found: {source}")
     size = args.size or ("1280x800" if args.embed else None)
-    seconds = args.seconds or (15.0 if args.embed else 10.0)
-    n_req = args.frames or max(2, round(seconds * args.fps))
     out = Path(args.out).resolve() if args.out else None
     embed = Path(args.embed).resolve() if args.embed else None
     for target in (out, embed):
@@ -259,6 +298,7 @@ def main() -> int:
         tl = pick_timeline(state, args.timeline)
         lo = parse_time(args.start, tl["kind"]) if args.start else tl["start"]
         hi = parse_time(args.end, tl["kind"]) if args.end else tl["end"]
+        n_req = args.frames or frame_count(lo, hi, tl["kind"], args.fps, args.seconds, args.max_seconds)
         times = compute_frame_times(lo, hi, n_req, tl["kind"] == "sequence")
         n = len(times)
         if n < n_req:
@@ -274,30 +314,41 @@ def main() -> int:
         startup_done = time.monotonic()
         cursor = {"store_id": tl["store_id"], "timeline": {"name": tl["name"]}, "play_state": "PLAY_STATE_PAUSED"}
 
+        spent = {"set_time": 0.0, "settle": 0.0, "screenshot": 0.0}
+
         def capture(t: int, path: Path) -> bytes:
+            a = time.monotonic()
             mcp.call_tool("rerun_set_time_cursor", {**cursor, "time": {"time": int(t)}})
+            b = time.monotonic()
             if args.settle_ms > 0:
                 time.sleep(args.settle_ms / 1000.0)
+            c = time.monotonic()
             mcp.call_tool("rerun_save_screenshot", {"file_path": str(path), "max_size": 0})
+            spent["set_time"] += b - a
+            spent["settle"] += c - b
+            spent["screenshot"] += time.monotonic() - c
             data = path.read_bytes() if path.exists() else b""
             if not data:
                 raise SystemExit(f"screenshot at {t} is empty ({path})")
             return data
 
-        hashes = [hashlib.md5(capture(t, frames_dir / f"{i:06d}.png")).hexdigest() for i, t in enumerate(times)]
+        capture(times[0], frames_dir / "warmup.png")  # the first screenshot after loading can still change
+        hashes = [view_hash(capture(t, frames_dir / f"{i:06d}.png")) for i, t in enumerate(times)]
         if embed is not None:
             # After the sweep: the startup notices ("Headless viewer running", version check) are gone by now.
             capture(parse_time(args.poster_at, tl["kind"]) if args.poster_at else lo, frames_dir / "poster.png")
         cap_done = time.monotonic()
 
-        # Stale-frame tripwire: identical consecutive frames are legal for a static scene, but a
-        # mostly duplicate sweep usually means --settle-ms is too low.
+        # Stale-frame tripwire on the views only (view_hash leaves out the time panel, whose cursor
+        # label changes on every frame): unchanged views in most frames mean stale frames or a static scene.
         dupes = sum(a == b for a, b in itertools.pairwise(hashes))
-        if n > 1 and dupes / (n - 1) > 0.5 and not args.allow_static:
-            raise SystemExit(
-                f"{dupes}/{n - 1} consecutive frames are byte-identical — likely stale frames; "
-                "retry with a larger --settle-ms, or pass --allow-static if the scene truly is static"
-            )
+        if n > 1 and dupes / (n - 1) > 0.5:
+            if not args.allow_static:
+                raise SystemExit(
+                    f"{dupes}/{n - 1} consecutive frames show unchanged views: stale frames (raise --settle-ms) "
+                    "or a static scene (pass --allow-static '<why the scene does not change>')"
+                )
+            print(f"allow-static: {dupes}/{n - 1} unchanged frames accepted: {args.allow_static}")
 
         enc_start = time.monotonic()
         for path in encode(frames_dir, args.fps, out, embed, args.av1_crf, args.h264_width):
@@ -306,7 +357,8 @@ def main() -> int:
         print(
             f"TIMING startup_s={startup_done - t0:.2f} capture_s={cap_done - startup_done:.2f} "
             f"encode_s={enc_done - enc_start:.2f} total_s={enc_done - t0:.2f} "
-            f"ms/frame={(cap_done - startup_done) / n * 1000.0:.1f} (frames={n})"
+            f"ms/frame={(cap_done - startup_done) / n * 1000.0:.1f} (frames={n}) "
+            + " ".join(f"{k}_s={v:.2f}" for k, v in spent.items())
         )
     finally:
         if mcp is not None:
