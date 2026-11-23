@@ -56,6 +56,13 @@ not the Spark.
 | UI state: clicks, panels, selection | the viewer MCP: [references/mcp.md](references/mcp.md) |
 | Proof inside a Python script | `rerun.experimental.ViewerClient`: `spawn(headless=True, executable_path=…)`, `open`, `set_time`, `save_screenshot` |
 
+A page set for one 4 s window, with its poster:
+
+```bash
+python scripts/rrd_to_video.py --rrd run.rrd --rbl run.rbl --rerun-bin <env>/bin/rerun \
+  --timeline video_time --start 10s --end 14s --poster-at 12s --collapse-panels --embed <dir>/run
+```
+
 `stills.py` and `rrd_to_video.py` drive one viewer through one `viewer-mcp` session: 10 stills take under 1 s after
 load, where one MCP screenshot per agent turn took a median 10 s in agent traces. `stills.py` refuses a viewer that
 holds recordings other than yours.

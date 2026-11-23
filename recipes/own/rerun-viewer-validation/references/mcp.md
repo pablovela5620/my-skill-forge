@@ -19,6 +19,11 @@ The MCP never starts a viewer. Start one (`headless_viewer.py start`), then `rer
 {"endpoint": "http://127.0.0.1:<port>"}`. One MCP process holds one connection; after a viewer restart or a port
 change, `rerun_disconnect`, then connect again.
 
+The UI tools are local-only: connect over `127.0.0.1` on the viewer's own host. For a viewer on another machine, run
+`rerun viewer-mcp` (or the scripts) there over SSH, or tunnel its port (`ssh -L <port>:127.0.0.1:<port> <host>`) and
+connect to `127.0.0.1`. A tailnet name (`http://pablo-m5-pro:9876`) fails with "Only connections from the local
+machine are allowed".
+
 Open with `rerun_open {"url": "<http url or path>", "navigate": false}`. **Loaded** means `rerun_get_state` lists the
 intended recording, `loading` is empty, and the timeline you need has a `time_range`. Poll with a deadline; an
 accepted open is not a loaded recording. A local `.rrd` opened by path gets a random application id, so a `.rbl`
@@ -60,3 +65,8 @@ the first error, after earlier actions took effect.
   loaded check again. "The viewer did not paint a frame" on connect means the viewer has no GPU or has stalled: check
   the adapter line (SKILL.md step 2).
 - gRPC image-size errors: `pixels_per_point: 1.0` or a smaller window, settle, retry once.
+- Profile capture (`rerun_capture_profile_trace {"file_path": …, "num_frames": N}`): start one capture with the
+  timeline playing, and keep `num_frames` near what the viewer renders in about 10 s. "Deadline expired" means the RPC
+  timed out while the capture keeps running: wait for the `.puffin` file to appear, then read it. A second call fails
+  with "Another profile capture is still running", and UI tools stall with "did not paint a frame" until the capture
+  ends.
