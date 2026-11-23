@@ -1,7 +1,8 @@
 ---
 name: html-artifacts
-description: Create self-contained single-file HTML artifacts when an explanation, plan, report, review, comparison, diagram, deck, prototype, or lightweight editor would be more readable, useful, or reusable in a browser than in markdown. Use for making dense information scannable and beautiful with semantic HTML, inline CSS, inline JavaScript, responsive layout, typography, charts, tables, annotations, tabs, collapsibles, timelines, diagrams, and copy/export affordances. Especially use when the user wants an artifact they are likely to open, read, share, or iterate on directly as a .html file.
+description: Create visual-first HTML artifacts (explainers, visual guides, plans, reports, reviews, comparisons, diagrams, decks, prototypes, lightweight editors), self-contained single files by default, when an explanation, plan, report, review, comparison, diagram, deck, prototype, or lightweight editor would be more readable, useful, or reusable in a browser than in markdown. Use for making dense information scannable and beautiful with semantic HTML, inline CSS, inline JavaScript, responsive layout, typography, charts, tables, annotations, tabs, collapsibles, timelines, diagrams, and copy/export affordances. Especially use when the user wants an artifact they are likely to open, read, share, or iterate on directly as a .html file.
 license: BSD-3-Clause
+compatibility: The checker (scripts/check-artifact.mjs) needs node and playwright-cli on PATH (both in the fleet manifest).
 ---
 
 # Single-File HTML Artifacts
@@ -74,7 +75,10 @@ Unless the user asks otherwise:
    - Add small JavaScript only when it materially improves use: search, filters, tabs, copy buttons, slide navigation, simple editors.
 
 5. Verify.
-   - Open or screenshot the file when tooling is available.
+   - Run `node <skill-dir>/scripts/check-artifact.mjs <page.html or its published URL>`: it checks the four sizes below
+     for console errors, overflow, broken media, small touch targets and reduced-motion loops, and saves a screenshot per
+     section. Then read every screenshot; a PASS proves only what it measures. Details and pitfalls:
+     [references/verification.md](references/verification.md).
    - Check at 1400 px (desktop), 1133x744 and 744x1133 (iPad mini) and 390 px (phone). Keep the layout fluid from 700 to 1200 px; make touch targets at least 44x44 px.
    - Open every embedded Rerun viewer in GPU Chrome at those sizes and look at the pixels (see [references/nas-publishing.md](references/nas-publishing.md)).
    - Check keyboard navigation for controls.

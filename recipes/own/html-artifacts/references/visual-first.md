@@ -7,6 +7,9 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
 
 ## Page rules
 
+- **Storyboard before building:** one row per section, "heading | picture | one-line caption"; a row without a picture
+  is cut or moves to folded detail. Name the one question the page answers.
+- **End product first.** The first section shows the result as a real capture (the output, the run, the rendered page).
 - **Figure first.** Every section opens with its picture (a flow, a Rerun capture, a drawn figure); the text follows.
 - **Visible prose budget.** No visible paragraph longer than about three lines; a package or topic page under about 1,000
   visible words (the model page had 23 figures for 808 words). Measure it: count words outside `<details>`, `<svg>`,
@@ -17,6 +20,8 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
   of a sentence reads better than a bare boxed "More": a block that shows only the word "More" looks empty.
 - **Captions are one line.** Keep the first sentence (at least ~8 words, so "Left: frame 345." keeps its "Right: ..." half);
   fold the rest and the method line (where the picture came from) under the same toggle.
+- **Text budget:** section heading about 6 words; caption one line (about 12 words visible); a label inside a picture
+  1-4 words. Short sentences, active voice, common words.
 - **Do not restate a figure in prose.** Drop the sentence that repeats the grid or chart above it.
 - **Consistency across pages:** same figure sizes, one-line captions, the same section order and card styles.
 
@@ -28,6 +33,15 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
 - **Drawn figure (inline SVG or HTML)** when Rerun is the wrong tool: sizes and byte layouts, counts and timings,
   before/after comparisons, data-structure layouts, role or registry grids, schematics, pipelines of concepts.
 - **Never** matplotlib, stock images, decorative pictures, or a figure that restates the text without data.
+- **Never draw an imitation of the Rerun viewer** in SVG or HTML: show real viewer pixels from a real `.rrd`.
+- **No data yet (a proposal):** log a small synthetic recording with the real Rerun SDK (the planned entity paths,
+  timelines and views, filled with made-up values) and capture it like real data; label it "synthetic data" in the
+  caption and never present it as a measurement.
+- **Truthful motion.** Animate the mechanism (data moves, time passes, state changes), not the page: no entrance fades on
+  every section, no hover effects on every card, no parallax. Prefer 2-3 presets to a raw slider when the presets tell
+  the story.
+- **Colour has one meaning per page** (for example blue = reuse, amber = change, green = new or success, red = risk),
+  always paired with a word or icon.
 
 ## Drawn charts
 

@@ -25,6 +25,9 @@
   `chmod -R a+rX <dir> && tar -C <dir> -cf - . | ssh pablos-4800gt 'mkdir -p /volume1/personal/html-artifacts/<project> && tar -C /volume1/personal/html-artifacts/<project> -xf -'`.
   rsync fails on this NAS. When several agents publish the same folder, serialise the build and publish with one
   `flock` lock file.
+- Before you publish, check the target with `ssh pablos-4800gt test -e <path>`: do not overwrite another artifact unless
+  asked; on a collision add a short ID to the name. After publishing, prove the served file is yours:
+  `curl -fsS <url> | sha256sum` against `sha256sum <local file>`, then run the checker on the URL.
 - Link a folder as `<dir>/` (or `./`), never `<dir>/index.html`: the server answers `index.html` with a 301 to the
   server root.
 - The source for the viewer tree, embed.js and the install script is in

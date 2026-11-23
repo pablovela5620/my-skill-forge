@@ -13,6 +13,7 @@ build:
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp -R $RECIPE_DIR/references $PREFIX/share/agent-skills/${{ skill }}/
     - cp -R $RECIPE_DIR/assets $PREFIX/share/agent-skills/${{ skill }}/
+    - cp -R $RECIPE_DIR/scripts $PREFIX/share/agent-skills/${{ skill }}/
 
 tests:
   - package_contents:
@@ -21,6 +22,7 @@ tests:
         - share/agent-skills/${{ skill }}/references/*.md
         - share/agent-skills/${{ skill }}/assets/rerun.css
         - share/agent-skills/${{ skill }}/assets/rerun_figure.py
+        - share/agent-skills/${{ skill }}/scripts/check-artifact.mjs
       strict: true
   - script:
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
@@ -36,6 +38,7 @@ about:
     - Inline CSS/JS with semantic HTML and responsive layout
     - Impeccable-inspired design quality for readable, useful artifacts
     - Rerun house style as a DESIGN.md file, a CSS starter, and diagram primitives
+    - Visual-first rules (Rerun captures vs drawn figures) and a playwright-cli checker at the fleet check sizes
   homepage: https://github.com/pablovela5620/my-skill-forge
   repository: https://github.com/pablovela5620/my-skill-forge
   documentation: https://github.com/pablovela5620/my-skill-forge
