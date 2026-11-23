@@ -1,9 +1,17 @@
 context:
   skill: html-artifacts
+  # Tabler Icons outline set, pinned to the version rerun.io's landing page ships. Autobump does not track this second
+  # source: to bump, change tabler_version and the sha256 below together.
+  tabler_version: "3.50.0"
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.4"
+  version: "0.0.5"
+
+source:
+  - url: https://registry.npmjs.org/@tabler/icons/-/icons-${{ tabler_version }}.tgz
+    sha256: 4c2eb678ed71cdcbf57a3e899c4e91f3445d680fbc1d57d27c7083a321c47303
+    target_directory: tabler
 
 build:
   number: 0
@@ -12,18 +20,68 @@ build:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp $RECIPE_DIR/SKILL.md $PREFIX/share/agent-skills/${{ skill }}/SKILL.md
     - cp -R $RECIPE_DIR/references $PREFIX/share/agent-skills/${{ skill }}/
+    - cp -R $RECIPE_DIR/assets $PREFIX/share/agent-skills/${{ skill }}/
+    - cp -R $RECIPE_DIR/scripts $PREFIX/share/agent-skills/${{ skill }}/
+    # Tabler outline glyphs, their MIT licence and INDEX.tsv (name<TAB>categories) for grepping a concept
+    - |
+      T=$SRC_DIR/tabler
+      if [ -d "$T/package" ]
+      then T=$T/package
+      fi
+      D=$PREFIX/share/agent-skills/${{ skill }}/assets/tabler-outline
+      mkdir -p $D && cp $T/icons/outline/*.svg $D/ && cp $T/LICENSE $D/LICENSE
+    - |
+      T=$SRC_DIR/tabler
+      if [ -d "$T/package" ]
+      then T=$T/package
+      fi
+      D=$PREFIX/share/agent-skills/${{ skill }}/assets/tabler-outline
+      (cd $T/categories/outline && for d in */
+      do for f in "$d"*.svg
+      do printf '%s\t%s\n' "$(basename "$f" .svg)" "${d%/}"
+      done
+      done) | sort > $SRC_DIR/tabler-cats.tsv && (cd $T/icons/outline && ls *.svg | sed 's/\.svg$//' | sort) > $SRC_DIR/tabler-names.txt && awk -F'\t' 'NR==FNR { c[$1] = (c[$1] ? c[$1] "," : "") $2
+      next } { print $1 "\t" c[$1] }' $SRC_DIR/tabler-cats.tsv $SRC_DIR/tabler-names.txt > $D/INDEX.tsv
 
 tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
         - share/agent-skills/${{ skill }}/references/*.md
+        - share/agent-skills/${{ skill }}/assets/rerun.css
+        - share/agent-skills/${{ skill }}/assets/rerun_figure.py
+        - share/agent-skills/${{ skill }}/assets/progress/progress_state.py
+        - share/agent-skills/${{ skill }}/assets/progress/progress_page.py
+        - share/agent-skills/${{ skill }}/scripts/check-artifact.mjs
+        - share/agent-skills/${{ skill }}/assets/tabler-outline/*.svg
+        - share/agent-skills/${{ skill }}/assets/tabler-outline/movie.svg
+        - share/agent-skills/${{ skill }}/assets/tabler-outline/LICENSE
+        - share/agent-skills/${{ skill }}/assets/tabler-outline/INDEX.tsv
+        # rattler-build keeps the recipe test files (tests/test_progress.py) for the script test below
+        - etc/conda/test-files/agent-skill-${{ skill }}/**
       strict: true
   - script:
+      - test "$(ls $CONDA_PREFIX/share/agent-skills/${{ skill }}/assets/tabler-outline/*.svg | wc -l)" = 5203
+      - test "$(wc -l < $CONDA_PREFIX/share/agent-skills/${{ skill }}/assets/tabler-outline/INDEX.tsv)" = 5203
+      - grep -q "^movie	" $CONDA_PREFIX/share/agent-skills/${{ skill }}/assets/tabler-outline/INDEX.tsv
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
     requirements:
       run:
         - skills-ref
+  # The live progress page: the state schema rejects prose, the renderer draws the fixed shape (tests/test_progress.py).
+  - script:
+      - PROGRESS_DIR=$CONDA_PREFIX/share/agent-skills/${{ skill }}/assets/progress pytest -q -p no:cacheprovider tests/test_progress.py
+    requirements:
+      run:
+        - python 3.13.*
+        - pyserde
+        - orjson
+        - tomli-w
+        - tyro
+        - pytest
+    files:
+      recipe:
+        - tests/
 
 about:
   summary: Agent skill for creating readable single-file HTML artifacts
@@ -32,7 +90,9 @@ about:
     - Plans, reviews, reports, explainers, diagrams, decks, comparisons, and editors
     - Inline CSS/JS with semantic HTML and responsive layout
     - Impeccable-inspired design quality for readable, useful artifacts
+    - Rerun house style as a DESIGN.md file, a CSS starter, and diagram primitives
+    - Visual-first rules (Rerun captures vs drawn figures) and a playwright-cli checker at the fleet check sizes
   homepage: https://github.com/pablovela5620/my-skill-forge
   repository: https://github.com/pablovela5620/my-skill-forge
   documentation: https://github.com/pablovela5620/my-skill-forge
-  license: BSD-3-Clause
+  license: BSD-3-Clause AND MIT

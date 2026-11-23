@@ -84,6 +84,12 @@ Useful additions:
 - Inline SVG charts.
 - Severity bands.
 - Print-friendly CSS.
+- One page-wide colour key near the top when the report compares the same methods in many charts (method A, method
+  B, paper or reference, new work), and the same colours in every chart, so a reader learns them once. The Hexels
+  report (2026-10-29) did this; its rebuild gave each chart its own two-colour key and read less well.
+- A "Copy the summary as Markdown" button at the end: the headline numbers and decisions as a few lines the user
+  pastes into a PR, chat or notes.
+- For a long or overnight task, use a live progress page instead ([progress-pages.md](progress-pages.md)).
 
 ## Incident Timeline
 
@@ -144,6 +150,23 @@ Useful additions:
 - Local-only state in `localStorage` when useful.
 - Reset button.
 - Import textarea for round-tripping.
+
+## Visual Guide (hub + topic pages)
+
+Use when many related things (packages, models, datasets, services) each need their own "how it works" page.
+
+Structure:
+- A hub page that orders the topics by a real process (for example collect → prepare → train → evaluate → deploy),
+  with one card per topic: picture, one-line tagline, status chip.
+- One page per topic: a flow DAG where every node is a picture of the data at that point, then one section per stage or
+  sub-flow (figure first), then folded detail (commands, stage list, papers, notes).
+- Deep pages for one model or one run, linked from their parent page, told as one real run followed step by step.
+
+Useful additions:
+- One data file (JSON) per topic and one build script that renders every page, so layout fixes land everywhere at once.
+- A list the build writes of what is still missing (nodes without a picture, unresolved code links), so gaps stay visible.
+- A contents sidebar and a full-screen view for large figures; status always as a word plus colour.
+- Pin code links to a commit; recheck them when the code moves.
 
 ## Pattern Selection Heuristics
 
