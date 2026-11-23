@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
-# Bump recipes/<skill>/recipe.yaml to its newest upstream source.
+# Bump a skill's recipe.yaml (recipes/<skill>/ or recipes/<group>/<skill>/) to its newest upstream source.
 # Writes old-version=/new-version= to $GITHUB_OUTPUT (stdout outside Actions).
 set -euo pipefail
 
 usage="Usage: $0 <skill> <git-main|github-latest-release>"
 skill=${1:?$usage}
 strategy=${2:?$usage}
-recipe="recipes/$skill/recipe.yaml"
-[[ -f "$recipe" ]] || { echo "Recipe not found: $recipe" >&2; exit 1; }
+mapfile -t matches < <(find recipes -mindepth 2 -maxdepth 3 -path "*/$skill/recipe.yaml")
+[[ ${#matches[@]} -eq 1 ]] || { echo "Expected one recipe for '$skill' under recipes/, found ${#matches[@]}: ${matches[*]}" >&2; exit 1; }
+recipe=${matches[0]}
 
 path_exists_at() {
     gh api "repos/$1/contents/$2?ref=$3" --silent >/dev/null 2>&1
