@@ -28,6 +28,9 @@
 - Before you publish, check the target with `ssh pablos-4800gt test -e <path>`: do not overwrite another artifact unless
   asked; on a collision add a short ID to the name. After publishing, prove the served file is yours:
   `curl -fsS <url> | sha256sum` against `sha256sum <local file>`, then run the checker on the URL.
+- Check the content the user will see, not only a 200: grep the live page for a string only your change contains.
+  Browsers and Tailscale Serve can show a cached copy; when the change is visual, send a cache-busting link
+  (`https://…/<page>.html?v=<short-hash>`) so the user does not judge the old version.
 - Link a folder as `<dir>/` (or `./`), never `<dir>/index.html`: the server answers `index.html` with a 301 to the
   server root.
 - The source for the viewer tree, embed.js and the install script is in

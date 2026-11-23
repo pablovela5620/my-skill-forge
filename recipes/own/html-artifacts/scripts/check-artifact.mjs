@@ -16,7 +16,8 @@
 //
 // A published page (an https:// URL) is checked as served, so absolute paths such as the shared Rerun viewer
 // (/rerun-viewer/embed.js) resolve; a local file is served from its folder and absolute paths outside it 404.
-// It also fails on visible buttons, summaries, inputs and selects smaller than 44 x 44 px (touch targets).
+// It also fails on visible buttons, summaries, inputs and selects smaller than 44 x 44 px (touch targets), and on any
+// visible link or control whose centre is covered by a fixed, sticky or absolute layer of another element.
 //
 // --steps names a file that holds the body of an async function. It runs after
 // the scene shots with `page`, `shot(name)`, and `go(id, offsetPx)` in scope.
@@ -61,7 +62,7 @@ function parseArgs(argv) {
 const RUN_CODE = `async page => {
   const W = __WIDTH__, H = __HEIGHT__, OUT = __OUT__, WAIT = __WAIT__, DIR = __DIR__, URL_ = __URL__;
   const ORIGIN = URL_ ? URL_.split("/").slice(0, 3).join("/") : "http://artifact.local";
-  const errors = [], external = new Set(), overflow = [], broken = new Set(), smalls = new Set(), shots = [];
+  const errors = [], external = new Set(), overflow = [], broken = new Set(), smalls = new Set(), coveredSet = new Set(), shots = [];
   page.on("console", m => { if (m.type() === "error") errors.push(m.text()); });
   page.on("pageerror", e => errors.push(String(e.message)));
   page.on("response", r => { if (r.status() >= 400) errors.push("HTTP " + r.status() + " " + r.url().slice(0, 140)); });
@@ -98,9 +99,23 @@ const RUN_CODE = `async page => {
         const r = e.getBoundingClientRect(), s = getComputedStyle(e);
         return r.width > 0 && r.height > 0 && s.visibility !== "hidden" && r.bottom > 0 && r.top < innerHeight && (r.width < 44 || r.height < 44);
       }).slice(0, 4).map(e => name(e) + " " + Math.round(e.getBoundingClientRect().width) + "x" + Math.round(e.getBoundingClientRect().height));
-      return { sw: document.documentElement.scrollWidth, cw, culprits, broken, small };
+      // A control covered by a fixed, sticky or absolute layer (a close button, a toolbar, a viewer overlay) cannot be used.
+      const placed = el => { for (let p = el; p && p !== document.body; p = p.parentElement) { if (["fixed", "sticky", "absolute"].includes(getComputedStyle(p).position)) return p; } return null; };
+      const covered = [...document.querySelectorAll("a[href], button, summary, input, select, [role=button]")].filter(e => {
+        const r = e.getBoundingClientRect();
+        if (!(r.width > 0 && r.height > 0) || r.bottom <= 0 || r.top >= innerHeight || r.right <= 0 || r.left >= innerWidth) return false;
+        const x = Math.min(Math.max(r.left + r.width / 2, 0), innerWidth - 1), y = Math.min(Math.max(r.top + r.height / 2, 0), innerHeight - 1);
+        const top = document.elementFromPoint(x, y);
+        if (!top || e.contains(top) || top.contains(e)) return false;
+        const layer = placed(top);
+        return layer && !layer.contains(e);
+      }).slice(0, 4).map(e => name(e) + " under " + name(placed(document.elementFromPoint(
+        Math.min(Math.max(e.getBoundingClientRect().left + e.getBoundingClientRect().width / 2, 0), innerWidth - 1),
+        Math.min(Math.max(e.getBoundingClientRect().top + e.getBoundingClientRect().height / 2, 0), innerHeight - 1)))));
+      return { sw: document.documentElement.scrollWidth, cw, culprits, broken, small, covered };
     });
     m.small.forEach(s => smalls.add(s));
+    m.covered.forEach(c => coveredSet.add(label + ": " + c));
     if (m.sw > m.cw) overflow.push(label + ": " + m.sw + " > " + m.cw + (m.culprits.length ? " (" + m.culprits.join(", ") + ")" : ""));
     m.broken.forEach(b => broken.add(b));
   };
@@ -134,7 +149,7 @@ const RUN_CODE = `async page => {
     }).length, id);
     if (n) motion.push(id + ": " + n);
   }
-  return JSON.stringify({ width: W, errors, overflow, broken: [...broken], small: [...smalls], motion, external: [...external], shots });
+  return JSON.stringify({ width: W, errors, overflow, broken: [...broken], small: [...smalls], covered: [...coveredSet], motion, external: [...external], shots });
 }`;
 
 function runSize(opts, steps, [width, height]) {
@@ -187,13 +202,14 @@ for (const size of opts.sizes) {
     console.log(`\n== ${tag}  the page script or steps file threw:\n${r.failed}`);
     continue;
   }
-  ok &&= !r.errors.length && !r.overflow.length && !r.broken.length && !r.small.length && !r.motion.length;
+  ok &&= !r.errors.length && !r.overflow.length && !r.broken.length && !r.small.length && !r.covered.length && !r.motion.length;
   console.log(`\n== ${tag}  errors ${r.errors.length} · overflow ${r.overflow.length} · broken media ${r.broken.length}` +
-    ` · small touch targets ${r.small.length} · reduced-motion loops ${r.motion.length} · external requests ${r.external.length}`);
+    ` · small touch targets ${r.small.length} · covered controls ${r.covered.length} · reduced-motion loops ${r.motion.length} · external requests ${r.external.length}`);
   for (const e of r.errors) console.log(`   error: ${e}`);
   for (const o of r.overflow) console.log(`   overflow at ${o}`);
   for (const b of r.broken) console.log(`   broken: ${b}`);
   for (const s of r.small) console.log(`   touch target under 44 px: ${s}`);
+  for (const c of r.covered) console.log(`   control covered by a fixed/sticky/absolute layer at ${c}`);
   for (const m of r.motion) console.log(`   loops under reduced motion in ${m}`);
   for (const x of r.external.slice(0, 5)) console.log(`   external (allowed only for an agreed embed): ${x}`);
   console.log(`   ${r.shots.length} screenshots in ${opts.out}`);

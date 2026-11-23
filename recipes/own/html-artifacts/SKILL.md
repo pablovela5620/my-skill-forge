@@ -23,6 +23,9 @@ Prefer a single HTML artifact when the content has any of these shapes:
 - A small interactive tool or editor where the user should manipulate inputs and export the result.
 - A deck-like story that benefits from keyboard navigation.
 
+When the user asks for a "presentation", build the usual visual artifact (a page with many pictures); build a slide deck
+only when they ask for slides.
+
 Do not use HTML just to wrap a normal answer in decoration. If the artifact would still read like a wall of prose, restructure it first. Transform the material into a browser-native reading object: summary bands, comparison tables, timelines, diagrams, filters, tabs, collapsibles, annotations, and copy/export affordances.
 
 ## Output Contract
@@ -44,6 +47,13 @@ Unless the user asks otherwise:
 - Keep text real and specific. No placeholder lorem ipsum, fake links, or dead controls.
 - Add `<link rel="icon" href="data:,">` to the `<head>`, so the browser does not request a missing favicon.
 - Exception: a page that embeds a Rerun recording loads the shared viewer and `embed.js` from the NAS. Read [references/nas-publishing.md](references/nas-publishing.md) before you publish to the NAS or embed an `.rrd`.
+
+## Private data
+
+Pages built on a private or restricted dataset show only counts, metadata, and representative public or synthetic
+samples. Never put a private frame, thumbnail, crop or video in a page or a screenshot, and do not open or view those
+frames yourself; age-restricted items are never rendered. When a picture is needed, use a public sample, a synthetic
+recording labelled as synthetic, or a drawn figure of the counts.
 
 ## Workflow
 
@@ -87,6 +97,8 @@ Unless the user asks otherwise:
      before you count unloaded images, and measure the document width only then.
    - Count `<details>` summaries, figure links and chips as touch targets too (44 px); keep labels at least 11 px on a phone.
    - Look at the pixels, not only the checks: a page can pass every check and still be a wall of text.
+   - After you publish, check the live page, not only the HTTP 200: fetch the URL and grep it for a string only your
+     change contains; when the change is visual, give the user a cache-busting URL (`<url>?v=<short-hash>`).
 
 ## Design Defaults
 
@@ -95,8 +107,9 @@ Unless the user asks otherwise:
 - Use system fonts: the system sans for text, JetBrains Mono (falling back to the system mono) for labels, buttons and code, as DESIGN.md sets out. Load no web fonts.
 - Use motion sparingly: 150-250ms, ease-out, state feedback only. Respect `prefers-reduced-motion`.
 - Avoid hover-only meaning. Every control must work with keyboard and touch.
-- Icons are labels, never pictures of data: one set (Tabler outline, inline SVG, stroke 1.5, `currentColor`) and one
-  concept-to-glyph vocabulary per artifact, always next to a word. See [references/visual-first.md](references/visual-first.md).
+- Icons are labels, never pictures of data: Tabler outline 3.50.0, bundled with this skill in
+  `assets/tabler-outline/` (grep `INDEX.tsv`), copied inline with stroke 1.5 and `currentColor`, always next to a word,
+  with one shared vocabulary ([references/icon-vocabulary.md](references/icon-vocabulary.md)).
 
 ## Hard Bans
 

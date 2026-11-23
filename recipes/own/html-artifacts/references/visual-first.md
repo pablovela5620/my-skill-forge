@@ -23,6 +23,8 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
 - **Text budget:** section heading about 6 words; caption one line (about 12 words visible); a label inside a picture
   1-4 words. Short sentences, active voice, common words.
 - **Do not restate a figure in prose.** Drop the sentence that repeats the grid or chart above it.
+- **Links go to the most specific target** (the subfolder, the file and line, the section), not a repo or site root.
+- **Every deep page is reachable** from its hub or parent page; a page only the author can find does not exist for readers.
 - **Consistency across pages:** same figure sizes, one-line captions, the same section order and card styles.
 
 ## Rerun capture or drawn figure
@@ -30,6 +32,8 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
 - **Rerun capture** whenever the thing *is* data Rerun shows well: video frames, 2D overlays, masks, depth, 3D points,
   meshes, cameras and poses, time series (with axes, ticks, legend), recordings and catalog views. Shoot from existing
   `.rrd` files and catalogs first; prefer them to new GPU runs.
+- **A process over time gets a video of the whole timeline**, not one still: a sweep of the recording (the embed video
+  of [nas-publishing.md](nas-publishing.md)), with stills only for the moments the text points at.
 - **Drawn figure (inline SVG or HTML)** when Rerun is the wrong tool: sizes and byte layouts, counts and timings,
   before/after comparisons, data-structure layouts, role or registry grids, schematics, pipelines of concepts.
 - **Never** matplotlib, stock images, decorative pictures, or a figure that restates the text without data.
@@ -88,9 +92,13 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
 - Icons are labels only: flow-node markers (file, video, catalog, GPU, model), file and data chips, requirement chips,
   section and navigation markers, status (always next to a word). They never replace a data figure; no icon where it
   adds nothing.
-- One icon set: Tabler Icons outline (the set rerun.io's landing ships), inline SVG, stroke 1.5, `currentColor`, a 20 px
-  glyph in a 38 px dark rounded tile (16-18 px inline). Copy the glyphs you use into the artifact; do not load the set.
-- One vocabulary: one concept, one glyph, on every page (video → `movie`, catalog → `database`, GPU → `gpu`, mask → `mask`,
-  time → `clock`). Pick names by looking at the real glyphs.
+- One icon set: Tabler Icons outline **3.50.0**, pinned because it is the set rerun.io's landing page ships. It is bundled
+  with this skill: `assets/tabler-outline/<name>.svg` (5,203 glyphs, MIT licence beside them). Copy the glyphs a page
+  uses into it as inline SVG with `stroke-width="1.5"` and `stroke="currentColor"`; never load the set from the network.
+  A 20 px glyph in a 38 px dark rounded tile, or 16-18 px inline.
+- Find a glyph: `grep -i <concept> assets/tabler-outline/INDEX.tsv` (name, then its categories), then look at the glyph
+  before you use it.
+- One vocabulary for every artifact: [icon-vocabulary.md](icon-vocabulary.md) (video → `movie`, catalog → `database`,
+  GPU → `gpu`, ...). A page may add concepts; it must not give an existing concept another glyph.
 - Assign icons from an explicit key, or from a keyword match only on input/output nodes; matching on every node gives
   wrong icons ("no calibration" → calibration).

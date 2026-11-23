@@ -19,12 +19,13 @@ node <skill-dir>/scripts/check-artifact.mjs page.html|https://… [--out DIR] \
 3. Turns off smooth scrolling, jumps to each scene (`section[id]` by default), waits, saves `<W>x<H>-<id>.png`.
 4. Runs the steps file, if any.
 5. Measures after every screenshot: horizontal overflow (with the widest elements), broken images or videos, visible
-   buttons, summaries, inputs and selects under 44 x 44 px.
+   buttons, summaries, inputs and selects under 44 x 44 px, and links or controls covered by a fixed, sticky or
+   absolute layer of another element (a close button, a toolbar, a viewer overlay).
 6. Under reduced motion, revisits each scene and counts infinite animations still running.
 7. Lists requests that leave the page's origin (allowed only for an agreed embed).
 
 It exits 1 on console errors (a missing favicon counts: add `<link rel="icon" href="data:,">`), overflow, broken media,
-small touch targets, reduced-motion loops or a throwing steps file. Screenshots go to `/tmp/artifact-check/<page>/`.
+small touch targets, covered controls, reduced-motion loops or a throwing steps file. Screenshots go to `/tmp/artifact-check/<page>/`.
 It cannot see JS-driven motion (`requestAnimationFrame` loops, video): assert those states in a steps file.
 
 ## Steps files
