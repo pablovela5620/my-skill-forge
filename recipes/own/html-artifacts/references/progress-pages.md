@@ -1,8 +1,8 @@
 # Live progress pages
 
 A page you keep current while a long task runs, so the user can refresh it and see what is happening. You update data,
-never HTML: pages written as running prose turned into walls of text (the agents' progress hub measured 4,614 visible
-words, 13 images and no diagram). The bundled renderer always draws the same shape from a typed state file.
+never HTML: pages written as running prose turned into walls of text (one agent-written status page measured 4,614
+visible words, 13 images and no diagram). The bundled renderer always draws the same shape from a typed state file.
 
 ## When to start one
 
@@ -62,9 +62,3 @@ the newest evidence per stage; the newest 12 events, older ones folded. A finish
 - After each update: render, publish, and run the live-content check ([nas-publishing.md](nas-publishing.md)).
 - Raise a "needs you" item as soon as you are blocked on the user, and clear it when answered.
 - When the task ends: `finish`, render, publish, then `check-artifact.mjs --final <url>`.
-
-## The progress hub
-
-Planned, not built yet: the hub collects every task's `state.json` instead of hand-built cards: one row per task with its title, owner, the
-stage strip, the newest sample against the goal, the open needs first, and a link to the task's page. Tasks with open
-needs sort first, then running, then finished.
