@@ -7,30 +7,51 @@ package:
 source:
   git: https://github.com/mattpocock/skills
   rev: 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+  patches:
+    - use-agent-traces.patch
 build:
-  number: 0
+  number: 1
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
     - cp -R ${{ upstream_path }}/* $PREFIX/share/agent-skills/${{ skill }}
+    - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/scripts
+    - cp $RECIPE_DIR/scripts/retro_pull.py $PREFIX/share/agent-skills/${{ skill }}/scripts/
 tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
         - share/agent-skills/${{ skill }}/agents/openai.yaml
+        - share/agent-skills/${{ skill }}/scripts/retro_pull.py
+        # rattler-build keeps the recipe test file (tests/test_retro_pull.py) for the script test below
+        - etc/conda/test-files/agent-skill-${{ skill }}/**
       strict: true
   - script:
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
     requirements:
       run:
         - skills-ref
+  - script:
+      - python $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts/retro_pull.py --help > /dev/null
+      - python tests/test_retro_pull.py $CONDA_PREFIX/share/agent-skills/${{ skill }}/scripts
+    files:
+      recipe:
+        - tests/test_retro_pull.py
+    requirements:
+      run:
+        - python 3.12.*
+        - pyarrow
+        - tyro
 about:
   summary: Agent skill for retrospectives on coding-agent sessions
   description: |
-    Engineering skill, invoked by the user, that reviews a session's logs and
+    Engineering skill, invoked by the user, that reviews coding-agent sessions and
     proposes environment improvements in order of severity: navigation pointers,
     automated checks, coding standards, AGENTS.md size, tool economy, no-ops,
-    and information access.
+    and information access. Patched to take its evidence from the fleet's
+    agent-traces Rerun catalog through a bundled pull script (corrections, tool
+    errors, retry loops, slow paths), and from the live transcript when the
+    catalog lags.
   homepage: https://github.com/mattpocock/skills/tree/main/skills/engineering/retro
   repository: https://github.com/mattpocock/skills
   documentation: https://github.com/mattpocock/skills/tree/main/skills/engineering/retro

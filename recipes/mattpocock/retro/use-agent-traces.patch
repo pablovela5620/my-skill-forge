@@ -1,0 +1,50 @@
+--- a/skills/engineering/retro/SKILL.md
++++ b/skills/engineering/retro/SKILL.md
+@@ -1,6 +1,6 @@
+ ---
+ name: retro
+-description: "Conduct a retrospective on a coding session."
++description: "Conduct a retrospective on coding-agent sessions: one session, a time window, or patterns across sessions and machines."
+ disable-model-invocation: true
+ ---
+
+@@ -10,9 +10,29 @@
+
+ 1. Call the Skill tool with `writing-for-agents` for the writing style guide.
+
+-2. Read the primary sources for the session the user specifies. This may mean searching through session logs on this machine. If the user doesn't specify a session, default to the current one.
++2. Fix the **scope**: one session or a time window ("yesterday", "since Monday"), the profiles (`claude`, `claude-work`, `codex`, `codex-work`; default all four), and any project or host filter. With no scope given, review the current session. A scope of the current session alone takes its evidence from your own context: go to step 4. Done when you can state the window in UTC.
+
+-3. Look for candidates for improvement in these categories.
++3. Pull the evidence from the **agent-traces catalog**. It holds every Claude and Codex session from every fleet machine, one segment per session, in the datasets `agent-traces-<profile>` on `rerun+http://dgx-spark:9876`. Run the pull script from this skill's directory:
++
++   ```bash
++   cd ~/agent-traces-staging/em && pixi run --frozen -e agent-traces python -I \
++     <skill dir>/scripts/retro_pull.py --since <start> --until <end> --out /tmp/retro-<window>
++   ```
++
++   Bounds are ISO dates or datetimes, UTC unless they carry an offset; `--cwd <substring>` scopes to one project. The script filters each dataset to the window before it projects, reads main-agent prompts only, and writes `sessions.parquet`, `prompts.parquet`, `calls.parquet` (tool calls joined with their results, subagents included) and `summary.txt`. For a question the summary does not answer, query the catalog the same way: load `rerun-catalog-queries`, and take the entity layout and query examples from `~/agent-traces-staging/em/packages/agent-traces/README.md`. Done when you have read `summary.txt`.
++
++4. Fill each gap from the **live transcript**. The catalog is refreshed from time to time, so recent sessions are absent when the summary reports `LAGGING` or when a session in scope is not in `sessions.parquet`. Read that session from your own context when it is the current one, otherwise from its transcript on its machine (`~/.claude/projects/`, `~/.codex/sessions/`). Done when every session in scope has a source, and your report names each source that is not the catalog.
++
++5. Trace each **lead** in the evidence to the prompt or call that shows it:
++
++- **Corrections**: the user's pushback across sessions ("too much text", "did you even look"). Read every human prompt in `prompts.parquet`; `correction_hint` is a regex first pass.
++- **Tool errors and retry loops**: the error keys, error texts and retry loops in the summary. Read the calls before and after each one in `calls.parquet`.
++- **Slow paths**: keys by p90 latency. Separate real work from waits (`sleep`, `until`, `AskUserQuestion`, tool timeouts at 600 s).
++- **Patterns**: a lead that recurs across sessions, projects or hosts ranks above a single incident.
++
++   Done when each lead has its session (segment ID prefix, host, cwd), time and count.
++
++6. Look for candidates for improvement in these categories.
+
+ - **Navigation**: how easy was it for the agent to find the right files? Are there hidden dependencies between files? Would a **navigation pointer** make it easier? _Use when_ the session took a long time to find a piece of information.
+ - **Automated checks**: are there automated checks that could catch errors the agent made? Linting, typing, tests, filesystem linters? Read the repo's own check command first (its `package.json`/build-tool `lint`/`check` scripts, its CI workflow), so a check that already exists but sits unwired or silently broken is the finding, not a reinvention. A repo with no **guardrail** (no pre-commit hook and no CI job running its lint/typecheck/test command) is itself a finding: an un-linted repo is a standing missed opportunity, not a neutral default. _Use when_ the agent made a mistake an automated check could have caught, or the repo has no guardrail at all.
+@@ -22,7 +42,7 @@
+ - **No-ops**: look for instructions in steering files that don't modify the agent's behavior. _Use when_ the steering files are large and unwieldy.
+ - **Information access**: look for opportunities to increase the agent's access to information. Teeing dev server logs, readonly access to third-party services. _Use when_ a crucial piece of information was not available to the agent.
+
+-4. Present these candidates to the user, in order of severity.
++7. Present these candidates to the user, in order of severity, each with the evidence from step 5.
+
+ ## Reference
