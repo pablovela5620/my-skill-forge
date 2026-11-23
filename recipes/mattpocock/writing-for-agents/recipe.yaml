@@ -3,10 +3,10 @@ context:
   upstream_path: skills/productivity/writing-for-agents
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 source:
   git: https://github.com/mattpocock/skills
-  rev: 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+  rev: 321658273cb1d20b76026717d027d505790106d4
 build:
   number: 0
   noarch: generic
