@@ -49,7 +49,7 @@ about:
     proposes environment improvements in order of severity: navigation pointers,
     automated checks, coding standards, AGENTS.md size, tool economy, no-ops,
     and information access. Patched to take its evidence from the fleet's
-    agent-traces Rerun catalog through a bundled pull script (corrections, tool
+    agent-traces Rerun catalog through a bundled query script (corrections, tool
     errors, retry loops, slow paths), and from the live transcript when the
     catalog lags.
   homepage: https://github.com/mattpocock/skills/tree/main/skills/engineering/retro

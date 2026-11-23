@@ -2,14 +2,20 @@
 
 Run: python test_retro_pull.py [<scripts dir>]
 """
+import contextlib
+import io
 import sys
+import tempfile
 from datetime import datetime, timedelta
 from pathlib import Path
 
 sys.dont_write_bytecode = True
 sys.path.insert(0, sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).parents[1] / "scripts"))
 
-from retro_pull import Call, ToolRow, command_key, error_streaks, is_correction, is_human, join_calls, parse_instant  # noqa: E402
+import retro_pull  # noqa: E402
+from retro_pull import (  # noqa: E402
+    Call, Config, Evidence, Prompt, Session, ToolRow, command_key, error_streaks, is_correction, is_human, join_calls, parse_instant, render,
+)
 
 T0: datetime = datetime(2026, 11, 22, 12, 0, 0)
 
@@ -47,7 +53,7 @@ def test_command_key_names_the_script_or_program() -> None:
 
 def row(phase: str, call_id: str, seconds: float, is_error: bool = False, tool: str = "Bash") -> ToolRow:
     return ToolRow(
-        dataset="claude", segment="s1", agent_id="", call_id=call_id, tool=tool, phase=phase,
+        dataset="agent-traces-claude", segment="s1", agent_id="", call_id=call_id, tool=tool, phase=phase,
         wall=T0 + timedelta(seconds=seconds), is_error=is_error, elapsed_ms=None,
         input='{"command": "git push"}' if phase == "call" else "", result="Error: denied" if is_error else "ok",
     )
@@ -69,6 +75,45 @@ def test_error_streaks_find_repeated_failures_of_one_key() -> None:
     assert len(streaks) == 1
     assert streaks[0].length == 3 and streaks[0].key == "Bash:git" and streaks[0].recovered
 
+
+
+def evidence() -> Evidence:
+    rows: list[ToolRow] = [row("call", "a", 0), row("result", "a", 2, is_error=True), row("call", "b", 5), row("result", "b", 6, is_error=True)]
+    return Evidence(
+        since=datetime(2026, 11, 22), until=datetime(2026, 11, 23), coverage=["`agent-traces-claude`: 1 sessions"],
+        sessions=[Session("agent-traces-claude", "s1", "pablo-dl-server", "/home/pablo/repo", "a title")],
+        prompts=[
+            Prompt("agent-traces-claude", "s1", T0, "Progress report please", True, False),
+            Prompt("agent-traces-claude", "s1", T0 + timedelta(minutes=5), "too much text", True, True),
+            Prompt("agent-traces-claude", "s1", T0, "<paseo-system>agent note</paseo-system>", False, False),
+        ],
+        calls=join_calls(rows),
+    )
+
+
+def test_render_lists_every_human_prompt_and_locates_each_lead() -> None:
+    summary: str = render(evidence())
+    assert "- 2026-11-22 12:00:00 - Progress report please" in summary
+    assert "- 2026-11-22 12:05:00 ! too much text" in summary
+    assert "paseo-system" not in summary
+    assert "`agent-traces-claude` `s1`" in summary
+    assert "2x `Bash:git` gave up | 2026-11-22 12:00:00 `agent-traces-claude` `s1`" in summary
+    assert "call `a`" in summary
+
+
+def test_main_writes_only_summary_md() -> None:
+    source: str = Path(retro_pull.__file__).read_text().lower()
+    assert "parquet" not in source and "write_table" not in source
+    fetch = retro_pull.fetch
+    retro_pull.fetch = lambda cfg: evidence()
+    try:
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            retro_pull.main(Config(since="2026-11-22", until="2026-11-23", out=Path(tmp) / "retro"))
+            written: list[str] = sorted(str(f.relative_to(tmp)) for f in Path(tmp).rglob("*") if f.is_file())
+    finally:
+        retro_pull.fetch = fetch
+    assert written == ["retro/summary.md"]
+    assert not any(name.endswith(".parquet") for name in written)
 
 if __name__ == "__main__":
     for name, fn in sorted(globals().items()):

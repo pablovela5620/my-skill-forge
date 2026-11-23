@@ -16,25 +16,25 @@
 +2. Fix the **scope**: one session or a time window ("yesterday", "since Monday"), the profiles (`claude`, `claude-work`, `codex`, `codex-work`; default all four), and any project or host filter. With no scope given, review the current session. A scope of the current session alone takes its evidence from your own context: go to step 4. Done when you can state the window in UTC.
 
 -3. Look for candidates for improvement in these categories.
-+3. Pull the evidence from the **agent-traces catalog**. It holds every Claude and Codex session from every fleet machine, one segment per session, in the datasets `agent-traces-<profile>` on `rerun+http://dgx-spark:9876`. Run the pull script from this skill's directory:
++3. Query the **agent-traces catalog** for the window. It holds every Claude and Codex session from every fleet machine, one segment per session, in the datasets `agent-traces-<profile>` on `rerun+http://dgx-spark:9876`. Run the query script from this skill's directory:
 +
 +   ```bash
 +   cd ~/agent-traces-staging/em && pixi run --frozen -e agent-traces python -I \
 +     <skill dir>/scripts/retro_pull.py --since <start> --until <end> --out /tmp/retro-<window>
 +   ```
 +
-+   Bounds are ISO dates or datetimes, UTC unless they carry an offset; `--cwd <substring>` scopes to one project. The script filters each dataset to the window before it projects, reads main-agent prompts only, and writes `sessions.parquet`, `prompts.parquet`, `calls.parquet` (tool calls joined with their results, subagents included) and `summary.txt`. For a question the summary does not answer, query the catalog the same way: load `rerun-catalog-queries`, and take the entity layout and query examples from `~/agent-traces-staging/em/packages/agent-traces/README.md`. Done when you have read `summary.txt`.
++   Bounds are ISO dates or datetimes, UTC unless they carry an offset; `--cwd <substring>` scopes to one project. The script filters each dataset to the window before it projects and writes one file, `summary.md`: coverage, every human prompt of the main agent, tool errors (subagents included), retry loops and slow paths. Each lead carries its dataset, segment ID and UTC time. Done when you have read `summary.md`.
 +
-+4. Fill each gap from the **live transcript**. The catalog is refreshed from time to time, so recent sessions are absent when the summary reports `LAGGING` or when a session in scope is not in `sessions.parquet`. Read that session from your own context when it is the current one, otherwise from its transcript on its machine (`~/.claude/projects/`, `~/.codex/sessions/`). Done when every session in scope has a source, and your report names each source that is not the catalog.
++4. Fill each gap from the **live transcript**. The catalog is refreshed from time to time, so recent sessions are absent when the summary reports `LAGGING` or when a session in scope is not in its Sessions list. Read that session from your own context when it is the current one, otherwise from its transcript on its machine (`~/.claude/projects/`, `~/.codex/sessions/`). Done when every session in scope has a source, and your report names each source that is not the catalog.
 +
 +5. Trace each **lead** in the evidence to the prompt or call that shows it:
 +
-+- **Corrections**: the user's pushback across sessions ("too much text", "did you even look"). Read every human prompt in `prompts.parquet`; `correction_hint` is a regex first pass.
-+- **Tool errors and retry loops**: the error keys, error texts and retry loops in the summary. Read the calls before and after each one in `calls.parquet`.
++- **Corrections**: the user's pushback across sessions ("too much text", "did you even look"). Read every human prompt in the summary; `!` is a regex first pass.
++- **Tool errors and retry loops**: the error keys, error texts and retry loops in the summary, and the calls before and after each one.
 +- **Slow paths**: keys by p90 latency. Separate real work from waits (`sleep`, `until`, `AskUserQuestion`, tool timeouts at 600 s).
 +- **Patterns**: a lead that recurs across sessions, projects or hosts ranks above a single incident.
 +
-+   Done when each lead has its session (segment ID prefix, host, cwd), time and count.
++   To drill in, run a **targeted query** on the catalog: load `rerun-catalog-queries`, filter to the lead's dataset, segment and entity and to a time window around it, and project only the columns you need. The entity layout and query examples are in `~/agent-traces-staging/em/packages/agent-traces/README.md`. Done when each lead has its session (segment ID, host, cwd), time and count.
 +
 +6. Look for candidates for improvement in these categories.
 

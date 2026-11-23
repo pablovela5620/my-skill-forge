@@ -1,9 +1,9 @@
-"""Pull a window of agent-traces catalog evidence for a retro into Parquet, and print a summary.
+"""Query the agent-traces catalog for a retro window and write the leads as one Markdown summary.
 
-Writes `sessions.parquet`, `prompts.parquet` (main agent), `calls.parquet` (main agent and
-subagents) and `summary.txt` to `--out`. One schema call and one filtered reader per entity
-family per dataset; all analysis after the pull is local. Run it in the agent-traces pixi
-environment:
+The catalog is the store: this script keeps no copy of its tables. It runs one filtered reader per
+entity family per dataset, analyses the rows in memory, and prints the summary; with `--out` it
+also writes `summary.md` there, and nothing else. Every lead carries its dataset, segment ID and
+UTC time, so a follow-up query can target it. Run it in the agent-traces pixi environment:
 
     cd ~/agent-traces-staging/em && pixi run --frozen -e agent-traces python -I \
         ~/.claude/skills/retro/scripts/retro_pull.py --since 2026-11-22 --until 2026-11-23 --out /tmp/retro
@@ -14,12 +14,11 @@ A bound without a UTC offset is UTC: `--since 2026-11-22T00:00-06:00` starts at 
 import json
 import re
 from collections import Counter, defaultdict
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
 import pyarrow as pa
-import pyarrow.parquet as pq
 import tyro
 
 DATASETS: tuple[str, ...] = ("agent-traces-claude", "agent-traces-claude-work", "agent-traces-codex", "agent-traces-codex-work")
@@ -35,26 +34,63 @@ CORRECTION: re.Pattern[str] = re.compile(
 SCRIPT: re.Pattern[str] = re.compile(r"([\w.-]+\.(?:py|sh|js|ts|mjs))\b")
 LAUNCHERS: frozenset[str] = frozenset({"python", "python3", "bash", "sh", "node", "pixi", "uv", "timeout", "nohup", "time", "env"})
 HOME: re.Pattern[str] = re.compile(r"^(/home|/Users)/[^/]+")
+TIME: str = "%Y-%m-%d %H:%M:%S"
 
 
 @dataclass(frozen=True, slots=True)
 class Config:
-    """Window and output for one pull."""
+    """Window and output for one run."""
 
     since: str
     """Window start: ISO date or datetime, UTC unless it carries an offset."""
     until: str
     """Window end (exclusive), same format as `since`."""
-    out: Path
-    """Directory for the Parquet files and summary.txt."""
+    out: Path | None = None
+    """Directory for `summary.md`; without it the summary goes to stdout only."""
     catalog: str = "rerun+http://dgx-spark:9876"
     """Catalog URL."""
     datasets: tuple[str, ...] = DATASETS
     """Datasets to read; missing ones are reported and skipped."""
     cwd: str | None = None
     """Keep only sessions whose working directory contains this substring."""
-    text_chars: int = 800
+    text_chars: int = 400
     """Characters kept from each tool input and result."""
+    prompt_chars: int = 240
+    """Characters of each human prompt shown in the summary."""
+
+
+@dataclass(frozen=True, slots=True)
+class Session:
+    """One segment (session) with activity in the window."""
+
+    dataset: str
+    """Dataset name, for example `agent-traces-claude`."""
+    segment: str
+    """Segment (session) ID."""
+    host: str
+    """Machine the session ran on."""
+    cwd: str
+    """Working directory."""
+    title: str
+    """Session title, empty when unknown."""
+
+
+@dataclass(frozen=True, slots=True)
+class Prompt:
+    """One main-agent `/conversation/user` row in the window."""
+
+    dataset: str
+    """Dataset name."""
+    segment: str
+    """Segment (session) ID."""
+    wall: datetime
+    """Event time, naive UTC."""
+    text: str
+    """Full prompt text."""
+    human: bool
+    """True when a person typed it, not an injected or inter-agent message."""
+    correction_hint: bool
+    """True when the correction regex matches; a first pass, not a verdict."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -62,7 +98,7 @@ class ToolRow:
     """One `/tools` row: a model tool call or one part of its result."""
 
     dataset: str
-    """Dataset name without the `agent-traces-` prefix."""
+    """Dataset name."""
     segment: str
     """Segment (session) ID."""
     agent_id: str
@@ -90,13 +126,13 @@ class Call:
     """A tool call joined with its results."""
 
     dataset: str
-    """Dataset name without the `agent-traces-` prefix."""
+    """Dataset name."""
     segment: str
     """Segment (session) ID."""
     agent_id: str
     """Empty string for the main agent."""
     call_id: str
-    """Tool call ID."""
+    """Tool call ID; empty for Codex native command failures."""
     tool: str
     """Tool name."""
     key: str
@@ -118,7 +154,7 @@ class Streak:
     """Consecutive failed calls of one key by one agent: a retry loop."""
 
     dataset: str
-    """Dataset name without the `agent-traces-` prefix."""
+    """Dataset name."""
     segment: str
     """Segment (session) ID."""
     agent_id: str
@@ -133,6 +169,24 @@ class Streak:
     """True when the next call of the same key succeeded."""
     first_error: str
     """Result text of the first failure."""
+
+
+@dataclass(frozen=True, slots=True)
+class Evidence:
+    """Everything one window query returns, held in memory only."""
+
+    since: datetime
+    """Window start, naive UTC."""
+    until: datetime
+    """Window end (exclusive), naive UTC."""
+    coverage: list[str]
+    """One line per dataset, plus a `LAGGING` line when the catalog ends before the window does."""
+    sessions: list[Session]
+    """Sessions with activity in the window."""
+    prompts: list[Prompt]
+    """Main-agent user rows in the window."""
+    calls: list[Call]
+    """Tool calls in the window, subagents included."""
 
 
 def parse_instant(text: str) -> datetime:
@@ -224,19 +278,102 @@ def percentile(values: list[float], q: float) -> float:
     return ordered[min(len(ordered) - 1, int(q * len(ordered)))]
 
 
-def pull(cfg: Config) -> None:
-    """Read the window from every dataset, write Parquet and the summary."""
+def one_line(text: str, limit: int) -> str:
+    """Collapse whitespace, drop backticks, and cut to `limit` characters."""
+    return re.sub(r"\s+", " ", text).replace("`", "'").strip()[:limit]
+
+
+def locus(c: Call) -> str:
+    """Where a call happened, in the terms a follow-up catalog query filters on."""
+    agent: str = f" agent `{c.agent_id}`" if c.agent_id else ""
+    call: str = f" call `{c.call_id}`" if c.call_id else ""
+    return f"{c.start:{TIME}} `{c.dataset}` `{c.segment}`{agent}{call}"
+
+
+def render(ev: Evidence, prompt_chars: int = 240) -> str:
+    """Render the window's coverage, prompts, errors, retry loops and slow paths as Markdown."""
+    lines: list[str] = [
+        f"# Retro evidence, {ev.since:{TIME}} to {ev.until:{TIME}} UTC",
+        "",
+        "Times are UTC. Drill in with a targeted catalog query: the dataset, `filter_segments([segment])`, one entity, the needed columns.",
+        "",
+        "## Coverage",
+        *(f"- {line}" for line in ev.coverage),
+        "",
+        f"## Sessions ({len(ev.sessions)})",
+    ]
+    by_session: dict[tuple[str, str], Session] = {(s.dataset, s.segment): s for s in ev.sessions}
+    lines += [f"- `{s.dataset}` `{s.segment}` {s.host} {HOME.sub('~', s.cwd)} | {one_line(s.title, 80)}" for s in ev.sessions]
+
+    human: list[Prompt] = sorted((p for p in ev.prompts if p.human), key=lambda p: (p.dataset, p.segment, p.wall))
+    hints: int = sum(p.correction_hint for p in human)
+    lines += ["", f"## Human prompts ({len(human)}; `!` marks {hints} correction hints, a broad regex: read them all)"]
+    current: tuple[str, str] | None = None
+    for p in human:
+        if (p.dataset, p.segment) != current:
+            current = (p.dataset, p.segment)
+            s: Session | None = by_session.get(current)
+            lines += ["", f"### `{p.dataset}` `{p.segment}` {s.host if s else ''} {HOME.sub('~', s.cwd) if s else ''}"]
+        lines.append(f"- {p.wall:{TIME}} {'!' if p.correction_hint else '-'} {one_line(p.text, prompt_chars)}")
+
+    errors: list[Call] = [c for c in ev.calls if c.is_error]
+    totals: Counter[str] = Counter(c.key for c in ev.calls)
+    lines += ["", f"## Tool errors ({len(errors)} of {len(ev.calls)} calls)", "", "| key | calls | errors |", "| --- | ---: | ---: |"]
+    lines += [f"| `{key}` | {totals[key]} | {n} |" for key, n in Counter(c.key for c in errors).most_common(15)]
+    lines += ["", "Top error texts (grouped by their first 60 characters up to `[` or `followed by`, digits as N), each with its first occurrence:"]
+    first: dict[str, Call] = {}
+    texts: Counter[str] = Counter()
+    for c in errors:
+        group: str = re.split(r" followed by|\[", one_line(re.sub(r"\d+", "N", c.result), 60))[0]
+        texts[group] += 1
+        first.setdefault(group, c)
+    lines += [f"- {n}x {one_line(re.sub(r'\d+', 'N', first[g].result), 120)} | {locus(first[g])}" for g, n in texts.most_common(12)]
+
+    lines += ["", "## Retry loops (same key failed 2+ times in a row)"]
+    for s in error_streaks(ev.calls)[:15]:
+        agent: str = f" agent `{s.agent_id}`" if s.agent_id else ""
+        lines.append(f"- {s.length}x `{s.key}` {'recovered' if s.recovered else 'gave up'} | {s.start:{TIME}} `{s.dataset}` "
+                     f"`{s.segment}`{agent} | {one_line(s.first_error, 120)}")
+
+    lines += ["", "## Slow paths (keys with 3+ timed calls, by p90; 600 s is the tool timeout)", "",
+              "| key | n | p50 s | p90 s | max s | slowest call |", "| --- | ---: | ---: | ---: | ---: | --- |"]
+    timed: defaultdict[str, list[Call]] = defaultdict(list)
+    for c in ev.calls:
+        if c.latency_s is not None:
+            timed[c.key].append(c)
+    ranked: list[tuple[str, list[Call]]] = sorted(
+        ((k, v) for k, v in timed.items() if len(v) >= 3), key=lambda kv: -percentile([c.latency_s for c in kv[1]], 0.9)
+    )
+    for key, group in ranked[:15]:
+        values: list[float] = [c.latency_s for c in group]
+        slowest: Call = max(group, key=lambda c: c.latency_s)
+        lines.append(f"| `{key}` | {len(values)} | {percentile(values, 0.5):.1f} | {percentile(values, 0.9):.1f} | "
+                     f"{max(values):.1f} | {locus(slowest)} |")
+    return "\n".join(lines) + "\n"
+
+
+def write_summary(summary: str, out: Path | None) -> Path | None:
+    """Write `summary.md` into `out`, the only file this script creates."""
+    if out is None:
+        return None
+    out.mkdir(parents=True, exist_ok=True)
+    path: Path = out / "summary.md"
+    path.write_text(summary)
+    return path
+
+
+def fetch(cfg: Config) -> Evidence:
+    """Query every dataset for the window: one schema call and one filtered reader per entity family."""
     from datafusion import col, lit
     from datafusion import functions as F
     from rerun.catalog import CatalogClient
 
     since: datetime = parse_instant(cfg.since)
     until: datetime = parse_instant(cfg.until)
-    cfg.out.mkdir(parents=True, exist_ok=True)
     client = CatalogClient(cfg.catalog)
     names: set[str] = set(client.dataset_names())
-    sessions: list[dict[str, object]] = []
-    prompts: list[dict[str, object]] = []
+    sessions: list[Session] = []
+    prompts: list[Prompt] = []
     rows: list[ToolRow] = []
     exec_errors: list[Call] = []
     coverage: list[str] = []
@@ -251,9 +388,8 @@ def pull(cfg: Config) -> None:
 
     for name in cfg.datasets:
         if name not in names:
-            coverage.append(f"{name}: not on the catalog, skipped")
+            coverage.append(f"`{name}`: not on the catalog, skipped")
             continue
-        short: str = name.removeprefix("agent-traces-")
         dataset = client.get_dataset(name)
         table = dataset.segment_table()
         segs: list[dict[str, object]] = table.select(
@@ -261,16 +397,15 @@ def pull(cfg: Config) -> None:
             first(table, "property:session:host", pa.string()).alias("host"),
             first(table, "property:session:cwd", pa.string()).alias("cwd"),
             first(table, "property:session:title", pa.string()).alias("title"),
-            first(table, "property:session:n_turns", pa.int64()).alias("turns"),
             col("wall:start").alias("start"),
             col("wall:end").alias("end"),
             col("rerun_last_updated_at").cast(pa.timestamp("us")).alias("updated"),
         ).to_arrow_table().to_pylist()
         latest: datetime | None = max((s["end"] for s in segs if s["end"]), default=None)
-        coverage.append(f"{name}: {len(segs)} sessions, latest event {latest:%Y-%m-%d %H:%M} UTC" if latest else f"{name}: empty")
+        coverage.append(f"`{name}`: {len(segs)} sessions, latest event {latest:%Y-%m-%d %H:%M} UTC" if latest else f"`{name}`: empty")
         refreshed = max([refreshed, *(s["updated"] for s in segs if s["updated"])], key=lambda t: t or datetime.min)
-        keep: dict[str, dict[str, object]] = {
-            s["segment"]: s for s in segs
+        keep: dict[str, Session] = {
+            s["segment"]: Session(name, s["segment"], s["host"] or "", s["cwd"] or "", s["title"] or "") for s in segs
             if s["end"] and s["end"] >= since and s["start"] < until and (cfg.cwd is None or cfg.cwd in (s["cwd"] or ""))
         }
         if not keep:
@@ -285,8 +420,9 @@ def pull(cfg: Config) -> None:
         for p in user.filter(col("/conversation/user:agent_id")[0] == lit("")).select(
             col("rerun_segment_id").alias("segment"), "wall", col("/conversation/user:TextLog:text")[0].alias("text")
         ).to_arrow_table().to_pylist():
-            human: bool = is_human(p["text"])
-            prompts.append({"dataset": short, **p, "human": human, "correction_hint": human and is_correction(p["text"])})
+            body: str = p["text"] or ""
+            human: bool = is_human(body)
+            prompts.append(Prompt(name, p["segment"], p["wall"], body, human, human and is_correction(body)))
 
         reader, tools = window("/tools")
         for r in tools.select(
@@ -296,8 +432,8 @@ def pull(cfg: Config) -> None:
             col("/tools:is_error")[0].alias("is_error"), first(reader, "/tools:elapsed_ms", pa.float64()).alias("elapsed_ms"),
             text("/tools:input_json").alias("input"), text("/tools:tool_use_result_json").alias("result"),
         ).filter(col("phase").is_not_null()).to_arrow_table().to_pylist():
-            rows.append(ToolRow(dataset=short, **{**r, "agent_id": r["agent_id"] or "", "call_id": r["call_id"] or "",
-                                                  "tool": r["tool"] or "", "is_error": bool(r["is_error"])}))
+            rows.append(ToolRow(name, r["segment"], r["agent_id"] or "", r["call_id"] or "", r["tool"] or "", r["phase"],
+                                r["wall"], bool(r["is_error"]), r["elapsed_ms"], r["input"], r["result"]))
 
         reader, execs = window("/executions/command")
         if "/executions/command:is_error" in reader.schema().names:
@@ -306,56 +442,23 @@ def pull(cfg: Config) -> None:
                 text("/executions/command:input_json").alias("input"), text("/executions/command:TextLog:text").alias("result"),
             ).to_arrow_table().to_pylist():
                 tool: str = "executions/command"
-                exec_errors.append(Call(short, e["segment"], e["agent_id"] or "", "", tool, command_key(tool, e["input"]),
+                exec_errors.append(Call(name, e["segment"], e["agent_id"] or "", "", tool, command_key(tool, e["input"]),
                                         e["wall"], None, True, e["input"], e["result"]))
-        sessions += [{"dataset": short, **{k: v for k, v in s.items() if k != "updated"}} for s in keep.values()]
+        sessions += list(keep.values())
 
     if refreshed is None or refreshed < until:
-        coverage.append(f"LAGGING: last registration {f'{refreshed:%Y-%m-%d %H:%M}' if refreshed else 'unknown'} UTC is before the window end; later sessions are missing")
+        stamp: str = f"{refreshed:%Y-%m-%d %H:%M}" if refreshed else "unknown"
+        coverage.append(f"LAGGING: last registration {stamp} UTC is before the window end; later sessions are missing")
     calls: list[Call] = sorted(join_calls(rows) + exec_errors, key=lambda c: c.start)
-    pq.write_table(pa.Table.from_pylist(sessions), cfg.out / "sessions.parquet")
-    pq.write_table(pa.Table.from_pylist(prompts), cfg.out / "prompts.parquet")
-    pq.write_table(pa.Table.from_pylist([asdict(c) for c in calls]), cfg.out / "calls.parquet")
-    summary: str = summarize(since, until, coverage, sessions, prompts, calls)
-    (cfg.out / "summary.txt").write_text(summary)
+    return Evidence(since, until, coverage, sessions, prompts, calls)
+
+
+def main(cfg: Config) -> None:
+    """Query the window, print the summary, and write `summary.md` when `--out` is given."""
+    summary: str = render(fetch(cfg), cfg.prompt_chars)
     print(summary)
-
-
-def summarize(since: datetime, until: datetime, coverage: list[str], sessions: list[dict[str, object]],
-              prompts: list[dict[str, object]], calls: list[Call]) -> str:
-    """Render the window's coverage, corrections, errors, retry loops and slow paths as plain text."""
-    where: dict[tuple[str, str], str] = {
-        (s["dataset"], s["segment"]): f"{s['host']} {HOME.sub('~', s['cwd'] or '')}" for s in sessions
-    }
-    human: list[dict[str, object]] = [p for p in prompts if p["human"]]
-    hints: list[dict[str, object]] = sorted((p for p in human if p["correction_hint"]), key=lambda p: p["wall"])
-    lines: list[str] = [f"Window {since:%Y-%m-%d %H:%M} to {until:%Y-%m-%d %H:%M} UTC", "", "## Coverage", *coverage, ""]
-    lines.append(f"## Sessions: {len(sessions)}  " + ", ".join(f"{h}={n}" for h, n in Counter(str(s['host']) for s in sessions).most_common()))
-    lines += [f"## Prompts: {len(human)} human, {len(hints)} correction hints (read them; the hint is a regex)", ""]
-    lines += [f"{p['wall']:%m-%d %H:%M} {where.get((p['dataset'], p['segment']), '')} {p['segment'][:8]} | "
-              + re.sub(r"\s+", " ", str(p['text']))[:220] for p in hints[:60]]
-    errors: list[Call] = [c for c in calls if c.is_error]
-    lines += ["", f"## Tool calls: {len(calls)}, errors {len(errors)}  (key calls errors)"]
-    totals: Counter[str] = Counter(c.key for c in calls)
-    for key, n in Counter(c.key for c in errors).most_common(15):
-        lines.append(f"{key:50s} {totals[key]:6d} {n:5d}")
-    lines += ["", "## Error texts (top, digits as N)"]
-    for message, n in Counter(re.sub(r"\d+", "N", c.result[:120]) for c in errors).most_common(12):
-        lines.append(f"{n:4d} {message}")
-    lines += ["", "## Retry loops (same key failed 2+ times in a row)"]
-    for s in error_streaks(calls)[:15]:
-        lines.append(f"{s.length:3d}x {s.key:40s} {'recovered' if s.recovered else 'gave up'} {s.start:%m-%d %H:%M} "
-                     f"{where.get((s.dataset, s.segment), '')} {s.segment[:8]} | {s.first_error[:120]}")
-    lines += ["", "## Slow paths (keys with 3+ timed calls, by p90 seconds)  (key n p50 p90 max)"]
-    timed: defaultdict[str, list[float]] = defaultdict(list)
-    for c in calls:
-        if c.latency_s is not None:
-            timed[c.key].append(c.latency_s)
-    slow: list[tuple[str, list[float]]] = sorted(((k, v) for k, v in timed.items() if len(v) >= 3), key=lambda kv: -percentile(kv[1], 0.9))
-    for key, values in slow[:15]:
-        lines.append(f"{key:50s} {len(values):5d} {percentile(values, 0.5):7.1f} {percentile(values, 0.9):7.1f} {max(values):7.1f}")
-    return "\n".join(lines) + "\n"
+    write_summary(summary, cfg.out)
 
 
 if __name__ == "__main__":
-    pull(tyro.cli(Config))
+    main(tyro.cli(Config))
