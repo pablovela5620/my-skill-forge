@@ -22,7 +22,7 @@ BG, PANEL, HEAD, LINE, TXT, DIM = "#0e0f10", "#1a1c1e", "#25282b", "#5b6066", "#
 ROW, TIME, COMP = "#22b5e6", "#de7df3", "#6cefb4"
 ROW_BG, TIME_BG, COMP_BG = "#11313c", "#3a2742", "#1d4536"
 GREEN = "#3fe0a0"
-MONO = "ui-monospace,SFMono-Regular,Menlo,monospace"
+MONO = "'JetBrains Mono',ui-monospace,SFMono-Regular,Menlo,Consolas,monospace"
 SANS = "Inter,ui-sans-serif,system-ui,sans-serif"
 
 
@@ -308,6 +308,12 @@ import re as _re
 
 INK, DIM_C, LINE_C, BAR, BAR_A = TXT, DIM, "#2f3338", ROW, "#5e6672"
 FONT = 'font-family="' + SANS + '"'
+MONO_ATTR = 'font-family="' + MONO + '"'
+
+
+def _caps(title: str) -> str:
+    """A chart title is a label: mono UPPERCASE, and a measured panel says so (DESIGN.md: `MEASURED · <what>`)."""
+    return (title if title.upper().startswith("MEASURED") else f"Measured · {title}").upper()
 e = _html.escape
 class Measured(float):
     """A number that keeps its measured text: chart_html() turns a string value ("0.50", "1,048") into one."""
@@ -349,7 +355,7 @@ def _wrap(s: str, size: float, width: float) -> list[str]:
 
 def _t(x, y, s, size, fill=INK, anchor="start", weight=400, mono=False):
     return (f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{fill}" text-anchor="{anchor}" font-weight="{weight}" '
-            f'{MONO if mono else FONT}>{e(s)}</text>')
+            f'{MONO_ATTR if mono else FONT}>{e(s)}</text>')
 
 
 def _frame(w, h, body, title=""):
@@ -362,8 +368,9 @@ def _key(items: list[tuple[str, str]], x: float, y: float, fs: float) -> str:
     """A one-line key: a colour swatch and its word per series."""
     out = ""
     for col, word in items:
-        out += f'<rect x="{x:.1f}" y="{y - fs * 0.72:.1f}" width="{fs * 0.75:.1f}" height="{fs * 0.62:.1f}" rx="2" fill="{col}"/>' + _t(x + fs, y, word, fs, DIM_C)
-        x += fs * 2.4 + len(word) * fs * 0.6
+        out += (f'<rect x="{x:.1f}" y="{y - fs * 0.72:.1f}" width="{fs * 0.75:.1f}" height="{fs * 0.62:.1f}" rx="2" fill="{col}"/>'
+                + _t(x + fs, y, word.upper(), fs * 0.8, DIM_C, mono=True))  # legend words are labels: mono uppercase
+        x += fs * 2.2 + len(word) * fs * 0.8 * 0.62
     return out
 
 
@@ -382,7 +389,8 @@ def bars(d: dict, thumb: bool, phone: bool = False) -> str:
         else:
             rh = min(78.0, (h - top - pad) / len(rows))
             top += (h - top - pad - rh * len(rows)) / 2
-        body = _t(pad, pad + fs * 0.8, key, fs * 0.9, DIM_C) if key else ""
+        lab = _caps(key) if key and key == d.get("title") else (key or "").upper()
+        body = _t(pad, pad + fs * 0.8, _fit(lab, fs * 0.7, w - 2 * pad), fs * 0.7, DIM_C, mono=True) if key else ""
         for i, r in enumerate(rows):
             y = top + i * rh
             body += _t(pad, y + fs * 0.9, _fit(r[0], fs, w - 2 * pad), fs, INK)
@@ -398,7 +406,7 @@ def bars(d: dict, thumb: bool, phone: bool = False) -> str:
     h = top + rh * len(rows) + pad
     lab_w = w * 0.3
     bw = w - lab_w - pad * 2 - 140
-    body = _t(pad, pad + fs, d["title"], fs, DIM_C) if d.get("title") else ""
+    body = _t(pad, pad + fs, _caps(d["title"]), fs - 2, DIM_C, mono=True) if d.get("title") else ""
     for i, r in enumerate(rows):
         y = top + i * rh
         body += _t(pad, y + rh * 0.62, _fit(r[0], fs, lab_w - 10), fs, INK)
@@ -416,7 +424,7 @@ def pairs(d: dict, thumb: bool, phone: bool = False) -> str:
     a, b = d.get("a", "before"), d.get("b", "after")
     if thumb or phone:
         w, h, pad, fs = 480, 300, 18, 22
-        body = _t(pad, pad + fs * 0.85, _fit(d["title"], fs, w - 2 * pad), fs, DIM_C) if phone and d.get("title") else ""
+        body = _t(pad, pad + fs * 0.85, _fit(_caps(d["title"]), fs * 0.7, w - 2 * pad), fs * 0.7, DIM_C, mono=True) if phone and d.get("title") else ""
         ky = pad + fs * 0.85 + (fs + 12 if phone and d.get("title") else 0)
         body += _key([(BAR_A, a), (BAR, b)], pad, ky, fs)
         top = ky + 14
@@ -438,7 +446,7 @@ def pairs(d: dict, thumb: bool, phone: bool = False) -> str:
     h = top + rh * len(rows) + pad
     lab_w = w * 0.3
     bw = w - lab_w - pad * 2 - 150
-    body = _t(pad, pad + fs, d["title"], fs, DIM_C) if d.get("title") else ""
+    body = _t(pad, pad + fs, _caps(d["title"]), fs - 2, DIM_C, mono=True) if d.get("title") else ""
     body += _key([(BAR_A, a), (BAR, b)], pad, pad + (fs + 14 if d.get("title") else 0) + fs, fs - 1)
     for i, r in enumerate(rows):
         y = top + i * rh
