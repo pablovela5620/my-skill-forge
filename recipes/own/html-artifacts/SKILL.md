@@ -30,6 +30,10 @@ Unless the user asks otherwise:
 
 - Produce exactly one `.html` file.
 - Keep it self-contained: inline CSS and inline JavaScript by default.
+- Exception: a page built on many real pictures (Rerun captures, renders, videos) or a set of linked pages (a hub plus
+  topic pages) keeps its pictures as files in a `media/` folder next to the HTML and is published together with it.
+  Generate such pages from data with a small build script instead of editing HTML by hand; inline the pictures only
+  for a copy that must stand alone.
 - Make it open directly from the filesystem, with no build step and no server.
 - Use semantic landmarks, headings, labels, buttons, and tables.
 - Make it responsive from phone width to desktop.
@@ -51,6 +55,9 @@ Unless the user asks otherwise:
    - Put the answer, status, or decision at the top.
    - Group details by how the user will scan them, not by how the source material arrived.
    - Convert long prose into tables, timelines, callouts, diagrams, tabs, or collapsibles only when those structures reduce effort.
+   - For an explainer, guide, report or deep dive, go visual first: every section opens with a figure, visible prose stays
+     short, detail folds, and each picture is a Rerun capture or a figure drawn from real numbers. Read
+     [references/visual-first.md](references/visual-first.md).
 
 3. Apply the house style and the design quality bar.
    - The house style is Rerun's: read [references/DESIGN.md](references/DESIGN.md) (a [DESIGN.md](https://github.com/google-labs-code/design.md) file: tokens plus rules) and start from [assets/rerun.css](assets/rerun.css). Draw diagrams with [assets/rerun_figure.py](assets/rerun_figure.py). Where DESIGN.md and design-quality.md disagree, DESIGN.md wins.
@@ -72,6 +79,10 @@ Unless the user asks otherwise:
    - Open every embedded Rerun viewer in GPU Chrome at those sizes and look at the pixels (see [references/nas-publishing.md](references/nas-publishing.md)).
    - Check keyboard navigation for controls.
    - Check there is no horizontal overflow, clipped text, broken asset, console error, or unreadable contrast.
+   - Measure after load: lazy images and late layout change `scrollWidth`; scroll slowly (about 400 px every 250 ms)
+     before you count unloaded images, and measure the document width only then.
+   - Count `<details>` summaries, figure links and chips as touch targets too (44 px); keep labels at least 11 px on a phone.
+   - Look at the pixels, not only the checks: a page can pass every check and still be a wall of text.
 
 ## Design Defaults
 
@@ -80,6 +91,8 @@ Unless the user asks otherwise:
 - Use system fonts: the system sans for text, JetBrains Mono (falling back to the system mono) for labels, buttons and code, as DESIGN.md sets out. Load no web fonts.
 - Use motion sparingly: 150-250ms, ease-out, state feedback only. Respect `prefers-reduced-motion`.
 - Avoid hover-only meaning. Every control must work with keyboard and touch.
+- Icons are labels, never pictures of data: one set (Tabler outline, inline SVG, stroke 1.5, `currentColor`) and one
+  concept-to-glyph vocabulary per artifact, always next to a word. See [references/visual-first.md](references/visual-first.md).
 
 ## Hard Bans
 
@@ -92,7 +105,7 @@ Unless the user asks otherwise:
 - No pure black or pure white as the full visual system, except the Rerun house style's black page with neutral greys. Elsewhere, tint neutrals subtly.
 - No gray text on saturated colored backgrounds.
 - No oversized hero section unless the artifact is explicitly a deck, poster, or landing-style narrative.
-- No rounded-square icon tile above every heading.
+- No rounded-square icon tile above every heading. (A small glyph that labels a section, a status or a data type is fine.)
 - No modal-first interaction for content that should be browsed, compared, or scanned.
 - No all-primary button rows.
 - No decorative fake charts, sparklines, or metrics.

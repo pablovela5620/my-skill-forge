@@ -316,7 +316,7 @@ installed and the stack falls back to the system mono.
 
 ## Layout
 
-Readable measure (about 70 characters) for prose. Feature blocks sit in 3–4 column grids without card
+Readable measure (about 70 characters) for prose; figures, flows and wide tables may span the full content width (up to about 1,560 px on a large screen) while the prose beside them keeps the measure. Type sizes may scale fluidly with `clamp()` between the phone and desktop values. Feature blocks sit in 3–4 column grids without card
 borders. Generous vertical space between sections; hairline rules separate them. Left-aligned text,
 except a centred title on a deck or poster page.
 

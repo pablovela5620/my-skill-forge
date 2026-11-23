@@ -21,6 +21,12 @@
   (even 000): `chmod 644` files and `chmod 755` folders after you write them.
 - Put `<link rel="icon" href="data:,">` in every page, so the console check
   has no favicon 404.
+- Publish a folder (a page with its `media/`, or a set of pages) as one stream:
+  `chmod -R a+rX <dir> && tar -C <dir> -cf - . | ssh pablos-4800gt 'mkdir -p /volume1/personal/html-artifacts/<project> && tar -C /volume1/personal/html-artifacts/<project> -xf -'`.
+  rsync fails on this NAS. When several agents publish the same folder, serialise the build and publish with one
+  `flock` lock file.
+- Link a folder as `<dir>/` (or `./`), never `<dir>/index.html`: the server answers `index.html` with a 301 to the
+  server root.
 - The source for the viewer tree, embed.js and the install script is in
   `~/agent-fleet` (`config/html-artifacts/`, `scripts/rerun_viewer_install.py`).
 
