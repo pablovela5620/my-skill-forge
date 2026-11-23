@@ -104,3 +104,20 @@ pre.rr-code { background: var(--rr-panel); border: 1px solid var(--rr-border); b
 .rr-code .fn { color: oklch(0.808 0.114 19.6); } .rr-code .com { color: var(--rr-dim); }
 
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+
+/* Work-in-progress badge: <div class="rr-wip" data-wip role="status"><svg …progress…></svg>Work in progress
+   <span>updated <time datetime="2026-11-23T12:00Z">12:00 UTC</time></span><span class="rr-wip-now">Now: …</span></div>
+   First element of the page, in the flow (not fixed); removed in the final publish. */
+.rr-wip {
+  display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 16px; padding: 6px 12px;
+  border: 1px dashed var(--rr-warn); border-radius: 999px; color: var(--rr-warn);
+  font: 500 12px/1.4 var(--rr-mono); text-transform: uppercase; letter-spacing: .0125em; max-width: 100%;
+}
+.rr-wip svg { flex: none; }
+.rr-wip span { color: var(--rr-text); font-family: var(--rr-sans); text-transform: none; letter-spacing: 0; }
+.rr-wip-now { flex-basis: 100%; }
+
+/* Measured charts from rerun_figure.chart_html(): the wide SVG above 600 px, the large-type phone SVG below. */
+.rr-chart svg { display: block; width: 100%; height: auto; }
+.rr-chart-p { display: none; }
+@media (max-width: 600px) { .rr-chart-w { display: none; } .rr-chart-p { display: block; } }

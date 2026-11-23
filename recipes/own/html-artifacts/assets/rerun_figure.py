@@ -296,3 +296,153 @@ def kit_example_svg() -> str:
     p.append(kit_arrow(1032, 346, 1032, 362))
     p.append("</svg>")
     return "".join(p)
+
+# --- Measured charts: bars and before/after pairs, with a phone version ------------------------------------------------
+# Only real, measured numbers; the exact value is written on every bar; a before/after chart always has a key.
+# chart_html(spec) returns both versions; rerun.css shows the wide one above 600 px and the large-type one below:
+#     chart_html({"bars": {"title": "Train time", "unit": "min", "rows": [["Brush 7k", 0.59], ["Hexels V1 7k", 3.61]]}})
+#     chart_html({"pairs": {"title": "Kernel time", "unit": "ms", "a": "CUDA", "b": "Mojo", "rows": [["solve", 7139, 4615]]}})
+import html as _html
+import re as _re
+
+INK, DIM_C, LINE_C, BAR, BAR_A = TXT, DIM, "#2f3338", ROW, "#5e6672"
+FONT = 'font-family="' + SANS + '"'
+e = _html.escape
+def _num(v: float) -> str:
+    """The value as measured: integers plain (thousands separated), others with up to 4 significant digits (18.98, 114.5, 0.035)."""
+    if float(v).is_integer():
+        return f"{int(v):,}"
+    return f"{v:,.0f}" if abs(v) >= 1000 else f"{v:.4g}"
+
+
+def _fit(s: str, size: float, width: float) -> str:
+    """Cut a label to about the width (Arial-like 0.55 em per character)."""
+    n = max(4, int(width / (size * 0.55)))
+    return s if len(s) <= n else s[: n - 1].rstrip() + "…"
+
+
+def _wrap(s: str, size: float, width: float) -> list[str]:
+    n, out, cur = max(6, int(width / (size * 0.55))), [], ""
+    for w in s.split():
+        if cur and len(cur) + 1 + len(w) > n:
+            out.append(cur)
+            cur = w
+        else:
+            cur = f"{cur} {w}".strip()
+    return out + ([cur] if cur else [])
+
+
+def _t(x, y, s, size, fill=INK, anchor="start", weight=400, mono=False):
+    return (f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{fill}" text-anchor="{anchor}" font-weight="{weight}" '
+            f'{MONO if mono else FONT}>{e(s)}</text>')
+
+
+def _frame(w, h, body, title=""):
+    label = f' role="img" aria-label="{e(title)}"' if title else ' aria-hidden="true"'
+    return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {w} {h}" width="{w}" height="{h}"{label}>'
+            f'<rect width="{w}" height="{h}" rx="8" fill="{BG}"/>{body}</svg>')
+
+
+def _key(items: list[tuple[str, str]], x: float, y: float, fs: float) -> str:
+    """A one-line key: a colour swatch and its word per series."""
+    out = ""
+    for col, word in items:
+        out += f'<rect x="{x:.1f}" y="{y - fs * 0.72:.1f}" width="{fs * 0.75:.1f}" height="{fs * 0.62:.1f}" rx="2" fill="{col}"/>' + _t(x + fs, y, word, fs, DIM_C)
+        x += fs * 2.4 + len(word) * fs * 0.6
+    return out
+
+
+def bars(d: dict, thumb: bool, phone: bool = False) -> str:
+    """One bar per row, the exact value at its end. Thumbnails put each label above its bar, so no label is cut."""
+    rows = d["rows"]
+    vmax = d.get("max") or max(r[1] for r in rows) or 1
+    txt = lambda r: r[2] if len(r) > 2 and r[2] else f'{_num(r[1])} {d.get("unit", "")}'.strip()  # noqa: E731
+    if thumb or phone:
+        w, h, pad, fs = 480, 300, 20, 24
+        key = d.get("key") or (d.get("title") if phone else None)
+        top = pad + (fs + 12 if key else 0)
+        if phone:
+            rh = 66.0
+            h = int(top + rh * len(rows) + pad)
+        else:
+            rh = min(78.0, (h - top - pad) / len(rows))
+            top += (h - top - pad - rh * len(rows)) / 2
+        body = _t(pad, pad + fs * 0.8, key, fs * 0.9, DIM_C) if key else ""
+        for i, r in enumerate(rows):
+            y = top + i * rh
+            body += _t(pad, y + fs * 0.9, _fit(r[0], fs, w - 2 * pad), fs, INK)
+            bw = w - 2 * pad - 150
+            L = max(3.0, bw * r[1] / vmax)
+            by = y + fs * 1.15
+            bh = max(10.0, min(20.0, rh - fs * 1.35))
+            body += f'<rect x="{pad}" y="{by:.1f}" width="{L:.1f}" height="{bh:.1f}" rx="3" fill="{BAR}"/>'
+            body += _t(pad + L + 10, by + bh * 0.85, txt(r), fs * 0.92, INK, mono=True)
+        return _frame(w, h, body, d.get("title", ""))
+    w, fs, rh, pad = 960, 15, 34, 24
+    top = pad + (fs + 14 if d.get("title") else 0)
+    h = top + rh * len(rows) + pad
+    lab_w = w * 0.3
+    bw = w - lab_w - pad * 2 - 140
+    body = _t(pad, pad + fs, d["title"], fs, DIM_C) if d.get("title") else ""
+    for i, r in enumerate(rows):
+        y = top + i * rh
+        body += _t(pad, y + rh * 0.62, _fit(r[0], fs, lab_w - 10), fs, INK)
+        L = max(2.0, bw * r[1] / vmax)
+        body += f'<rect x="{pad + lab_w:.1f}" y="{y + rh * 0.2:.1f}" width="{L:.1f}" height="{rh * 0.56:.1f}" rx="3" fill="{BAR}"/>'
+        body += _t(pad + lab_w + L + 10, y + rh * 0.62, txt(r), fs, INK, mono=True)
+    return _frame(w, h, body, d.get("title", ""))
+
+
+def pairs(d: dict, thumb: bool, phone: bool = False) -> str:
+    """Before/after (or baseline/ours) per row: a grey bar over a blue bar, the exact values at their ends, and a key line."""
+    rows = d["rows"]
+    vmax = d.get("max") or max(max(r[1], r[2]) for r in rows) or 1
+    unit = d.get("unit", "")
+    a, b = d.get("a", "before"), d.get("b", "after")
+    if thumb or phone:
+        w, h, pad, fs = 480, 300, 18, 22
+        body = _t(pad, pad + fs * 0.85, _fit(d["title"], fs, w - 2 * pad), fs, DIM_C) if phone and d.get("title") else ""
+        ky = pad + fs * 0.85 + (fs + 12 if phone and d.get("title") else 0)
+        body += _key([(BAR_A, a), (BAR, b)], pad, ky, fs)
+        top = ky + 14
+        rh = 84.0 if phone else (h - top - pad) / len(rows)
+        if phone:
+            h = int(top + rh * len(rows) + pad)
+        for i, r in enumerate(rows):
+            y = top + i * rh
+            body += _t(pad, y + fs * 0.85, _fit(r[0], fs, w - 2 * pad), fs, INK)
+            bh = max(8.0, min(16.0, (rh - fs * 1.2) / 2 - 2))
+            for j, (v, col) in enumerate(((r[1], BAR_A), (r[2], BAR))):
+                L = max(3.0, (w - 2 * pad - 150) * v / vmax)
+                by = y + fs * 1.1 + j * (bh + 3)
+                body += f'<rect x="{pad}" y="{by:.1f}" width="{L:.1f}" height="{bh:.1f}" rx="2" fill="{col}"/>'
+                body += _t(pad + L + 8, by + bh * 0.95, f"{_num(v)} {unit}".strip(), min(fs * 0.85, bh + 6), INK if j else DIM, mono=True)
+        return _frame(w, h, body, d.get("title", ""))
+    w, fs, rh, pad = 960, 15, 52, 24
+    top = pad + (fs + 14 if d.get("title") else 0) + fs + 16
+    h = top + rh * len(rows) + pad
+    lab_w = w * 0.3
+    bw = w - lab_w - pad * 2 - 150
+    body = _t(pad, pad + fs, d["title"], fs, DIM_C) if d.get("title") else ""
+    body += _key([(BAR_A, a), (BAR, b)], pad, pad + (fs + 14 if d.get("title") else 0) + fs, fs - 1)
+    for i, r in enumerate(rows):
+        y = top + i * rh
+        body += _t(pad, y + rh * 0.55, _fit(r[0], fs, lab_w - 10), fs, INK)
+        for j, (v, col) in enumerate(((r[1], BAR_A), (r[2], BAR))):
+            L = max(2.0, bw * v / vmax)
+            by = y + rh * (0.12 + 0.4 * j)
+            body += f'<rect x="{pad + lab_w:.1f}" y="{by:.1f}" width="{L:.1f}" height="{rh * 0.32:.1f}" rx="3" fill="{col}"/>'
+            body += _t(pad + lab_w + L + 8, by + rh * 0.27, f"{_num(v)} {unit}".strip(), fs - 2, INK if j else DIM, mono=True)
+    return _frame(w, h, body, d.get("title", ""))
+
+
+
+
+def chart_svg(spec: dict, phone: bool = False) -> str:
+    kind = "bars" if "bars" in spec else "pairs"
+    return (bars if kind == "bars" else pairs)(spec[kind], False, phone=phone)
+
+
+def chart_html(spec: dict) -> str:
+    """The wide chart and its phone version; pair with the .rr-chart rules in rerun.css."""
+    return f'<div class="rr-chart"><div class="rr-chart-w">{chart_svg(spec)}</div><div class="rr-chart-p">{chart_svg(spec, phone=True)}</div></div>'

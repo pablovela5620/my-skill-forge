@@ -78,13 +78,20 @@ recording labelled as synthetic, or a drawn figure of the counts.
    - Use restrained but intentional styling. Avoid generic AI-looking decoration.
    - Dark by default. Use the light theme only when the user asks for it; never switch on your own, not even for print or a light source system.
 
-4. Build the file.
+4. Publish early, then keep publishing.
+   - As soon as a skeleton exists (title, section headings, the first figure or placeholders), publish it with the
+     work-in-progress badge (`.rr-wip`, see DESIGN.md) and send the user the URL. The URL stays the same from then on.
+   - Republish after each section or meaningful change, update the badge's "updated" time and "now" line, and run the
+     live-content check every time ([references/nas-publishing.md](references/nas-publishing.md)).
+   - The final publish removes the badge; check it with `check-artifact.mjs --final`.
+
+5. Build the file.
    - Use CSS custom properties for color, spacing, type, and radii.
    - Use readable measures for prose, usually 65-75 characters.
    - Use stable layout primitives: grid, flex, sticky sidebars, tabs, details/summary, tables, and inline SVG.
    - Add small JavaScript only when it materially improves use: search, filters, tabs, copy buttons, slide navigation, simple editors.
 
-5. Verify.
+6. Verify.
    - Run `node <skill-dir>/scripts/check-artifact.mjs <page.html or its published URL>`: it checks the four sizes below
      for console errors, overflow, broken media, small touch targets and reduced-motion loops, and saves a screenshot per
      section. Then read every screenshot; a PASS proves only what it measures. Details and pitfalls:

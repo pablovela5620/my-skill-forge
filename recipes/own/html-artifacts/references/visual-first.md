@@ -49,6 +49,8 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
 
 ## Drawn charts
 
+- Draw them with `assets/rerun_figure.py`: `chart_html({"bars": ...})` or `chart_html({"pairs": ...})` returns the wide SVG
+  and its phone version (the `.rr-chart` rules in `rerun.css` switch them).
 - Only real, measured numbers that the page cites a source for. Never invent or round away a value: show it as measured
   (18.98 s, not 19.0 s; 114.5 s, not 114 s; integers with thousands separators).
 - Write the exact value on each bar. A before/after (or baseline/ours) chart always carries a one-line key (grey = before,
@@ -93,7 +95,8 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
   section and navigation markers, status (always next to a word). They never replace a data figure; no icon where it
   adds nothing.
 - One icon set: Tabler Icons outline **3.50.0**, pinned because it is the set rerun.io's landing page ships. It is bundled
-  with this skill: `assets/tabler-outline/<name>.svg` (5,203 glyphs, MIT licence beside them). Copy the glyphs a page
+  with this skill: `assets/tabler-outline/<name>.svg` (5,203 glyphs, MIT licence beside them;
+  the package build adds the folder, so read it from the installed skill, not the recipe source). Copy the glyphs a page
   uses into it as inline SVG with `stroke-width="1.5"` and `stroke="currentColor"`; never load the set from the network.
   A 20 px glyph in a 38 px dark rounded tile, or 16-18 px inline.
 - Find a glyph: `grep -i <concept> assets/tabler-outline/INDEX.tsv` (name, then its categories), then look at the glyph

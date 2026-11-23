@@ -12,7 +12,9 @@
 //
 // Usage:
 //   node check-artifact.mjs page.html|URL [--out DIR] [--sizes 1400x1000,1133x744,744x1133,390x844]
-//        [--scenes "section[id]"] [--wait 900] [--steps steps.js]
+//        [--scenes "section[id]"] [--wait 900] [--steps steps.js] [--final]
+//
+// It reports whether the work-in-progress badge ([data-wip] or .rr-wip) is on the page; --final fails when it is.
 //
 // A published page (an https:// URL) is checked as served, so absolute paths such as the shared Rerun viewer
 // (/rerun-viewer/embed.js) resolve; a local file is served from its folder and absolute paths outside it 404.
@@ -35,7 +37,7 @@ import { basename, dirname, resolve } from "node:path";
 const SIZES = [[1400, 1000], [1133, 744], [744, 1133], [390, 844]];
 
 function parseArgs(argv) {
-  const opts = { out: null, sizes: SIZES, scenes: "section[id]", wait: 900, steps: null };
+  const opts = { out: null, sizes: SIZES, scenes: "section[id]", wait: 900, steps: null, final: false };
   const rest = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -44,6 +46,7 @@ function parseArgs(argv) {
     else if (a === "--scenes") opts.scenes = argv[++i];
     else if (a === "--wait") opts.wait = Number(argv[++i]);
     else if (a === "--steps") opts.steps = argv[++i];
+    else if (a === "--final") opts.final = true;
     else rest.push(a);
   }
   if (rest.length !== 1 || opts.sizes.some(([w, h]) => !(w > 0 && h > 0)) || !(opts.wait >= 0)) {
@@ -149,7 +152,8 @@ const RUN_CODE = `async page => {
     }).length, id);
     if (n) motion.push(id + ": " + n);
   }
-  return JSON.stringify({ width: W, errors, overflow, broken: [...broken], small: [...smalls], covered: [...coveredSet], motion, external: [...external], shots });
+  const wip = await page.evaluate(() => !!document.querySelector("[data-wip], .rr-wip"));
+  return JSON.stringify({ width: W, wip, errors, overflow, broken: [...broken], small: [...smalls], covered: [...coveredSet], motion, external: [...external], shots });
 }`;
 
 function runSize(opts, steps, [width, height]) {
@@ -202,9 +206,10 @@ for (const size of opts.sizes) {
     console.log(`\n== ${tag}  the page script or steps file threw:\n${r.failed}`);
     continue;
   }
+  if (opts.final && r.wip) { ok = false; console.log(`\n== ${tag}  the work-in-progress badge is still on the page (--final)`); }
   ok &&= !r.errors.length && !r.overflow.length && !r.broken.length && !r.small.length && !r.covered.length && !r.motion.length;
   console.log(`\n== ${tag}  errors ${r.errors.length} · overflow ${r.overflow.length} · broken media ${r.broken.length}` +
-    ` · small touch targets ${r.small.length} · covered controls ${r.covered.length} · reduced-motion loops ${r.motion.length} · external requests ${r.external.length}`);
+    ` · WIP badge ${r.wip ? "present" : "absent"} · small touch targets ${r.small.length} · covered controls ${r.covered.length} · reduced-motion loops ${r.motion.length} · external requests ${r.external.length}`);
   for (const e of r.errors) console.log(`   error: ${e}`);
   for (const o of r.overflow) console.log(`   overflow at ${o}`);
   for (const b of r.broken) console.log(`   broken: ${b}`);

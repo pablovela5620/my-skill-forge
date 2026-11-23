@@ -6,7 +6,7 @@ A page is done when a browser proves it and you have looked at the pixels, not w
 
 ```bash
 node <skill-dir>/scripts/check-artifact.mjs page.html|https://… [--out DIR] \
-  [--sizes 1400x1000,1133x744,744x1133,390x844] [--scenes "section[id]"] [--wait 900] [--steps steps.js]
+  [--sizes 1400x1000,1133x744,744x1133,390x844] [--scenes "section[id]"] [--wait 900] [--steps steps.js] [--final]
 ```
 
 `node` and `playwright-cli` come from the fleet manifest. For each size (default: the four fleet check sizes) the checker:
@@ -24,7 +24,8 @@ node <skill-dir>/scripts/check-artifact.mjs page.html|https://… [--out DIR] \
 6. Under reduced motion, revisits each scene and counts infinite animations still running.
 7. Lists requests that leave the page's origin (allowed only for an agreed embed).
 
-It exits 1 on console errors (a missing favicon counts: add `<link rel="icon" href="data:,">`), overflow, broken media,
+It also reports whether the work-in-progress badge is on the page; `--final` fails while it is (use it for the
+publish that marks the page done). It exits 1 on console errors (a missing favicon counts: add `<link rel="icon" href="data:,">`), overflow, broken media,
 small touch targets, covered controls, reduced-motion loops or a throwing steps file. Screenshots go to `/tmp/artifact-check/<page>/`.
 It cannot see JS-driven motion (`requestAnimationFrame` loops, video): assert those states in a steps file.
 

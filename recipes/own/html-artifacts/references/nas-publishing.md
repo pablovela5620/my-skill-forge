@@ -28,6 +28,10 @@
 - Before you publish, check the target with `ssh pablos-4800gt test -e <path>`: do not overwrite another artifact unless
   asked; on a collision add a short ID to the name. After publishing, prove the served file is yours:
   `curl -fsS <url> | sha256sum` against `sha256sum <local file>`, then run the checker on the URL.
+- Publish iteratively: the first publish happens as soon as a skeleton exists (with the work-in-progress badge), then
+  after every section or meaningful change, with the live-content check below after each one; the final publish
+  removes the badge. Republishing your own page while it is in progress is expected; overwriting a finished page or
+  another agent's page still needs the user's OK.
 - Check the content the user will see, not only a 200: grep the live page for a string only your change contains.
   Browsers and Tailscale Serve can show a cached copy; when the change is visual, send a cache-busting link
   (`https://…/<page>.html?v=<short-hash>`) so the user does not judge the old version.

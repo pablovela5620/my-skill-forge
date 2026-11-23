@@ -181,6 +181,12 @@ components:
     backgroundColor: "{colors.figure}"
     textColor: "{colors.api}"
     typography: "{typography.code}"
+  wip-badge:
+    backgroundColor: "{colors.bg}"
+    textColor: "{colors.warn}"
+    typography: "{typography.label-caps}"
+    rounded: "{rounded.pill}"
+    padding: 6px 12px
   status-good:
     backgroundColor: "{colors.bg}"
     textColor: "{colors.good}"
@@ -339,6 +345,11 @@ Flat. No shadows, no glass, no glow. Depth comes from panel greys (`panel`, `pan
 - **Table:** 1 px row rules, no zebra; mono uppercase header in `dim`; numbers right-aligned, tabular.
 - **Callout:** `panel` with a 2 px left rule in one data or status colour.
 - **Code block:** `panel`, 8 px, 1 px border, rerun.io token colours.
+- **Work-in-progress badge** (`.rr-wip`, `data-wip`): a dashed `warn` pill at the very top of the page, in the normal
+  flow (never fixed, so it covers nothing), visible without scrolling at every size: the Tabler `progress` glyph, the
+  words "Work in progress", "updated <time>" (UTC, or the reader's zone when a script localises it), and optionally one
+  line on what is being worked on now. Static glyph; animate only under `prefers-reduced-motion: no-preference`.
+  Remove it in the final publish.
 
 ## Diagrams
 
