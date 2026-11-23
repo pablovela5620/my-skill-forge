@@ -1,6 +1,6 @@
 ---
 name: html-artifacts
-description: HTML artifacts, visual-first pages in the Rerun house style. Use when a result reads better in a browser than in markdown (explainer or visual guide, report or PR review, plan or comparison, deck, small tool), or when a page goes to the NAS or embeds a Rerun recording.
+description: HTML artifacts, visual-first pages in the Rerun house style. Use when a result reads better in a browser than in markdown (explainer or visual guide, report or PR review, plan or comparison, deck, small tool), when a page goes to the NAS or embeds a Rerun recording, or to keep a live progress page for long-running or overnight work.
 license: BSD-3-Clause
 compatibility: The checker (scripts/check-artifact.mjs) needs node and playwright-cli on PATH (both in the fleet manifest).
 ---
@@ -30,6 +30,14 @@ A page the user opens, refreshes while you work, and decides from. Three leading
   [assets/rerun.css](assets/rerun.css). Use another style only when the user asks for it or the page belongs to
   another brand.
 - **"Presentation"** means this kind of page. Build slides only when the user asks for slides.
+
+## Live progress page
+
+For a task that runs overnight, over about an hour, or through workers, the page is rendered, not written: keep a
+state file and render it with [assets/progress/progress_page.py](assets/progress/progress_page.py), as
+[references/progress-pages.md](references/progress-pages.md) describes. Publish at each stage change or meaningful
+result; when the task ends, mark it finished, render, and run `check-artifact.mjs --final`. The steps below are for
+every other page.
 
 ## Steps
 
