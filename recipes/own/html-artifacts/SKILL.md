@@ -36,7 +36,7 @@ A page the user opens, refreshes while you work, and decides from. Three leading
 For a task that runs overnight, over about an hour, or through workers, the page is rendered, not written: keep a
 state file and render it with [assets/progress/progress_page.py](assets/progress/progress_page.py), as
 [references/progress-pages.md](references/progress-pages.md) describes. Publish at each stage change or meaningful
-result; when the task ends, mark it finished, render, and run `check-artifact.mjs --final`. The steps below are for
+result, and at least every 15 minutes; when the task ends, mark it finished, render, and run `check-artifact.mjs --final`. The steps below are for
 every other page.
 
 ## Steps

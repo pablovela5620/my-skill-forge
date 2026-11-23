@@ -57,8 +57,9 @@ the newest evidence per stage; the newest 12 events, older ones folded. A finish
 
 ## How often
 
-- Update at each stage change and at each meaningful result: a new measurement, a picture that shows progress or a
-  failure, a decision, a new ask. Not on a timer for its own sake.
+- Update at each stage change and at each meaningful result (a new measurement, a picture that shows progress or a
+  failure, a decision, a new ask), and at least every 15 minutes while the task runs, so the badge's time is never
+  older than that. A quiet interval still gets an update: the current stage and what is running now.
 - After each update: render, publish, and run the live-content check ([nas-publishing.md](nas-publishing.md)).
 - Raise a "needs you" item as soon as you are blocked on the user, and clear it when answered.
 - When the task ends: `finish`, render, publish, then `check-artifact.mjs --final <url>`.
