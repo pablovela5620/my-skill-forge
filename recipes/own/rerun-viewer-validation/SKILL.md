@@ -1,7 +1,7 @@
 ---
 name: rerun-viewer-validation
-description: Rerun pixels and Rerun media in pages. Use when a recording, blueprint or Rerun rendering must be proven with screenshots, when a recording becomes stills, a video or an embed in a page (medium, size budget, slicing, versions), or when a web viewer or gradio surface needs browser checks.
-compatibility: Needs the rerun binary (0.42+, with viewer-mcp) and ffmpeg (libx264, libsvtav1) on PATH, and a GPU for the headless viewer. The slice check needs the rerun SDK; browser checks need playwright-cli or Chrome.
+description: Rerun pixels and Rerun media in pages and public shares. Use when a recording, blueprint or Rerun rendering must be proven with screenshots, when a recording or catalog segment becomes stills, a video, an embed in a page or a public app.rerun.io link (medium, size budget, slicing, versions), or when a web viewer or gradio surface needs browser checks.
+compatibility: Needs the rerun binary (0.42+, with viewer-mcp) and ffmpeg (libx264, libsvtav1) on PATH, and a GPU for the headless viewer. The slice check and the catalog export need the rerun SDK; browser checks need playwright-cli or Chrome.
 ---
 
 # Rerun viewer validation
@@ -76,15 +76,17 @@ seconds.
 **Done when** you have opened and looked at every still and 2-3 frames of every video (`--keep-frames`), and each
 shows the data, not an empty or loading view.
 
-### 4. Put a recording in a page
+### 4. Put a recording in a page or a public share
 
-Follow [references/pages.md](references/pages.md): the medium (still, video or viewer), the size budget for a 10 Mbps
-reader, the slice (`rerun rrd split` + `rerun rrd optimize` + `scripts/rrd_check.py slice`), the size gate
-(`scripts/rrd_check.py gate`), versions in pages, and the embed. Browser checks of the result:
-[references/web.md](references/web.md).
+Follow [references/pages.md](references/pages.md): the source (a file, or a catalog segment exported with
+`scripts/catalog_export.py`), the medium (still, video or viewer), the size budget for a 10 Mbps reader, the slice
+(`rerun rrd split` + `rerun rrd optimize` + `scripts/rrd_check.py slice`), the size gate (`scripts/rrd_check.py
+gate`), versions in pages, the embed, and the public share (Hugging Face and an app.rerun.io link). Browser checks of
+the result: [references/web.md](references/web.md).
 
 **Done when** `rrd_check.py gate` passes (or prints an `--allow-large` reason), the slice check passes, and the
-embed passes the browser checks at the four check sizes.
+embed passes the browser checks at the four check sizes; for a public share, Pablo has the checked file, the
+`hf upload` command and the link.
 
 ### 5. Record the evidence
 

@@ -1,8 +1,41 @@
-# Rerun recordings in pages
+# Rerun recordings in pages and public shares
 
-The single source for Rerun media in HTML pages: the medium, the budget, the slice, versions, and the embed. The
-`html-artifacts` skill owns the page itself and points here. Design and measurements:
+The single source for Rerun media outside the viewer: the source, the medium, the budget, the slice, versions, the
+embed and the public share. The `html-artifacts` skill owns the page itself and points here. Design and measurements:
 `https://artifacts.ilish-ruler.ts.net/rerun-embed/plan/`.
+
+| Destination | Host | Opens with | Follow |
+|---|---|---|---|
+| Private page | NAS, served by the artifact host | `embed.js` (`.rrd` and `.rbl` side by side) | Source, Medium, Budget, Slice, The embed |
+| Public link | A Hugging Face dataset | `app.rerun.io/version/<v>/index.html?url=` (one `+rbl.rrd`) | Source, Budget, Slice, Public share |
+| Both | Both | Both | Export and slice once; the page takes the slice and `.rbl`, the link the joined file |
+
+## Source: a file or a catalog segment
+
+| Source | First step | Blueprint |
+|---|---|---|
+| A local `.rrd`, with or without an `.rbl` | None | The `.rbl` applies by application id. Other ids: `rerun rrd route --application-id <rrd app id> in.rbl -o run.rbl` |
+| A segment of a catalog dataset (`rerun server`, layers) | `scripts/catalog_export.py` | The dataset's default blueprint, routed to the export's application id |
+
+Export a catalog segment to files first: a page or a link holds files, and dataset ids change on every server
+restart.
+
+```sh
+python scripts/catalog_export.py --catalog rerun+http://127.0.0.1:51234 --dataset <name> --segment <id> --out work/run
+```
+
+- The server joins the layers (`base`, `gt`, …) into one recording store. A dataforge base layer file also embeds its
+  own blueprint store (application id `dataforge`); the export leaves it out. `rerun rrd route` or `merge` of the layer
+  files keeps that store, and `merge` keeps one recording per application id.
+- The export carries the exporting SDK's version in its header (0.42.0 from 0.37.0 layer files): check the export
+  with `rrd_check.py version`.
+- `rerun --save <catalog url>` writes no recording: the stream carries manifests a file cannot hold (`Received a
+  RrdManifest which can't be stored in a file`), so the file holds the blueprint only.
+- The default blueprint is read from its `file://` storage URL: run the export on the catalog's host, or pass
+  `--blueprint`.
+
+**Done when** the script prints the layer list, `run.rrd` holds one recording store and `run.rbl` one blueprint store
+with the same application id.
 
 ## Medium: still, video or viewer
 
@@ -54,8 +87,10 @@ python scripts/rrd_check.py slice --full run.rrd --slice run.slice.rrd
 - Times are integers in the timeline's unit (nanoseconds for a duration timeline); `10s` is refused.
 - Kept: the blueprint store, all three parts; video cuts move back to a keyframe (`/cam/dino_pca` 10 s → 9.067 s);
   the latest transforms and pinholes from before the cut.
-- Lost: one static `Pinhole` in all parts. When `rrd_check.py slice` reports missing static entities, put them back
-  first in the stream, then optimize:
+- Lost: static archetype components such as `Pinhole` and `Transform3D`, in every part; static custom components on
+  the same entities stay, so the entity paths survive. On the msd-odyssey export (0.42.0) the raw part lost all 18
+  camera, IMU and magnetometer extrinsics and intrinsics: the 3D views showed error icons and no camera frusta. When
+  `rrd_check.py slice` reports missing static components, put them back first in the stream, then optimize:
   `python scripts/rrd_check.py restore --full run.rrd --slice parts/run_10s__14s.rrd --out static.rrd`,
   `rerun rrd merge static.rrd parts/run_10s__14s.rrd -o merged.rrd`, `rerun rrd optimize merged.rrd -o run.slice.rrd`.
 - A static `Mesh3D` is cut into one chunk per component; the viewer then shows "Failed to load mesh … (2 vs 0)" once
@@ -98,6 +133,50 @@ python scripts/rrd_to_video.py --rrd run.rrd --rbl run.rbl --embed site/run --re
 
 Output: `run.av1.mp4` (SVT-AV1, screen content), `run.h264.mp4` (960 px) and `run.poster.jpg`. A 4 s window gives
 60 frames at real speed: 0.6 MB AV1, 0.3 MB H.264, 0.14 MB poster on the metrictrail recording.
+
+## Public share: Hugging Face and an app.rerun.io link
+
+A public share is one `<name>+rbl.rrd` (the `+rbl` says the blueprint is inside) in a public Hugging Face dataset,
+opened by a link to the hosted viewer. Hugging Face answers with `Access-Control-Allow-Origin: *`, so app.rerun.io can
+fetch the file.
+
+- **Public data only.** Pablo approves each upload: prepare the file and the exact `hf upload` command, then ask.
+  Private and restricted datasets (every `bhuman-*` dataset, agent traces) stay private, slices included.
+- **Public URLs only in the link.** The app build sends the page URL, `?url=` included, to `tel.rerun.io`. A tailnet
+  URL also fails there (no CORS for app.rerun.io, Chrome's Local Network Access prompt), so check the file on the
+  artifact host's own viewer before the upload.
+
+1. **Slice and gate** as for a page (Slice; the joined file has the 25 MB slice budget). A whole recording under
+   25 MB needs no slice.
+2. **Join** the blueprint and, for a clip, a time panel that loops and starts collapsed. The fragment's newer rows
+   replace the blueprint's time panel; `auto_layout=False, auto_views=False` keep its layout.
+
+   ```sh
+   rerun rrd print run.rbl | grep -m1 -A3 "store_id: StoreId("   # Blueprint, "<app id>", "<blueprint id>"
+   python -c "import rerun.blueprint as rrb; rrb.Blueprint(rrb.TimePanel(loop_mode='All', state='collapsed'), auto_layout=False, auto_views=False).save('<app id>', 'loop-src.rbl')"
+   rerun rrd route --recording-id <blueprint id> loop-src.rbl -o loop.rbl
+   rerun rrd merge run.slice.rrd run.rbl loop.rbl -o <name>+rbl.rrd
+   rerun rrd verify <name>+rbl.rrd
+   python scripts/rrd_check.py version <name>+rbl.rrd && python scripts/rrd_check.py gate --slice <name>+rbl.rrd
+   ```
+
+3. **Check before the upload.** A still of the joined file with no `.rbl` (`scripts/stills.py --rrd <name>+rbl.rrd`),
+   then the file on the artifact host, in GPU Chrome ([web.md](web.md)): copy it to a NAS folder and open
+   `https://artifacts.ilish-ruler.ts.net/rerun-viewer/<v>/index.html?url=<percent-encoded artifact URL>`.
+4. **Ask, upload, link.** The command for Pablo:
+
+   ```sh
+   hf upload <user>/<dataset> <name>+rbl.rrd <name>+rbl.rrd --repo-type dataset
+   ```
+
+   The link is `https://app.rerun.io/version/<v>/index.html?url=<encoded>`. `<encoded>` is the percent-encoded
+   `https://huggingface.co/datasets/<user>/<dataset>/resolve/main/<name>+rbl.rrd` (`+` becomes `%2B`); `<v>` is the
+   writer version or newer. To fix a file, upload it again under the same name; the link stays.
+
+**Done when** the still and the artifact-host viewer show the blueprint's layout with data and video pixels, the
+cursor wraps at the clip's end, the console has only the expected noise ([web.md](web.md)), the gate passes, and
+Pablo has the file, the command and the link. After his approval and the upload, the app.rerun.io link passes the same
+browser check.
 
 ## Hosting facts
 

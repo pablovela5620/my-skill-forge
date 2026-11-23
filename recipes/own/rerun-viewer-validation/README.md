@@ -14,6 +14,13 @@ skill.
 - `run:` carries real dependencies (ffmpeg); `run_constraints:` expresses the
   Rerun compatibility floor without forcing an install.
 
+## History
+
+- Build 4 folded in the draft `rerun-rrd-publish` skill (my-skill-forge PR #46, Rerun 0.37): the catalog segment
+  export became `scripts/catalog_export.py`, the Hugging Face upload and app.rerun.io link became the "Public share"
+  section of `references/pages.md`. Its join and trim script was dropped: `rrd split`, `rrd_check.py restore` and
+  `rrd merge` do the same on 0.42.
+
 ## Open investigations
 
 ### Large-recording embeds via OSS catalog server (blocked upstream, 2026-07-06)
