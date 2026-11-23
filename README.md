@@ -14,8 +14,7 @@ For more background on why distributing agent skills through package managers ma
 
 The [Prefix channel](https://prefix.dev/channels/my-skill-forge) is the
 published package catalog. Source recipes and their pinned upstreams live in
-[`recipes/`](recipes/). Recipe metadata is canonical; this README does not copy
-the catalog.
+[`recipes/`](recipes/); [`AGENTS.md`](AGENTS.md) covers adding and updating them.
 
 ## Usage
 
