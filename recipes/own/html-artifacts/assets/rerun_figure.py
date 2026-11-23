@@ -353,6 +353,22 @@ def _wrap(s: str, size: float, width: float) -> list[str]:
     return out + ([cur] if cur else [])
 
 
+def _title(s: str, x: float, y: float, size: float, width: float) -> tuple[str, float]:
+    """A chart title as mono uppercase label lines, wrapped to the width, never cut. Returns the SVG and the extra
+    height the lines after the first take."""
+    n = max(8, int(width / (size * 0.62)))  # mono: about 0.6 em per character
+    lines, cur = [], ""
+    for word in s.split():
+        if cur and len(cur) + 1 + len(word) > n:
+            lines.append(cur)
+            cur = word
+        else:
+            cur = f"{cur} {word}".strip()
+    lines += [cur] if cur else []
+    step = size * 1.3
+    return "".join(_t(x, y + i * step, line, size, DIM_C, mono=True) for i, line in enumerate(lines)), step * (len(lines) - 1)
+
+
 def _t(x, y, s, size, fill=INK, anchor="start", weight=400, mono=False):
     return (f'<text x="{x:.1f}" y="{y:.1f}" font-size="{size}" fill="{fill}" text-anchor="{anchor}" font-weight="{weight}" '
             f'{MONO_ATTR if mono else FONT}>{e(s)}</text>')
@@ -382,15 +398,16 @@ def bars(d: dict, thumb: bool, phone: bool = False) -> str:
     if thumb or phone:
         w, h, pad, fs = 480, 300, 20, 24
         key = d.get("key") or (d.get("title") if phone else None)
-        top = pad + (fs + 12 if key else 0)
+        lab = _caps(key) if key and key == d.get("title") else (key or "").upper()
+        head, extra = _title(lab, pad, pad + fs * 0.8, fs * 0.7, w - 2 * pad) if key else ("", 0.0)
+        top = pad + (fs + 12 + extra if key else 0)
         if phone:
             rh = 66.0
             h = int(top + rh * len(rows) + pad)
         else:
             rh = min(78.0, (h - top - pad) / len(rows))
             top += (h - top - pad - rh * len(rows)) / 2
-        lab = _caps(key) if key and key == d.get("title") else (key or "").upper()
-        body = _t(pad, pad + fs * 0.8, _fit(lab, fs * 0.7, w - 2 * pad), fs * 0.7, DIM_C, mono=True) if key else ""
+        body = head
         for i, r in enumerate(rows):
             y = top + i * rh
             body += _t(pad, y + fs * 0.9, _fit(r[0], fs, w - 2 * pad), fs, INK)
@@ -402,11 +419,11 @@ def bars(d: dict, thumb: bool, phone: bool = False) -> str:
             body += _t(pad + L + 10, by + bh * 0.85, txt(r), fs * 0.92, INK, mono=True)
         return _frame(w, h, body, d.get("title", ""))
     w, fs, rh, pad = 960, 15, 34, 24
-    top = pad + (fs + 14 if d.get("title") else 0)
+    body, extra = _title(_caps(d["title"]), pad, pad + fs, fs - 2, w - 2 * pad) if d.get("title") else ("", 0.0)
+    top = pad + (fs + 14 + extra if d.get("title") else 0)
     h = top + rh * len(rows) + pad
     lab_w = w * 0.3
     bw = w - lab_w - pad * 2 - 140
-    body = _t(pad, pad + fs, _caps(d["title"]), fs - 2, DIM_C, mono=True) if d.get("title") else ""
     for i, r in enumerate(rows):
         y = top + i * rh
         body += _t(pad, y + rh * 0.62, _fit(r[0], fs, lab_w - 10), fs, INK)
@@ -424,8 +441,9 @@ def pairs(d: dict, thumb: bool, phone: bool = False) -> str:
     a, b = d.get("a", "before"), d.get("b", "after")
     if thumb or phone:
         w, h, pad, fs = 480, 300, 18, 22
-        body = _t(pad, pad + fs * 0.85, _fit(_caps(d["title"]), fs * 0.7, w - 2 * pad), fs * 0.7, DIM_C, mono=True) if phone and d.get("title") else ""
-        ky = pad + fs * 0.85 + (fs + 12 if phone and d.get("title") else 0)
+        titled = phone and bool(d.get("title"))
+        body, extra = _title(_caps(d["title"]), pad, pad + fs * 0.85, fs * 0.7, w - 2 * pad) if titled else ("", 0.0)
+        ky = pad + fs * 0.85 + (fs + 12 + extra if titled else 0)
         body += _key([(BAR_A, a), (BAR, b)], pad, ky, fs)
         top = ky + 14
         rh = 84.0 if phone else (h - top - pad) / len(rows)
@@ -442,12 +460,13 @@ def pairs(d: dict, thumb: bool, phone: bool = False) -> str:
                 body += _t(pad + L + 8, by + bh * 0.95, f"{_num(v)} {unit}".strip(), min(fs * 0.85, bh + 6), INK if j else DIM, mono=True)
         return _frame(w, h, body, d.get("title", ""))
     w, fs, rh, pad = 960, 15, 52, 24
-    top = pad + (fs + 14 if d.get("title") else 0) + fs + 16
+    body, extra = _title(_caps(d["title"]), pad, pad + fs, fs - 2, w - 2 * pad) if d.get("title") else ("", 0.0)
+    head = pad + (fs + 14 + extra if d.get("title") else 0)
+    top = head + fs + 16
     h = top + rh * len(rows) + pad
     lab_w = w * 0.3
     bw = w - lab_w - pad * 2 - 150
-    body = _t(pad, pad + fs, _caps(d["title"]), fs - 2, DIM_C, mono=True) if d.get("title") else ""
-    body += _key([(BAR_A, a), (BAR, b)], pad, pad + (fs + 14 if d.get("title") else 0) + fs, fs - 1)
+    body += _key([(BAR_A, a), (BAR, b)], pad, head + fs, fs - 1)
     for i, r in enumerate(rows):
         y = top + i * rh
         body += _t(pad, y + rh * 0.55, _fit(r[0], fs, lab_w - 10), fs, INK)

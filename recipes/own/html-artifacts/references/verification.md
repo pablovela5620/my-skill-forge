@@ -6,7 +6,7 @@ A page is done when a browser proves it and you have looked at the pixels, not w
 
 ```bash
 node <skill-dir>/scripts/check-artifact.mjs page.html|https://… [--out DIR] \
-  [--sizes 1400x1000,1133x744,744x1133,390x844] [--scenes "section[id]"] [--wait 900] [--steps steps.js] [--final]
+  [--sizes 1400x1000,1133x744,744x1133,390x844] [--scenes "section[id]"] [--wait 900] [--steps steps.js] [--final] [--full]
 ```
 
 `node` and `playwright-cli` come from the fleet manifest. For each size (default: the four fleet check sizes) the checker:
@@ -23,6 +23,11 @@ node <skill-dir>/scripts/check-artifact.mjs page.html|https://… [--out DIR] \
    absolute layer of another element (a close button, a toolbar, a viewer overlay).
 6. Under reduced motion, revisits each scene and counts infinite animations still running.
 7. Lists requests that leave the page's origin (allowed only for an agreed embed).
+
+`--full` also saves each scene whole (`<W>x<H>-<id>-full.png`), including the part below the fold; use it to read
+figures low in a long section without a steps file. The checker also prints house-style notes (DESIGN.md): a body
+that is not `#000`, labels, table headers or summaries that are not mono uppercase, stat values in mono, chart titles
+that are not mono, italic text, box shadows and gradients. Notes do not fail the check; read and fix them.
 
 It also reports whether the work-in-progress badge is on the page; `--final` fails while it is (use it for the
 publish that marks the page done). It exits 1 on console errors (a missing favicon counts: add `<link rel="icon" href="data:,">`), overflow, broken media,

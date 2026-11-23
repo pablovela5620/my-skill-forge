@@ -84,6 +84,12 @@ Useful additions:
 - Inline SVG charts.
 - Severity bands.
 - Print-friendly CSS.
+- One page-wide colour key near the top when the report compares the same methods in many charts (method A, method
+  B, paper or reference, new work), and the same colours in every chart, so a reader learns them once. The Hexels
+  report (2026-10-29) did this; its rebuild gave each chart its own two-colour key and read less well.
+- A "Copy the summary as Markdown" button at the end: the headline numbers and decisions as a few lines the user
+  pastes into a PR, chat or notes.
+- For a long or overnight task, use a live progress page instead ([progress-pages.md](progress-pages.md)).
 
 ## Incident Timeline
 
