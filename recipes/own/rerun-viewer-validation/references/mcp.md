@@ -1,74 +1,62 @@
-# Viewer MCP: schemas and recovery
+# Viewer MCP: tools, settle and recovery
 
-## Discover and connect
+Use the MCP for UI state (clicks, panels, selection, reading widgets). For stills and videos use `scripts/stills.py`
+and `scripts/rrd_to_video.py`: they drive the same tools in one session, without an agent turn per picture.
 
-Run `tools/list` against the actual project's `rerun viewer-mcp` binary. Tool names and argument shapes vary by release; do not infer them from the installed skill version. The examples below were checked against 0.37.0 and 0.38.1. Use the returned schema if it differs.
+## Get the tools
 
-Spawn a viewer separately with `rerun --headless --port <port>`. You own that process: stop it as a process group when done (see Lifecycle gotchas in SKILL.md). Its control endpoint is `http://127.0.0.1:<port>` from the MCP host. The SDK sink `rerun+http://…/proxy` and the web viewer port are different endpoints. Over SSH, run MCP beside the viewer or use a tunnel to the control port.
+1. `mcp__rerun__*` tools in your surface: use them.
+2. Otherwise drive `rerun viewer-mcp` over stdio yourself (newline-delimited JSON-RPC: `initialize`,
+   `notifications/initialized`, `tools/call`); `McpStdioClient` in `scripts/headless_viewer.py` does this.
+3. To register it for later sessions: `claude mcp add rerun -- <env>/bin/rerun viewer-mcp`. Crossing to another
+   agent CLI needs the user's OK.
 
-Each MCP process has one viewer connection. A legacy disconnect can return `not connected` on a fresh process; treat that specific response as already disconnected and continue to connect. Other errors still need inspection. Disconnect, then connect before opening data; repeat after reconnecting a session, changing ports, or restarting the viewer. On newer servers a repeated connect can reuse the connection, but disconnect → connect also works with legacy servers.
+Run `tools/list` on the binary you use; names below are 0.42.
 
-| Purpose | Legacy schema (0.37.0) | New schema (0.38.1) |
-|---|---|---|
-| Disconnect | `disconnect {}` | `rerun_disconnect {}` |
-| Connect | `connect {"endpoint":"http://127.0.0.1:<port>"}` | `rerun_connect`, same arguments |
-| Open | `open_url {"url":"/absolute/recording.rrd"}` | `rerun_open_url`, same arguments |
-| State | `viewer_state {}` | `rerun_get_viewer_state {}` |
-| Time cursor | `set_time {"time":42,"timeline":"frame","play":false}` | `rerun_set_time_cursor {"time":{"time":42},"timeline":{"name":"frame"},"play":false}` |
+## Connect and load
 
-Optional `store_id` is an object in the legacy schema and an opaque string in the new schema. Copy it from state when selecting among recordings. Copy timeline names and ranges from state too: legacy timelines expose `timeline`, `type`, `min`, `max`; newer timelines expose `timeline.name`, `time_type`, `time_range.start/end`. Sequence time is an index; duration and timestamp time is nanoseconds.
+The MCP never starts a viewer. Start one (`headless_viewer.py start`), then `rerun_connect
+{"endpoint": "http://127.0.0.1:<port>"}`. One MCP process holds one connection; after a viewer restart or a port
+change, `rerun_disconnect`, then connect again.
 
-## Loaded: gate actions on recording state
+Open with `rerun_open {"url": "<http url or path>", "navigate": false}`. **Loaded** means `rerun_get_state` lists the
+intended recording, `loading` is empty, and the timeline you need has a `time_range`. Poll with a deadline; an
+accepted open is not a loaded recording. A local `.rrd` opened by path gets a random application id, so a `.rbl`
+opened later does not apply: serve files over `http://127.0.0.1` (the scripts do) or pass both on the viewer's
+command line.
 
-After opening, poll state with a deadline (for example 30 seconds, adjusted for known large inputs). **Loaded** means the intended recording is listed and its selected timeline has a range. Empty recordings, an empty tree, or “no active recording” mean this gate has not passed. On deadline, inspect the open response, viewer stderr, and available viewer logs; stop and report the missing condition. Do not keep issuing time or UI calls against an empty viewer.
-
-## Locator: observe → act → verify
-
-1. Query the current tree and use the target's fresh `id`.
-2. If needed, use `role` plus one observed text predicate (`label_contains`, `value_contains`, or `content_contains`). Narrow ambiguous matches before acting.
-3. Use `pos: {"x":100,"y":200}` only when the tree cannot identify the target. Coordinates are logical points; at `pixels_per_point: 1.0` they match screenshot pixels.
-
-After a click, check `clicked_id` and verify the intended state change. `clicked_id: null` does not prove a target was activated. Refresh the tree after layout changes; stale IDs and guessed labels lead to misses.
-
-Common UI arguments (consult `tools/list` for the rest):
-
-| Tool | Arguments to provide |
+| Purpose | 0.42 tool and arguments |
 |---|---|
-| `query_tree` | Optional `role`, one text predicate, `visible_only`, `limit` |
-| `get_node` | Required `id` |
-| `click` | A locator or `pos` object |
-| `scroll` | Required `delta: {"x":0,"y":300}`; optional target locator |
-| `press_key` | Required `key` |
-| `type_text` | Required `text`; target locator or an already focused widget |
-| `resize` | Required integer `width`, `height` in logical points |
-| `wait_for` | A tree filter, nonzero `min_steps`, or both |
-| `batch` | Required `actions`, each with `name` and optional `args` |
-| `screenshot` | Optional `pixels_per_point` (default 1.0), `save_path` |
+| State | `rerun_get_state {}`: `recordings[].store_id`, `timelines[].timeline.name`, `time_type`, `time_range.start/end` (a zero start is omitted), `views[].view_id`, `loading` |
+| Time cursor | `rerun_set_time_cursor {"store_id": …, "timeline": {"name": "frame"}, "time": {"time": 42}, "play_state": "PLAY_STATE_PAUSED"}` (sequence: index; duration and timestamp: nanoseconds) |
+| Screenshot to a file | `rerun_save_screenshot {"file_path": "/abs/x.png", "max_size": 0, "view_id": …}`: written on the viewer host; `mkdir -p` the folder first; returns metadata, not the image |
+| Screenshot inline | `screenshot {"pixels_per_point": 1.0}`: returns PNG content |
+| Blueprint | `rerun_get_blueprint`, `rerun_set_blueprint`; view ids change when a blueprint loads, so read them again |
+| Logs | `rerun_get_logs` |
 
-## Settle: rendering frames versus widget presence
+## Settle: `wait_for`
 
-**Settle** before every screenshot, after a load, time change, UI action, or failed capture: `wait_for {"min_steps":3}`. This advances rendering; inspect the image to decide whether slow video or overlays need more settling.
+`wait_for` returns when at least `min_steps` frames have rendered and, with a filter, at least `min_matches` visible
+widgets match it. It needs a filter or a nonzero `min_steps`.
 
-For **presence**, use a role/text filter observed in `query_tree`, optionally with `min_steps`. `wait_for` sees accessible widget labels and values, not rendered pixels. A scene title or video timeline name visible in an image may not be accessible text. Check that returned `matched` is nonempty when presence was requested; `ok: true` alone is insufficient. A filter-free settle call need not return matches. Provide `timeout_secs` when the default five seconds is unsuitable.
+- To let frames render (after a load, a time change, a click): `{"min_steps": 3}`. This is the pause; it ends as soon
+  as the frames are drawn.
+- To wait for a widget: a filter you saw in `widget_tree` (`content_contains`, `label_contains`, `value_contains`,
+  `role`), with `timeout_secs` that fits the scene, and check that the result's `matched` is nonempty.
+- `wait_for` sees widget text, not rendered pixels: a title drawn inside a view is not a widget.
 
-`batch` accepts only egui UI tools. Timeline, recording, connection, and viewer-state calls belong outside it, regardless of their version-specific names. After observing a real widget ID, an egui batch can be:
+## UI actions
 
-```json
-{"actions":[
-  {"name":"click","args":{"id":"<fresh-id-from-query_tree>"}},
-  {"name":"wait_for","args":{"min_steps":3}},
-  {"name":"screenshot","args":{"pixels_per_point":1.0}}
-]}
-```
+Read `widget_tree`, act on a fresh `id` (or a `role` plus one text filter; `pos` in logical points only when the tree
+cannot name the target), then verify the state changed: `clicked_id: null` proves nothing. `batch` takes only egui
+tools (`click`, `wait_for`, `screenshot`, …); time, recording and connection calls go outside it. A batch stops at
+the first error, after earlier actions took effect.
 
-Inspect each action result. A batch stops on the first error; an earlier action may already have taken effect.
+## Recovery
 
-## Capture and bounded recovery
-
-The egui `screenshot` tool returns inline PNG content; optional `save_path` also writes on the **MCP server host**. Newer servers additionally offer `rerun_save_screenshot {"file_path":"/absolute/capture.png"}` with optional `view_id`; this writes on the **viewer host** and returns metadata, not inline image proof. Copy/read the saved image and inspect it. Use a visible view ID from state for per-view captures.
-
-Allow a realistic RPC timeout (for example 90 seconds); complex scenes have taken over a minute. A timed-out capture may still be rendering. Settle, then retry once. If it fails again, inspect viewer stderr/logs and rendering state instead of repeating the same call. Headed windows must remain visible; headless avoids occlusion. Use `rerun_get_viewer_logs` if discovery lists it, with its discovered schema.
-
-For TCP failures, verify the viewer process and control port. Restart only a viewer owned by this validation, then disconnect → connect and pass the loaded gate again. Do not terminate shared catalog servers or unrelated viewers.
-
-For gRPC image-size errors, set `pixels_per_point: 1.0` or resize the viewport smaller, settle, and retry once. Preserve the chosen viewport for subsequent comparisons. Record the versions, endpoint, timeline/range, settle settings, evidence paths, and any failed condition in the validation notes.
+- Give a screenshot up to 90 s; a timed-out one may still be rendering. Settle with `min_steps`, retry once, then read
+  `rerun_get_logs` and the viewer log instead of repeating.
+- TCP errors: check the viewer process and its port; restart only a viewer you own, connect again, and pass the
+  loaded check again. "The viewer did not paint a frame" on connect means the viewer has no GPU or has stalled: check
+  the adapter line (SKILL.md step 2).
+- gRPC image-size errors: `pixels_per_point: 1.0` or a smaller window, settle, retry once.

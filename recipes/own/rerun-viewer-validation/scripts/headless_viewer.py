@@ -1,7 +1,9 @@
 """Start and stop a headless Rerun viewer, and talk to it through `rerun viewer-mcp`.
 
 One helper for every branch that needs a native viewer (rrd_to_video.py imports it):
-- picks a free local port (never 9876, Rerun's default) and retries if another process steals it,
+- picks a free local port (never 9876, Rerun's default), holds an exclusive lock file for it while the viewer
+  runs (/tmp/rerun-viewer-ports/<port>.lock), and retries if another process steals it. The lock comes from the
+  monorepo guide's kit/rrview.py: parallel captures can no longer drive each other's viewer,
 - waits until the viewer's port answers, and fails with the viewer's own log if it dies,
 - runs `viewer-mcp` from the same rerun binary and connects it with `endpoint=`,
 - stops the viewer by process group (the PyPI `rerun` launcher forks the real viewer).
@@ -20,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import fcntl
 import json
 import os
 import select
@@ -37,6 +40,7 @@ RPC_TIMEOUT_S = 90.0  # per-call bound; a wedged viewer-mcp must fail loudly, no
 BIND_TIMEOUT_S = 60.0
 SPAWN_ATTEMPTS = 3  # retries against the free-port race (port stolen between probe and viewer bind)
 RERUN_DEFAULT_PORT = 9876
+PORT_LOCKS = Path(tempfile.gettempdir()) / "rerun-viewer-ports"
 
 
 class McpStdioClient:
@@ -139,6 +143,25 @@ def free_port() -> int:
             return port
 
 
+def claim_port() -> tuple[int, Any]:
+    """A free port this process alone owns: an exclusive non-blocking flock on PORT_LOCKS/<port>.lock, and nothing
+    answering on the port. Keep the returned file open while the viewer runs; closing it releases the claim."""
+    PORT_LOCKS.mkdir(exist_ok=True)
+    for _ in range(50):
+        port = free_port()
+        lock = open(PORT_LOCKS / f"{port}.lock", "w")
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except OSError:
+            lock.close()
+            continue
+        if port_answers(port):
+            lock.close()
+            continue
+        return port, lock
+    raise SystemExit("no free viewer port could be claimed")
+
+
 def port_answers(port: int) -> bool:
     """Whether something accepts TCP connections on 127.0.0.1:port."""
     with socket.socket() as s:
@@ -177,6 +200,7 @@ class HeadlessViewer:
     proc: subprocess.Popen
     port: int
     log_path: Path
+    port_lock: Any = None
 
     @property
     def endpoint(self) -> str:
@@ -197,6 +221,9 @@ class HeadlessViewer:
             kill_group(self.proc, signal.SIGKILL)
             with contextlib.suppress(subprocess.TimeoutExpired):
                 self.proc.wait(timeout=5)
+        if self.port_lock is not None:
+            self.port_lock.close()
+            self.port_lock = None
 
 
 def start_viewer(rerun_bin: str, sources: list[str], log_path: Path, size: str | None = None) -> HeadlessViewer:
@@ -207,14 +234,14 @@ def start_viewer(rerun_bin: str, sources: list[str], log_path: Path, size: str |
     """
     last_err: Exception | None = None
     for _attempt in range(SPAWN_ATTEMPTS):
-        port = free_port()
+        port, lock = claim_port()
         cmd = [rerun_bin, "--headless", "--port", str(port), "--hide-welcome-screen", "--expect-data-soon"]
         if size is not None:
             cmd += ["--window-size", size]
         cmd += sources
         with open(log_path, "a") as log_f:
             proc = subprocess.Popen(cmd, stdout=log_f, stderr=subprocess.STDOUT, start_new_session=True)
-        viewer = HeadlessViewer(proc, port, log_path)
+        viewer = HeadlessViewer(proc, port, log_path, lock)
         try:
             deadline = time.monotonic() + BIND_TIMEOUT_S
             while not port_answers(port):

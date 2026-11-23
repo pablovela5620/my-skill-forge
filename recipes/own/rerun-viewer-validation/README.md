@@ -58,4 +58,7 @@ Status from a 751 MB test (assembly101 episode, rerun 0.34.0):
   the 751 MB recording), so it has its own ceiling.
 
 When the upstream issue is fixed and the path is validated end-to-end, promote
-the recipe into `references/web.md` and lift the size guidance accordingly.
+the recipe into `references/pages.md` and lift the size guidance accordingly.
+For pages (2026-11): a catalog URL also needs `--cors-allow-origin <page origin>`,
+TLS through `tailscale serve` and a long keep-alive, and dataset ids change on
+every server restart, so permanent pages carry no catalog URLs.
