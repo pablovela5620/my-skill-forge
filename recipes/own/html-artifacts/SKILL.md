@@ -1,151 +1,88 @@
 ---
 name: html-artifacts
-description: Create visual-first HTML artifacts (explainers, visual guides, plans, reports, reviews, comparisons, diagrams, decks, prototypes, lightweight editors), self-contained single files by default, when an explanation, plan, report, review, comparison, diagram, deck, prototype, or lightweight editor would be more readable, useful, or reusable in a browser than in markdown. Use for making dense information scannable and beautiful with semantic HTML, inline CSS, inline JavaScript, responsive layout, typography, charts, tables, annotations, tabs, collapsibles, timelines, diagrams, and copy/export affordances. Especially use when the user wants an artifact they are likely to open, read, share, or iterate on directly as a .html file.
+description: HTML artifacts, visual-first pages in the Rerun house style. Use when a result reads better in a browser than in markdown (explainer or visual guide, report or PR review, plan or comparison, deck, small tool), or when a page goes to the NAS or embeds a Rerun recording.
 license: BSD-3-Clause
 compatibility: The checker (scripts/check-artifact.mjs) needs node and playwright-cli on PATH (both in the fleet manifest).
 ---
 
-# Single-File HTML Artifacts
+# HTML artifacts
 
-Build one browser-openable `.html` file when HTML will communicate the work better than markdown. The goal is not a tiny website or a decorative report. The goal is a readable, useful artifact the user will actually open: clear structure, strong hierarchy, enough interactivity to reduce cognitive load, and enough visual craft to make the work inviting.
+A page the user opens, refreshes while you work, and decides from. Three leading words carry this skill:
+**visual-first** (every section opens with its picture), the **house style** (Rerun's, in
+[references/DESIGN.md](references/DESIGN.md)), and **publish early** (the user sees the page grow at one URL).
 
-This skill is inspired by Impeccable's frontend design discipline and by the "unreasonable effectiveness of HTML" pattern: use the browser as a rich document medium for plans, reviews, explainers, reports, diagrams, decks, and small editing tools. Borrow Impeccable's taste, structure, and anti-slop standards, not its command system: keep the artifact agent-agnostic, inline, and directly openable.
+## Contract
 
-## When to Use HTML
+- **Files.** One `.html` with inline CSS and JavaScript. A page built on many real pictures, or a set of linked pages
+  (a hub and its topic pages), keeps its pictures in a `media/` folder beside the HTML and is generated from data by a
+  small build script.
+- **Self-contained.** The page ships everything it shows: system fonts, inline SVG, local media. The one outside load is
+  the shared Rerun viewer and `embed.js` on the NAS, for an embedded recording.
+- **Real.** Every number, link, control and picture is real and specific. A picture comes from a Rerun capture, a
+  measured run, or a figure drawn from real numbers.
+- **Private data.** A page about a private or restricted dataset shows counts, metadata, and public or labelled
+  synthetic samples. Hard guardrail: no private frame, thumbnail, crop or video goes into a page or a screenshot, and
+  you do not open those frames yourself; age-restricted items are never rendered.
+- **Style.** The house style, dark, from [references/DESIGN.md](references/DESIGN.md) and
+  [assets/rerun.css](assets/rerun.css). Use another style only when the user asks for it or the page belongs to
+  another brand.
+- **"Presentation"** means this kind of page. Build slides only when the user asks for slides.
 
-Prefer a single HTML artifact when the content has any of these shapes:
+## Steps
 
-- Multiple options to compare side by side.
-- A process, timeline, architecture, dependency graph, or decision tree.
-- A code review, PR summary, or implementation plan with many references.
-- A research explainer with glossary terms, examples, tabs, or progressive disclosure.
-- A report where charts, status bands, or summaries would help scanning.
-- A small interactive tool or editor where the user should manipulate inputs and export the result.
-- A deck-like story that benefits from keyboard navigation.
+### 1. Storyboard
 
-When the user asks for a "presentation", build the usual visual artifact (a page with many pictures); build a slide deck
-only when they ask for slides.
+Write the **scene sentence** first: the user opens this page on [device], while [urgency], to decide [what]. Then pick
+the role: a *utility* page (plan, review, report, status) is dense and scannable; a *narrative* page (explainer, deck,
+persuasive comparison) paces a story; a *tool* page (editor, filter, calculator) is controls, state and export. Pick
+the pattern in [references/patterns.md](references/patterns.md).
 
-Do not use HTML just to wrap a normal answer in decoration. If the artifact would still read like a wall of prose, restructure it first. Transform the material into a browser-native reading object: summary bands, comparison tables, timelines, diagrams, filters, tabs, collapsibles, annotations, and copy/export affordances.
+Write the storyboard, one row per section: heading | picture | one-line caption. Row one holds the answer, the result or
+the decision. For an explainer, guide, report or deep dive, follow
+[references/visual-first.md](references/visual-first.md).
 
-## Output Contract
+**Done when** every row has a real picture (or is folded into detail or cut), and row one answers the scene sentence.
 
-Unless the user asks otherwise:
+### 2. Publish the skeleton
 
-- Produce exactly one `.html` file.
-- Keep it self-contained: inline CSS and inline JavaScript by default.
-- Exception: a page built on many real pictures (Rerun captures, renders, videos) or a set of linked pages (a hub plus
-  topic pages) keeps its pictures as files in a `media/` folder next to the HTML and is published together with it.
-  Generate such pages from data with a small build script instead of editing HTML by hand; inline the pictures only
-  for a copy that must stand alone.
-- Make it open directly from the filesystem, with no build step and no server.
-- Use semantic landmarks, headings, labels, buttons, and tables.
-- Make it responsive from phone width to desktop.
-- Do not depend on external libraries, fonts, or images unless the user explicitly allows remote assets.
-- Use inline SVG, CSS, and small data structures for diagrams and charts.
-- Include export/copy controls for editor-like artifacts.
-- Keep text real and specific. No placeholder lorem ipsum, fake links, or dead controls.
-- Add `<link rel="icon" href="data:,">` to the `<head>`, so the browser does not request a missing favicon.
-- Exception: a page that embeds a Rerun recording loads the shared viewer and `embed.js` from the NAS. Read [references/nas-publishing.md](references/nas-publishing.md) before you publish to the NAS or embed an `.rrd`.
+Build the title, the section headings and the first picture or placeholders, with the work-in-progress badge
+(`.rr-wip` in DESIGN.md). Publish it as [references/nas-publishing.md](references/nas-publishing.md) describes, and send
+the user the URL. The URL stays the same from now on.
 
-## Private data
+**Done when** the live URL shows the badge and the user has the URL.
 
-Pages built on a private or restricted dataset show only counts, metadata, and representative public or synthetic
-samples. Never put a private frame, thumbnail, crop or video in a page or a screenshot, and do not open or view those
-frames yourself; age-restricted items are never rendered. When a picture is needed, use a public sample, a synthetic
-recording labelled as synthetic, or a drawn figure of the counts.
+### 3. Build section by section
 
-## Workflow
+For each storyboard row, build the section in the house style, then republish and run the live-content check
+(nas-publishing.md). Update the badge's "updated" time and its "now" line.
 
-1. Decide the artifact type.
-   - If the structure is not obvious, read [references/patterns.md](references/patterns.md).
-   - Pick the pattern that makes the user's next decision or reading path easiest.
+- Figures and charts: [assets/rerun_figure.py](assets/rerun_figure.py) (docs figures, kit boards, `chart_html()`).
+- Icons label words, from the bundled Tabler set in `<skill-dir>/assets/tabler-outline/` (grep `INDEX.tsv`), with the
+  shared [references/icon-vocabulary.md](references/icon-vocabulary.md).
+- Structure comes from space and hairlines; a card holds a real repeated unit, one level deep.
+- Content is browsed in place: tabs for alternate views, `<details>` for depth, search or filters for long lists,
+  copy buttons for commands, export for editors, keyboard for decks. A dialog is for a choice that must interrupt.
+- Text on a coloured fill is `fg` or black at full contrast.
+- Page text is about the subject. Labels, numbers and captions stay live text (HTML or SVG `<text>`), so they scale,
+  wrap and can be searched.
+- Every control works with keyboard and touch and shows its focus. Landmarks, logical headings and accessible names
+  hold the structure.
 
-2. Shape the information before styling.
-   - Identify the primary question the artifact answers.
-   - Put the answer, status, or decision at the top.
-   - Group details by how the user will scan them, not by how the source material arrived.
-   - Convert long prose into tables, timelines, callouts, diagrams, tabs, or collapsibles only when those structures reduce effort.
-   - For an explainer, guide, report or deep dive, go visual first: every section opens with a figure, visible prose stays
-     short, detail folds, and each picture is a Rerun capture or a figure drawn from real numbers. Read
-     [references/visual-first.md](references/visual-first.md).
+**Done when** every storyboard row is live and the page is within the visual-first prose budget.
 
-3. Apply the house style and the design quality bar.
-   - The house style is Rerun's: read [references/DESIGN.md](references/DESIGN.md) (a [DESIGN.md](https://github.com/google-labs-code/design.md) file: tokens plus rules) and start from [assets/rerun.css](assets/rerun.css). Draw diagrams with [assets/rerun_figure.py](assets/rerun_figure.py). Where DESIGN.md and design-quality.md disagree, DESIGN.md wins.
-   - Use a different style only when the user asks for one or the artifact belongs to another brand.
-   - Read [references/design-quality.md](references/design-quality.md) before substantial visual work.
-   - Write the scene sentence before theme, palette, density, or motion: the user opens this artifact on what device/context, with what urgency, to decide what.
-   - Use restrained but intentional styling. Avoid generic AI-looking decoration.
-   - Dark by default. Use the light theme only when the user asks for it; never switch on your own, not even for print or a light source system.
+### 4. Verify
 
-4. Publish early, then keep publishing.
-   - As soon as a skeleton exists (title, section headings, the first figure or placeholders), publish it with the
-     work-in-progress badge (`.rr-wip`, see DESIGN.md) and send the user the URL. The URL stays the same from then on.
-   - Republish after each section or meaningful change, update the badge's "updated" time and "now" line, and run the
-     live-content check every time ([references/nas-publishing.md](references/nas-publishing.md)).
-   - The final publish removes the badge; check it with `check-artifact.mjs --final`.
+Run `node <skill-dir>/scripts/check-artifact.mjs <published URL>`, then read every screenshot it saves: a PASS proves
+only what the checker measures, and a page can pass and still be a wall of text. Open each embedded Rerun viewer in GPU
+Chrome at the same sizes (nas-publishing.md). For a dense page, also try long and empty content and 125-200 % zoom.
+Details and pitfalls: [references/verification.md](references/verification.md).
 
-5. Build the file.
-   - Use CSS custom properties for color, spacing, type, and radii.
-   - Use readable measures for prose, usually 65-75 characters.
-   - Use stable layout primitives: grid, flex, sticky sidebars, tabs, details/summary, tables, and inline SVG.
-   - Add small JavaScript only when it materially improves use: search, filters, tabs, copy buttons, slide navigation, simple editors.
+**Done when** the checker passes at all four sizes, you have read every screenshot, and every section leads with its
+picture.
 
-6. Verify.
-   - Run `node <skill-dir>/scripts/check-artifact.mjs <page.html or its published URL>`: it checks the four sizes below
-     for console errors, overflow, broken media, small touch targets and reduced-motion loops, and saves a screenshot per
-     section. Then read every screenshot; a PASS proves only what it measures. Details and pitfalls:
-     [references/verification.md](references/verification.md).
-   - Check at 1400 px (desktop), 1133x744 and 744x1133 (iPad mini) and 390 px (phone). Keep the layout fluid from 700 to 1200 px; make touch targets at least 44x44 px.
-   - Open every embedded Rerun viewer in GPU Chrome at those sizes and look at the pixels (see [references/nas-publishing.md](references/nas-publishing.md)).
-   - Check keyboard navigation for controls.
-   - Check there is no horizontal overflow, clipped text, broken asset, console error, or unreadable contrast.
-   - Measure after load: lazy images and late layout change `scrollWidth`; scroll slowly (about 400 px every 250 ms)
-     before you count unloaded images, and measure the document width only then.
-   - Count `<details>` summaries, figure links and chips as touch targets too (44 px); keep labels at least 11 px on a phone.
-   - Look at the pixels, not only the checks: a page can pass every check and still be a wall of text.
-   - After you publish, check the live page, not only the HTTP 200: fetch the URL and grep it for a string only your
-     change contains; when the change is visual, give the user a cache-busting URL (`<url>?v=<short-hash>`).
+### 5. Final publish
 
-## Design Defaults
+Remove the badge, republish, and run `check-artifact.mjs --final <published URL>` and the live-content check. Send the
+user the URL; for a visual change, the cache-busting form (`<url>?v=<short-hash>`).
 
-- Dark by default, in the Rerun house style: pure black page, neutral greys, hairline borders, colour only on data. Outside the house style, dark means tinted near-black surfaces, clear contrast, visible borders, and restrained accents.
-- Use one accent color plus tinted neutrals unless the content genuinely needs a broader palette.
-- Use system fonts: the system sans for text, JetBrains Mono (falling back to the system mono) for labels, buttons and code, as DESIGN.md sets out. Load no web fonts.
-- Use motion sparingly: 150-250ms, ease-out, state feedback only. Respect `prefers-reduced-motion`.
-- Avoid hover-only meaning. Every control must work with keyboard and touch.
-- Icons are labels, never pictures of data: Tabler outline 3.50.0, bundled with this skill in
-  `assets/tabler-outline/` (grep `INDEX.tsv`), copied inline with stroke 1.5 and `currentColor`, always next to a word,
-  with one shared vocabulary ([references/icon-vocabulary.md](references/icon-vocabulary.md)).
-
-## Hard Bans
-
-- No gradient text.
-- No glassmorphism as decoration.
-- No dark mode with glowing neon accents.
-- No nested card stacks.
-- No endless identical card grids.
-- No everything-centered layouts except for a true deck, poster, or presentation moment.
-- No pure black or pure white as the full visual system, except the Rerun house style's black page with neutral greys. Elsewhere, tint neutrals subtly.
-- No gray text on saturated colored backgrounds.
-- No oversized hero section unless the artifact is explicitly a deck, poster, or landing-style narrative.
-- No rounded-square icon tile above every heading. (A small glyph that labels a section, a status or a data type is fine.)
-- No modal-first interaction for content that should be browsed, compared, or scanned.
-- No all-primary button rows.
-- No decorative fake charts, sparklines, or metrics.
-- No monospace "technical" styling unless code, paths, commands, logs, or structured data are actually being shown, or it is the house style's uppercase mono labels and buttons.
-- No redundant intro paragraphs that restate the heading.
-- No visible instructional text explaining that the page is an HTML artifact or how the design works.
-- No lorem ipsum, fake links, placeholder content, or controls that do nothing.
-
-## File Naming
-
-Use a descriptive, stable filename in the workspace, for example:
-
-- `implementation-plan.html`
-- `code-review-map.html`
-- `incident-timeline.html`
-- `research-explainer.html`
-- `option-comparison.html`
-
-If the user names a path, use it. Otherwise choose a filename that matches the artifact's job.
+**Done when** `--final` passes on the live URL and the served file's sha256 matches your build.
