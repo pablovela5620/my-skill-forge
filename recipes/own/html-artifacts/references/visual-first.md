@@ -7,25 +7,33 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
 
 ## Page rules
 
-- **Storyboard before building:** one row per section, "heading | picture | one-line caption"; a row without a picture
-  is cut or moves to folded detail. Name the one question the page answers.
+- **Storyboard before building:** one row per section, "heading | lead picture | evidence | caption" (SKILL.md step 1);
+  a row without a picture is cut or moves to folded detail. Name the one question the page answers.
+- **Concept rows show a pair:** the thing itself (a Rerun capture) beside its representation (a drawn figure of its
+  parameters, sizes or structure), both visible.
 - **End product first.** The first section shows the result as a real capture (the output, the run, the rendered page).
 - **Figure first.** Every section opens with its picture (a flow, a Rerun capture, a drawn figure); the text follows.
+- **Results rows show all the evidence** they hold, visible, as a gallery or grid: every scene, view, host, comparison
+  and failure. One sample per section with the rest folded reads as less work and less proof (Pablo, 2026-11-23, on a
+  rebuild that showed 10 of the original report's 48 pictures).
 - **Visible prose budget.** No visible paragraph longer than about three lines; a package or topic page under about 1,000
   visible words (the model page had 23 figures for 808 words). Measure it: count words outside `<details>`, `<svg>`,
-  `<table>`, `<pre>` and captions, and strip nested `<svg>` from the innermost out (icons inside a flow SVG otherwise leak
-  their labels into the count).
-- **Fold, do not delete.** Keep the first sentence or clause visible; put the rest, PR history, file lists, flags, formulas,
-  long tables, paper summaries and notes in `<details>` with a 44 px tall `<summary>`. An inline "More ›" toggle at the end
-  of a sentence reads better than a bare boxed "More": a block that shows only the word "More" looks empty.
-- **Captions are one line.** Keep the first sentence (at least ~8 words, so "Left: frame 345." keeps its "Right: ..." half);
-  fold the rest and the method line (where the picture came from) under the same toggle.
-- **Text budget:** section heading about 6 words; caption one line (about 12 words visible); a label inside a picture
-  1-4 words. Short sentences, active voice, common words.
+  `<table>`, `<pre>` and `<figcaption>`, and strip nested `<svg>` from the innermost out (icons inside a flow SVG
+  otherwise leak their labels into the count). A caption that tells how to read its picture belongs to the picture: it
+  does not count against the budget and is not cut to meet it.
+- **Fold method and provenance, not meaning.** Fold run IDs, flags, PR history, file lists, long reference tables and
+  where a picture came from into `<details>` with a 44 px tall `<summary>`. Never fold the explanation of what a picture
+  shows or what a claim means, and never fold evidence pictures. A summary names what it opens ("Paper Table 3, every
+  scene"); a block that shows only the word "More" looks empty.
+- **Captions explain in view.** The visible caption says what the picture shows and how to read it ("Left: frame 345.
+  Right: ...", "Each cell is its d = 0 edge, coloured by c₀ + u·g_u + v·g_v"), in as few lines as that takes. Only the
+  method line (run ID, flags, the tool that made the picture) may fold.
+- **Text budget:** section heading about 6 words; a label inside a picture 1-4 words; prose paragraphs about three
+  lines. Short sentences, active voice, common words.
 - **Do not restate a figure in prose.** Drop the sentence that repeats the grid or chart above it.
 - **Links go to the most specific target** (the subfolder, the file and line, the section), not a repo or site root.
 - **Every deep page is reachable** from its hub or parent page; a page only the author can find does not exist for readers.
-- **Consistency across pages:** same figure sizes, one-line captions, the same section order and card styles.
+- **Consistency across pages:** same figure sizes, caption style, section order and card styles.
 
 ## Rerun capture or drawn figure
 
@@ -50,7 +58,8 @@ accurate text but looked like a wall of prose was sent back: accuracy is not eno
 ## Drawn charts
 
 - Draw them with `assets/rerun_figure.py`: `chart_html({"bars": ...})` or `chart_html({"pairs": ...})` returns the wide SVG
-  and its phone version (the `.rr-chart` rules in `rerun.css` switch them).
+  and its phone version (the `.rr-chart` rules in `rerun.css` switch them by the chart's own width). Pass a value as a
+  string (`"0.50"`) to keep it as measured. Give a wide chart a slot of about 700 px or more.
 - Only real, measured numbers that the page cites a source for. Never invent or round away a value: show it as measured
   (18.98 s, not 19.0 s; 114.5 s, not 114 s; integers with thousands separators).
 - Write the exact value on each bar. A before/after (or baseline/ours) chart always carries a one-line key (grey = before,

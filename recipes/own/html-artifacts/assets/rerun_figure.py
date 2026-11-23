@@ -300,7 +300,8 @@ def kit_example_svg() -> str:
 # --- Measured charts: bars and before/after pairs, with a phone version ------------------------------------------------
 # Only real, measured numbers; the exact value is written on every bar; a before/after chart always has a key.
 # chart_html(spec) returns both versions; rerun.css shows the wide one above 600 px and the large-type one below:
-#     chart_html({"bars": {"title": "Train time", "unit": "min", "rows": [["Brush 7k", 0.59], ["Hexels V1 7k", 3.61]]}})
+#     chart_html({"bars": {"title": "Train time", "unit": "min", "rows": [["Brush 7k", "0.50"], ["Hexels V1 7k", 3.61]]}})
+# A value given as a string keeps its text on the bar ("0.50", not 0.5).
 #     chart_html({"pairs": {"title": "Kernel time", "unit": "ms", "a": "CUDA", "b": "Mojo", "rows": [["solve", 7139, 4615]]}})
 import html as _html
 import re as _re
@@ -308,8 +309,22 @@ import re as _re
 INK, DIM_C, LINE_C, BAR, BAR_A = TXT, DIM, "#2f3338", ROW, "#5e6672"
 FONT = 'font-family="' + SANS + '"'
 e = _html.escape
+class Measured(float):
+    """A number that keeps its measured text: chart_html() turns a string value ("0.50", "1,048") into one."""
+
+    text: str
+
+    def __new__(cls, text: str) -> "Measured":
+        obj = super().__new__(cls, float(text.replace(",", "")))
+        obj.text = text
+        return obj
+
+
 def _num(v: float) -> str:
-    """The value as measured: integers plain (thousands separated), others with up to 4 significant digits (18.98, 114.5, 0.035)."""
+    """The value as measured: a string value as written ("0.50"); integers plain (thousands separated); others with up to
+    4 significant digits (18.98, 114.5, 0.035). Pass strings when trailing zeros matter."""
+    if isinstance(v, Measured):
+        return v.text
     if float(v).is_integer():
         return f"{int(v):,}"
     return f"{v:,.0f}" if abs(v) >= 1000 else f"{v:.4g}"
@@ -440,7 +455,10 @@ def pairs(d: dict, thumb: bool, phone: bool = False) -> str:
 
 def chart_svg(spec: dict, phone: bool = False) -> str:
     kind = "bars" if "bars" in spec else "pairs"
-    return (bars if kind == "bars" else pairs)(spec[kind], False, phone=phone)
+    d = dict(spec[kind])
+    n = 2 if kind == "bars" else 3  # bars: [label, value, optional text]; pairs: [label, a, b]
+    d["rows"] = [[r[0], *(Measured(x) if isinstance(x, str) else x for x in r[1:n]), *r[n:]] for r in d["rows"]]
+    return (bars if kind == "bars" else pairs)(d, False, phone=phone)
 
 
 def chart_html(spec: dict) -> str:

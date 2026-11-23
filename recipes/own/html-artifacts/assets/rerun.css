@@ -117,7 +117,10 @@ pre.rr-code { background: var(--rr-panel); border: 1px solid var(--rr-border); b
 .rr-wip span { color: var(--rr-text); font-family: var(--rr-sans); text-transform: none; letter-spacing: 0; }
 .rr-wip-now { flex-basis: 100%; }
 
-/* Measured charts from rerun_figure.chart_html(): the wide SVG above 600 px, the large-type phone SVG below. */
+/* Measured charts from rerun_figure.chart_html(): the wide SVG in a slot of 600 px or more, the large-type phone SVG in a
+   narrower slot. The switch follows the chart's own width (a container query), so a chart in a half-width column is
+   not drawn at 9 px text. The wide SVG is 960 units: its 15-unit text reads at 11 px or more from about 700 px. */
+.rr-chart { container-type: inline-size; }
 .rr-chart svg { display: block; width: 100%; height: auto; }
 .rr-chart-p { display: none; }
-@media (max-width: 600px) { .rr-chart-w { display: none; } .rr-chart-p { display: block; } }
+@container (max-width: 600px) { .rr-chart-w { display: none; } .rr-chart-p { display: block; } }
