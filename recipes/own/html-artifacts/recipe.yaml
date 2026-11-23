@@ -50,11 +50,15 @@ tests:
         - share/agent-skills/${{ skill }}/references/*.md
         - share/agent-skills/${{ skill }}/assets/rerun.css
         - share/agent-skills/${{ skill }}/assets/rerun_figure.py
+        - share/agent-skills/${{ skill }}/assets/progress/progress_state.py
+        - share/agent-skills/${{ skill }}/assets/progress/progress_page.py
         - share/agent-skills/${{ skill }}/scripts/check-artifact.mjs
         - share/agent-skills/${{ skill }}/assets/tabler-outline/*.svg
         - share/agent-skills/${{ skill }}/assets/tabler-outline/movie.svg
         - share/agent-skills/${{ skill }}/assets/tabler-outline/LICENSE
         - share/agent-skills/${{ skill }}/assets/tabler-outline/INDEX.tsv
+        # rattler-build keeps the recipe test files (tests/test_progress.py) for the script test below
+        - etc/conda/test-files/agent-skill-${{ skill }}/**
       strict: true
   - script:
       - test "$(ls $CONDA_PREFIX/share/agent-skills/${{ skill }}/assets/tabler-outline/*.svg | wc -l)" = 5203
@@ -64,6 +68,20 @@ tests:
     requirements:
       run:
         - skills-ref
+  # The live progress page: the state schema rejects prose, the renderer draws the fixed shape (tests/test_progress.py).
+  - script:
+      - PROGRESS_DIR=$CONDA_PREFIX/share/agent-skills/${{ skill }}/assets/progress pytest -q -p no:cacheprovider tests/test_progress.py
+    requirements:
+      run:
+        - python 3.13.*
+        - pyserde
+        - orjson
+        - tomli-w
+        - tyro
+        - pytest
+    files:
+      recipe:
+        - tests/
 
 about:
   summary: Agent skill for creating readable single-file HTML artifacts
