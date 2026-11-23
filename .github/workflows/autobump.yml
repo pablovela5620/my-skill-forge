@@ -15,8 +15,6 @@ jobs:
       matrix:
         include:
           # cua-driver is release-paired with ai-demos; see its PROMPT.md.
-          - skill: chrome-cdp
-            strategy: github-latest-release
           # git-main strategy (track main branch)
           - skill: paseo
             strategy: git-main
@@ -49,8 +47,6 @@ jobs:
           - skill: art-of-debugging
             strategy: git-main
           - skill: batch-grill-me
-            strategy: git-main
-          - skill: daggr
             strategy: git-main
           - skill: domain-modeling
             strategy: git-main
