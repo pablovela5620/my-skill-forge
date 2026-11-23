@@ -3,8 +3,8 @@
   python rrd_check.py version FILE...
       Writer SDK version from the RRD header (bytes 0-3 'RRF2', 4-7 major minor patch meta). Stdlib only.
   python rrd_check.py slice --full run.rrd --slice run.slice.rrd
-      The slice keeps every static entity of the full recording and its blueprint store, and prints both
-      time ranges. Needs the rerun SDK (rerun.chunk.RrdReader), so run it in the project env.
+      The slice keeps every static component (entity and component name) of the full recording and its
+      blueprint store, and prints both time ranges. Needs the rerun SDK (rerun.chunk.RrdReader), so run it in the project env.
   python rrd_check.py restore --full run.rrd --slice part.rrd --out static.rrd
       Writes the full recording's static chunks under the slice's recording id, for
       `rerun rrd merge static.rrd part.rrd -o merged.rrd` (static first) when `slice` reports missing static data.
@@ -38,7 +38,9 @@ def writer_version(path: Path) -> str:
 
 
 def store_summary(path: Path) -> tuple[set[str], int, dict[str, tuple[int, int]]]:
-    """Static entity paths, number of blueprint stores, and {timeline: (min, max)} of the first recording."""
+    """Static '<entity> <component>' pairs, number of blueprint stores, and {timeline: (min, max)} of the first
+    recording. Pairs, not entity paths: `rrd split` can keep an entity's custom static columns and drop its static
+    Pinhole and Transform3D."""
     import pyarrow as pa
     import pyarrow.compute as pc
     from rerun.chunk import RrdReader
@@ -47,10 +49,10 @@ def store_summary(path: Path) -> tuple[set[str], int, dict[str, tuple[int, int]]
     static: set[str] = set()
     ranges: dict[str, tuple[int, int]] = {}
     for chunk in reader.stream(store=reader.recordings()[0]):
-        if chunk.is_static:
-            static.add(str(chunk.entity_path))
-            continue
         batch = chunk.to_record_batch()
+        if chunk.is_static:
+            static.update(f"{chunk.entity_path} {name}" for name in batch.schema.names if name != "rerun.controls.RowId")
+            continue
         for name in chunk.timeline_names:
             col = batch.column(name)
             if not pa.types.is_integer(col.type):
@@ -68,7 +70,7 @@ def check_slice(full: Path, sliced: Path) -> bool:
     missing = sorted(full_static - slice_static)
     if missing:
         ok = False
-        print(f"FAIL static entities missing from the slice: {missing} (restore them: SKILL.md, Slice)")
+        print(f"FAIL static components missing from the slice: {missing} (restore them: pages.md, Slice)")
     if full_bp and not slice_bp:
         ok = False
         print("FAIL the full recording has a blueprint store and the slice has none")
