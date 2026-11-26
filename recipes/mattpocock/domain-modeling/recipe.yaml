@@ -17,8 +17,9 @@ tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/ADR-FORMAT.md
-        - share/agent-skills/${{ skill }}/CONTEXT-FORMAT.md
+        - share/agent-skills/${{ skill }}/GLOSSARY-FORMAT.md
         - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/agents/openai.yaml
       strict: true
   - script:
       - agentskills read-properties $CONDA_PREFIX/share/agent-skills/${{ skill }} > /dev/null
