@@ -7,8 +7,10 @@ follow the fleet loop: edit agent-fleet, push, converge.
 ## MCP servers
 
 Declare each fleet MCP server once, in a `[mcp_servers.<name>]` block in
-agent-fleet's `.ruler/ruler.toml`. Sync runs Ruler for the personal and work
-Claude and Codex profiles; Ruler owns instruction generation and the native MCP
+agent-fleet's `config/ruler/ruler.toml`. The fleet-wide agent rules live beside
+it in `config/ruler/AGENTS.md`; the repo's root `AGENTS.md` is only for agents
+working on agent-fleet. Sync runs Ruler for the personal and work Claude and
+Codex profiles; Ruler owns instruction generation and the native MCP
 configuration merges. The source is linked at `~/.config/ruler` (or
 `$XDG_CONFIG_HOME/ruler`).
 
