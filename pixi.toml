@@ -8,7 +8,7 @@ pre-commit-install = "pre-commit install"
 lint = "pre-commit run -a --color=always --show-diff-on-failure"
 test = "pytest tests"
 check = { depends-on = ["lint", "test"] }
-build = { cmd = "rattler-build build -c https://prefix.dev/my-skill-forge -c conda-forge --recipe recipes/{{ skill }}", args = [
+build = { cmd = "rattler-build build -c https://prefix.dev/my-skill-forge -c conda-forge --recipe recipes/**/{{ skill }}", args = [
   "skill",
 ] }
 build-new = "rattler-build build -c https://prefix.dev/my-skill-forge -c conda-forge --recipe-dir recipes/ --skip-existing=all"
