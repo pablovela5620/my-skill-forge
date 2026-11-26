@@ -21,6 +21,7 @@ tests:
   - package_contents:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
+        - share/agent-skills/${{ skill }}/references/post-processing.md
         - share/agent-skills/${{ skill }}/references/registering.md
       strict: true
   - script:
