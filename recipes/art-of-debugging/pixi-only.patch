@@ -1,9 +1,9 @@
 --- a/SKILL.md
 +++ b/SKILL.md
 @@ -18,6 +18,21 @@
-
- Actionable methodology + copy-paste recipes for debugging Unix / Python / PyTorch programs. Apply the general loop first; then jump to the domain cheatsheet for the failure at hand. For scaling this up to large-model training/inference on real clusters (compute/storage/network, SLURM, throughput/memory, instabilities, fault tolerance, inference), pair this with [Machine Learning Engineering](https://github.com/stas00/ml-engineering/blob/master/SKILL.md).
-
+ 
+ Actionable methodology + copy-paste recipes for debugging Unix / Python / PyTorch programs. Apply the general loop first; then jump to the domain cheatsheet for the failure at hand. For scaling this up to large-model training/inference on real clusters (compute/storage/network, SLURM, throughput/memory, instabilities, fault tolerance, inference), pair this with [Machine Learning Engineering](https://github.com/stas00/ml-engineering/blob/master/skills/ml-engineering/SKILL.md).
+ 
 +## Pixi-only setup
 +
 +Use Pixi for every debugging dependency. Inspect `pixi.toml` and its declared
@@ -20,7 +20,7 @@
 +recorded in `pixi.toml` and `pixi.lock`.
 +
  ## The debugging loop
-
+ 
  The single most important idea: **most of the effort is in *locating* the cause; once you truly understand it, the fix is usually easy.** Optimize everything for reaching understanding faster.
 @@ -69,10 +84,10 @@
    Combine as `set -euo pipefail`. See [controlling script execution](https://github.com/stas00/the-art-of-debugging/blob/master/unix/README.md#controlling-script-execution).
@@ -29,9 +29,9 @@
 -  strace python -c "print('hi')"                 # trace from the start
 +  pixi run strace python -c "print('hi')"        # trace from the start
    strace --pid PID                               # attach to a running/stuck process
--  strace -o log.txt -f python -m torch.distributed.run ...  # -f follows forked children
+-  strace -o log.txt -f torchrun ...  # -f follows forked children
 -  strace -e trace=open,openat,read python prog.py           # filter to specific syscalls
-+  pixi run strace -o log.txt -f python -m torch.distributed.run ...  # -f follows children
++  pixi run strace -o log.txt -f torchrun ...  # -f follows forked children
 +  pixi run strace -e trace=open,openat,read python prog.py   # filter to specific syscalls
    strace -e trace=network -p PID                            # is it stuck on a socket?
    ```
@@ -67,9 +67,9 @@
 +  pixi run kernprof -l -v prog.py                 # per-line timing of @profile funcs
    ```
    For sub-ms functions, bump `pstats` precision (e.g. `pstats.f8 = lambda x: f"{x:6.3f}"`) so timings aren't all `0.000`. See [profilers](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#profilers) and [cProfile](https://github.com/stas00/the-art-of-debugging/blob/master/python/README.md#cprofile).
-
+ 
 @@ -168,8 +182,8 @@
-
+ 
  CUDA is async, so the reported line is usually wrong. Force a real traceback:
  ```bash
 -CUDA_LAUNCH_BLOCKING=1 python prog.py   # sync CUDA -> accurate Python traceback
@@ -77,10 +77,10 @@
 +CUDA_LAUNCH_BLOCKING=1 pixi run python prog.py   # sync CUDA -> accurate traceback
 +CUDA_VISIBLE_DEVICES="" pixi run python prog.py  # use CPU for the clearest traceback
  ```
- See [dealing with async CUDA bugs](https://github.com/stas00/the-art-of-debugging/blob/master/pytorch/README.md#dealing-with-async-cuda-bugs).
-
+ See [dealing with async CUDA bugs](https://github.com/stas00/the-art-of-debugging/tree/master/pytorch#dealing-with-async-cuda-bugs).
+ 
 @@ -191,8 +205,8 @@
-
+ 
  Same core-file + gdb flow as compiled programs, but **activate the exact python env that produced the core** or gdb can't unpack it:
  ```bash
 -conda activate my-env
@@ -88,11 +88,11 @@
 +pixi shell -e my-env
 +gdb "$(command -v python)" core-python-...  # then: bt / thread apply all bt
  ```
- See [segfaults and getting a backtrace from a core file](https://github.com/stas00/the-art-of-debugging/blob/master/pytorch/README.md#segfaults-and-getting-a-backtrace-from-a-core-file).
-
+ See [segfaults and getting a backtrace from a core file](https://github.com/stas00/the-art-of-debugging/tree/master/pytorch#segfaults-and-getting-a-backtrace-from-a-core-file).
+ 
 @@ -226,7 +240,7 @@
  | Cryptic CUDA error / wrong line | `CUDA_LAUNCH_BLOCKING=1`, or run on CPU |
- | CUDA/CPU OOM | forward vs backward; fragmentation (`PYTORCH_CUDA_ALLOC_CONF`); memory profiler |
+ | CUDA/CPU OOM | forward vs backward; fragmentation (`PYTORCH_ALLOC_CONF`); memory profiler |
  | NaN/Inf / wrong numbers | `set_detect_anomaly`, under/overflow detection, per-tensor stats, `lovely-tensors` |
 -| "my edits do nothing" | the `die` trick; `pip install -e .` / `PYTHONPATH`; check `pkg.__file__` |
 +| "my edits do nothing" | the `die` trick; `pixi install` / `PYTHONPATH`; check `pkg.__file__` |
