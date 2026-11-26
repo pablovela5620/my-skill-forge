@@ -69,6 +69,10 @@ service, `https://<name>.ilish-ruler.ts.net`. pixi global is for command-line to
 every machine runs from pixi. Read `~/agent-fleet/config/docker/README.md` for the host table and "Add an HTTP app".
 Example: HTML artifacts are served by `config/docker/html-artifacts/` on Conductor as `https://artifacts.ilish-ruler.ts.net/`.
 
+Claude pool: personal Claude goes through `https://claude-pool.ilish-ruler.ts.net` on every machine whose
+`~/.secrets.env` holds `CLAUDE_POOL_KEY`; sync writes the route into `~/.claude/settings.json`, and the work profile
+never uses it. To add, revoke or debug a client, read `~/agent-fleet/config/docker/cliproxyapi/README.md`.
+
 ## Changing a machine's tools
 
 1. Edit `manifests/base.toml` (fleet-wide) or `manifests/machines/<host>.toml`
