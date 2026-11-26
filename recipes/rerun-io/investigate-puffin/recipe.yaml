@@ -22,10 +22,6 @@ tests:
       files:
         - share/agent-skills/${{ skill }}/SKILL.md
         - share/agent-skills/${{ skill }}/compare_traces.py
-        - share/agent-skills/${{ skill }}/dump-puffin/.gitignore
-        - share/agent-skills/${{ skill }}/dump-puffin/Cargo.lock
-        - share/agent-skills/${{ skill }}/dump-puffin/Cargo.toml
-        - share/agent-skills/${{ skill }}/dump-puffin/src/main.rs
         - share/agent-skills/${{ skill }}/find_scopes.py
       strict: true
   - script:
