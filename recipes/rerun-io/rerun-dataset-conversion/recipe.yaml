@@ -9,8 +9,6 @@ package:
 source:
   git: https://github.com/rerun-io/rerun
   rev: 98e77cdd03612c8a2ec82034bb23da9d8b9e421f
-  patches:
-    - packaging.patch
 
 build:
   number: 0
