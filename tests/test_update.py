@@ -83,7 +83,12 @@ def test_git_main_follows_newest_commit_touching_upstream_path(tmp_path: Path) -
             "repos/owner/repo/commits/main": "unrelated-head",
         },
     )
-    assert outputs == {"old-version": "old-commit", "new-version": "path-commit"}
+    assert outputs == {
+        "old-version": "old-commit",
+        "new-version": "path-commit",
+        "compare-url": "https://github.com/owner/repo/compare/old-commit...path-commit",
+        "upstream-path": "skills/example",
+    }
     assert GIT_RECIPE.replace("old-commit", "path-commit").replace('"0.0.4"', '"0.0.5"') == recipe
 
 
@@ -111,13 +116,13 @@ def test_git_main_leaves_an_up_to_date_recipe_untouched(tmp_path: Path) -> None:
             "repos/owner/repo/contents/skills/example?ref=old-commit": "",
         },
     )
-    assert outputs == {"old-version": "old-commit", "new-version": "old-commit"}
+    assert outputs == {"old-version": "old-commit", "new-version": "old-commit", "compare-url": "", "upstream-path": "skills/example"}
     assert recipe == GIT_RECIPE
 
 
 def test_github_latest_release_reports_the_version_bump_recipe_wrote(tmp_path: Path) -> None:
     _, outputs = run_update(tmp_path, RELEASE_RECIPE, "github-latest-release", {})
-    assert outputs == {"old-version": "1.0.0", "new-version": "2.0.0"}
+    assert outputs == {"old-version": "1.0.0", "new-version": "2.0.0", "compare-url": "", "upstream-path": ""}
 
 
 def test_unknown_strategy_fails(tmp_path: Path) -> None:

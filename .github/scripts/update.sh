@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Bump a skill's recipe.yaml (recipes/<skill>/ or recipes/<group>/<skill>/) to its newest upstream source.
-# Writes old-version=/new-version= to $GITHUB_OUTPUT (stdout outside Actions).
+# Writes old-version=, new-version=, compare-url= (git-main bumps only) and
+# upstream-path= to $GITHUB_OUTPUT (stdout outside Actions).
 set -euo pipefail
 
 usage="Usage: $0 <skill> <git-main|github-latest-release>"
@@ -40,6 +41,7 @@ latest_rev() {
     return 1
 }
 
+compare_url=
 case "$strategy" in
     git-main)
         repo=$(yq -r '.source.git' "$recipe" | sed -E 's|^https://github.com/||; s|\.git$||')
@@ -54,6 +56,7 @@ case "$strategy" in
             mv "$recipe.tmp" "$recipe"
             [[ "$(yq -r '.source.rev + " " + .package.version' "$recipe")" == "$new $new_version" ]] \
                 || { echo "Could not rewrite rev and version in $recipe" >&2; exit 1; }
+            compare_url="https://github.com/$repo/compare/$old...$new"
         fi
         ;;
     github-latest-release)
@@ -67,4 +70,5 @@ case "$strategy" in
         ;;
 esac
 
-printf 'old-version=%s\nnew-version=%s\n' "$old" "$new" >> "${GITHUB_OUTPUT:-/dev/stdout}"
+printf 'old-version=%s\nnew-version=%s\ncompare-url=%s\nupstream-path=%s\n' \
+    "$old" "$new" "$compare_url" "$(yq -r '.context.upstream_path // ""' "$recipe")" >> "${GITHUB_OUTPUT:-/dev/stdout}"

@@ -9,16 +9,18 @@ on:
   schedule:
     - cron: "0 5 * * *"
 
-# Jobs merge into main; a manual run waits for the scheduled one instead of
-# racing it on the same bump-<skill> branch.
+# A manual run waits for the scheduled one instead of racing it on the same
+# bump-<skill> branch.
 concurrency:
   group: autobump
   cancel-in-progress: false
 
 # Per skill: bump the recipe, keep one PR on bump-<skill> updated in place,
-# build and test the package, merge, then dispatch Package to publish.
-# GITHUB_TOKEN events do not start workflows, so this job is the only gate
-# a bump passes; Package runs only because it is dispatched explicitly.
+# build and test the package, and record the result as a commit status on the
+# PR. Upstream content is untrusted: Autobump never merges. Pablo merges after
+# reading the upstream diff and the daily review comment; the merge's push to
+# main runs Package, which publishes. GITHUB_TOKEN pushes start no workflows,
+# so the commit status is the only CI evidence a bump PR carries.
 jobs:
   bump:
     strategy:
@@ -95,8 +97,9 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       actions: write # dispatch package.yml
-      contents: write # push bump-<skill> and merge
+      contents: write # push bump-<skill>
       pull-requests: write
+      statuses: write # record the build-and-test result on the PR head
     env:
       GH_TOKEN: ${{ github.token }}
       SKILL: ${{ matrix.skill }}
@@ -121,11 +124,17 @@ jobs:
         env:
           OLD: ${{ steps.bump.outputs.old-version }}
           NEW: ${{ steps.bump.outputs.new-version }}
+          COMPARE_URL: ${{ steps.bump.outputs.compare-url }}
+          UPSTREAM_PATH: ${{ steps.bump.outputs.upstream-path }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           branch="bump-$SKILL"
           title="Bump $SKILL from $OLD to $NEW"
-          body="Strategy: \`$STRATEGY\`. [Autobump]($RUN_URL) builds and tests this package, merges it, and dispatches Package to publish."
+          body="Strategy: \`$STRATEGY\`. [Autobump]($RUN_URL) built and tested this package; the \`autobump/build-and-test\` status shows the result.
+
+          **Upstream changes:** ${COMPARE_URL:-see the upstream release notes}${UPSTREAM_PATH:+ (packaged folder: \`$UPSTREAM_PATH\`)}
+
+          Upstream content is untrusted. Read the diff, and the daily review comment, before merging; changed scripts matter most. Merging publishes the package."
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -C "$branch"
@@ -138,20 +147,21 @@ jobs:
             url=$(gh pr create --base main --head "$branch" --title "$title" --body "$body")
           fi
           echo "url=$url" >> "$GITHUB_OUTPUT"
+          echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Build and test the package
         if: steps.pr.outputs.url
+        id: build
         run: pixi run build "$SKILL"
 
-      - name: Merge and publish
-        if: steps.pr.outputs.url
+      - name: Record the result on the pull request
+        if: always() && steps.pr.outputs.url
         env:
-          PR_URL: ${{ steps.pr.outputs.url }}
+          SHA: ${{ steps.pr.outputs.sha }}
+          RESULT: ${{ steps.build.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          # Parallel jobs merging at once can briefly refuse a merge; retry.
-          for attempt in 1 2 3; do
-            gh pr merge "$PR_URL" --repo "$GITHUB_REPOSITORY" --squash --delete-branch && break
-            [[ $attempt == 3 ]] && exit 1
-            sleep 15
-          done
-          gh workflow run package.yml --ref main
+          state=$([[ "$RESULT" == success ]] && echo success || echo failure)
+          gh api "repos/$GITHUB_REPOSITORY/statuses/$SHA" -f state="$state" \
+            -f context=autobump/build-and-test -f target_url="$RUN_URL" \
+            -f description="pixi run build $SKILL: $RESULT" >/dev/null
