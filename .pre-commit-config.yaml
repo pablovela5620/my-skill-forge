@@ -22,6 +22,8 @@ repos:
         entry: pixi run trailing-whitespace-fixer
         language: system
         types: [text]
+        # Patch context lines must match upstream byte for byte, trailing spaces included.
+        exclude: '\.patch$'
       - id: end-of-file-fixer
         name: end-of-file-fixer
         entry: pixi run end-of-file-fixer
