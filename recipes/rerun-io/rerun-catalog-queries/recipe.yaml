@@ -9,9 +9,13 @@ package:
 source:
   git: https://github.com/rerun-io/rerun
   rev: 5f40dc900aeff92d2a21009595b4b7751366d000
+  # Local fix: the fan-out example used a cast filter that its own pushdown rule says is not pushed down.
+  # Drop this patch when upstream fixes the example (the build fails when the patch stops applying).
+  patches:
+    - pushdown-example.patch
 
 build:
-  number: 0
+  number: 1
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}
