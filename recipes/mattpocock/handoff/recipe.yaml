@@ -4,11 +4,11 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 
 source:
   git: https://github.com/mattpocock/skills
-  rev: 3cca18b368ae95cdbdebbff572ccafa662551015
+  rev: 0f5e033ebc47b142f5ffa56a582ede6d9d9bada3
   patches:
     - fix-frontmatter.patch
 
