@@ -3,10 +3,10 @@ context:
   upstream_path: skills/engineering/retro
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 source:
   git: https://github.com/mattpocock/skills
-  rev: 4ae2317ddb22b046e26455e4f9c9b3aaaf62212d
+  rev: a7d038f6bf7f01b516408e95e2fb56e0b338fa6f
   patches:
     - use-agent-traces.patch
 build:
