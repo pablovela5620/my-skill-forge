@@ -1,6 +1,6 @@
 context:
-  skill: rerun-urdf
-  upstream_path: skills/rerun-urdf
+  skill: rerun-robot-model
+  upstream_path: skills/rerun-robot-model
 
 package:
   name: agent-skill-${{ skill }}
@@ -8,7 +8,7 @@ package:
 
 source:
   git: https://github.com/rerun-io/rerun
-  rev: e3f73ea0f1b646e2f21ca1170b3335127a704f9a
+  rev: 98e77cdd03612c8a2ec82034bb23da9d8b9e421f
 
 build:
   number: 0
@@ -31,9 +31,9 @@ tests:
 
 about:
   summary: Agent skill for Rerun robot models and forward kinematics from URDF
-  homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-urdf
+  homepage: https://github.com/rerun-io/rerun/tree/main/skills/rerun-robot-model
   repository: https://github.com/rerun-io/rerun
-  documentation: https://github.com/rerun-io/rerun/blob/main/skills/rerun-urdf/SKILL.md
+  documentation: https://github.com/rerun-io/rerun/blob/main/skills/rerun-robot-model/SKILL.md
   license: MIT OR Apache-2.0
   license_file:
     - LICENSE-MIT

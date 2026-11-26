@@ -51,7 +51,7 @@ jobs:
             strategy: git-main
           - skill: rerun-parquet
             strategy: git-main
-          - skill: rerun-urdf
+          - skill: rerun-robot-model
             strategy: git-main
           - skill: art-of-debugging
             strategy: git-main
