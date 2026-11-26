@@ -1,0 +1,12 @@
+--- a/skills/rerun-catalog-queries/SKILL.md	2026-11-26 15:16:04.609076942 -0600
++++ b/skills/rerun-catalog-queries/SKILL.md	2026-11-26 15:16:04.609591833 -0600
+@@ -176,7 +176,8 @@
+     .filter_segments(seg)
+     .filter_contents(sorted(set(entities)))
+     .reader(index=ix)
+-    .filter(col(ix).cast(pa.int64()).between(start_ns, end_ns))
++    .filter(col(ix) >= lit(start_ns))
++    .filter(col(ix) <= lit(end_ns))  # bare index vs literal: pushed down
+ )
+ # Each downstream consumer narrows to its entity's rows lazily.
+ src_a = shared.filter(col(f"{ent_a}:{comp_a}").is_not_null()).select(ix, f"{ent_a}:{comp_a}")
