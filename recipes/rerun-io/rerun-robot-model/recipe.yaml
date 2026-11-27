@@ -4,11 +4,11 @@ context:
 
 package:
   name: agent-skill-${{ skill }}
-  version: "0.0.1"
+  version: "0.0.2"
 
 source:
   git: https://github.com/rerun-io/rerun
-  rev: 98e77cdd03612c8a2ec82034bb23da9d8b9e421f
+  rev: a8c68164467311729cdf2f64fafd0c59c557cfdb
 
 build:
   number: 0
