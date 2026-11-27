@@ -4,10 +4,10 @@ context:
 package:
   name: agent-skill-${{ skill }}
   # Match the Rerun release targeted by this skill; use build bumps for skill revisions.
-  version: "0.42.0"
+  version: "0.44.0"
 
 build:
-  number: 4
+  number: 0
   noarch: generic
   script:
     - mkdir -p $PREFIX/share/agent-skills/${{ skill }}/agents
@@ -29,7 +29,7 @@ requirements:
   # The video branch shells out to ffmpeg — a real dependency, so declare it.
   run:
     - ffmpeg
-  # The scripts use the 0.42 viewer-mcp tool names (rerun_get_state, rerun_set_time_cursor, rerun_save_screenshot).
+  # The scripts call `rerun mcp` (0.44+, viewer_* tools) or `rerun viewer-mcp` (0.42, rerun_* tools); headless_viewer.py picks by version.
   run_constraints:
     - rerun-sdk >=0.42.0
 
@@ -60,7 +60,7 @@ about:
     Prove what the Rerun viewer rendered, and put recordings into pages and public shares:
     - Versions first: writer, viewer and catalog server; what to do on a skew
     - Batch stills (scripts/stills.py) and videos (scripts/rrd_to_video.py) from one headless viewer
-    - UI-state checks through `rerun viewer-mcp`
+    - UI-state checks through `rerun mcp` (`viewer-mcp` on 0.42)
     - Sources: a local .rrd/.rbl, or a catalog segment exported with scripts/catalog_export.py
     - Pages: medium (still, video, viewer), size budget and gate, slicing with rrd split, the embed
     - Public shares: one +rbl.rrd on Hugging Face with an app.rerun.io link, after Pablo approves the upload

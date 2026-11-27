@@ -1,6 +1,6 @@
 """Render an .rrd recording to video by sweeping a timeline in a headless Rerun viewer.
 
-One `rerun --headless` viewer loads the recording; `rerun viewer-mcp` (stdio JSON-RPC, the 0.42
+One `rerun --headless` viewer loads the recording; `rerun mcp` (`viewer-mcp` on 0.42; stdio JSON-RPC, the 0.42
 `rerun_*` tools) drives it: set the time cursor -> save a screenshot (which waits for the frame), per frame,
 then ffmpeg encodes the PNGs. Frame times are sampled evenly across the timeline's range, or
 across --start..--end. Nothing is logged into the recording.
@@ -14,7 +14,7 @@ Outputs:
 files are served over 127.0.0.1 HTTP: the native viewer registers a local .rrd with its Viewer
 catalog under a random application id, and a blueprint opened after that does not apply.
 
-Stdlib only. Requires a rerun binary (0.42+) with the `viewer-mcp` subcommand, ffmpeg (libx264;
+Stdlib only. Requires a rerun binary (0.42+; `mcp` from 0.44, `viewer-mcp` on 0.42), ffmpeg (libx264;
 libsvtav1 for --embed) and a GPU or software rasterizer.
 
 Usage:
@@ -241,7 +241,7 @@ def main() -> int:
     ap.add_argument("--out", default=None, help="Write one H.264 MP4 here")
     ap.add_argument("--embed", default=None, help="Output stem for <stem>.av1.mp4, <stem>.h264.mp4, <stem>.poster.jpg")
     ap.add_argument("--rbl", default=None, help="Blueprint (path or URL), applied after the recording loads")
-    ap.add_argument("--rerun-bin", default="rerun", help="rerun binary with viewer-mcp (same version as the viewer that will show it)")
+    ap.add_argument("--rerun-bin", default="rerun", help="rerun binary, 0.42+ (same version as the viewer that will show it)")
     ap.add_argument("--timeline", default=None, help="Timeline to sweep (default: first ranged timeline that is not log_time)")
     ap.add_argument("--start", default=None, help="First time: integer in the timeline's unit, or seconds with an 's' suffix")
     ap.add_argument("--end", default=None, help="Last time, same format")

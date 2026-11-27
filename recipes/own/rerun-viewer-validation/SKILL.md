@@ -1,7 +1,7 @@
 ---
 name: rerun-viewer-validation
 description: Rerun pixels and Rerun media in pages and public shares. Use when a recording, blueprint or Rerun rendering must be proven with screenshots, when a recording or catalog segment becomes stills, a video, an embed in a page or a public app.rerun.io link (medium, size budget, slicing, versions), or when a web viewer or gradio surface needs browser checks.
-compatibility: Needs the rerun binary (0.42+, with viewer-mcp) and ffmpeg (libx264, libsvtav1) on PATH, and a GPU for the headless viewer. The slice check and the catalog export need the rerun SDK; browser checks need playwright-cli or Chrome.
+compatibility: Needs the rerun binary (0.42+; its MCP server is `rerun mcp` from 0.44, `rerun viewer-mcp` on 0.42) and ffmpeg (libx264, libsvtav1) on PATH, and a GPU for the headless viewer. The slice check and the catalog export need the rerun SDK; browser checks need playwright-cli or Chrome.
 ---
 
 # Rerun viewer validation
@@ -63,7 +63,7 @@ python scripts/rrd_to_video.py --rrd run.rrd --rbl run.rbl --rerun-bin <env>/bin
   --timeline video_time --start 10s --end 14s --poster-at 12s --collapse-panels --embed <dir>/run
 ```
 
-`stills.py` and `rrd_to_video.py` drive one viewer through one `viewer-mcp` session: 10 stills take under 1 s after
+`stills.py` and `rrd_to_video.py` drive one viewer through one MCP session (`rerun mcp`, or `viewer-mcp` on 0.42): 10 stills take under 1 s after
 load, where one MCP screenshot per agent turn took a median 10 s in agent traces. `stills.py` refuses a viewer that
 holds recordings other than yours.
 

@@ -2,7 +2,7 @@
 
 One `rerun --headless` viewer on a claimed port (headless_viewer.claim_port: a free port plus an
 exclusive lock file) opens the recording (and the .rbl after it), then for each requested time sets
-the cursor and saves a screenshot through `rerun viewer-mcp`. Before the first shot it checks that
+the cursor and saves a screenshot through `rerun mcp` (`viewer-mcp` on 0.42). Before the first shot it checks that
 every recording in the viewer is one of ours (by recording id from `rerun rrd print`), and refuses to
 shoot a viewer that holds anything else. Nothing is logged into the recording.
 
@@ -62,7 +62,7 @@ def main() -> int:
     ap.add_argument("--name", default="shot", help="File name prefix")
     ap.add_argument("--view-id", default=None, help="Shoot one view (id from rerun_get_state 'views') instead of the window")
     ap.add_argument("--size", default="1600x900", help="Viewer window size WxH in logical points")
-    ap.add_argument("--rerun-bin", default="rerun", help="rerun binary with viewer-mcp (>= the recording's writer version)")
+    ap.add_argument("--rerun-bin", default="rerun", help="rerun binary, 0.42+ (>= the recording's writer version)")
     args = ap.parse_args()
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
 

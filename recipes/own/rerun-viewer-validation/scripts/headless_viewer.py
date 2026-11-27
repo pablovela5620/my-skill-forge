@@ -1,11 +1,11 @@
-"""Start and stop a headless Rerun viewer, and talk to it through `rerun viewer-mcp`.
+"""Start and stop a headless Rerun viewer, and talk to it through `rerun mcp` (0.44+) or `rerun viewer-mcp` (0.42).
 
 One helper for every branch that needs a native viewer (rrd_to_video.py imports it):
 - picks a free local port (never 9876, Rerun's default), holds an exclusive lock file for it while the viewer
   runs (/tmp/rerun-viewer-ports/<port>.lock), and retries if another process steals it. The lock comes from the
   monorepo guide's kit/rrview.py: parallel captures can no longer drive each other's viewer,
 - waits until the viewer's port answers, and fails with the viewer's own log if it dies,
-- runs `viewer-mcp` from the same rerun binary and connects it with `endpoint=`,
+- runs the MCP server (`mcp`, or `viewer-mcp` on 0.42) from the same rerun binary and connects it with `endpoint=`,
 - stops the viewer by process group (the PyPI `rerun` launcher forks the real viewer).
 
 After the viewer stops, an SDK that was connected to it logs
@@ -25,6 +25,7 @@ import contextlib
 import fcntl
 import json
 import os
+import re
 import select
 import signal
 import socket
@@ -36,7 +37,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-RPC_TIMEOUT_S = 90.0  # per-call bound; a wedged viewer-mcp must fail loudly, not hang forever
+RPC_TIMEOUT_S = 90.0  # per-call bound; a wedged MCP server must fail loudly, not hang forever
 BIND_TIMEOUT_S = 60.0
 SPAWN_ATTEMPTS = 3  # retries against the free-port race (port stolen between probe and viewer bind)
 RERUN_DEFAULT_PORT = 9876
@@ -60,6 +61,9 @@ class McpStdioClient:
                 {"protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": {"name": "headless-viewer", "version": "1.0"}},
             )
             self._send({"jsonrpc": "2.0", "method": "notifications/initialized"})
+            # 0.44 renamed the viewer tools from rerun_* to viewer_*; callers keep the rerun_* names.
+            tools: list[str] = [tool["name"] for tool in self._rpc("tools/list", {}).get("tools", [])]
+            self._viewer_prefix: str = "viewer_" if "viewer_get_state" in tools else "rerun_"
         except BaseException:
             self.close()
             raise
@@ -105,6 +109,8 @@ class McpStdioClient:
                 return msg["result"]
 
     def call_tool(self, name: str, arguments: dict[str, Any] | None = None) -> dict[str, Any]:
+        if name.startswith("rerun_"):
+            name = self._viewer_prefix + name.removeprefix("rerun_")
         result = self._rpc("tools/call", {"name": name, "arguments": arguments or {}})
         if result.get("isError"):
             texts = [c.get("text", "") for c in result.get("content", [])]
@@ -204,7 +210,7 @@ class HeadlessViewer:
 
     @property
     def endpoint(self) -> str:
-        """The viewer's gRPC control endpoint, for `viewer-mcp` / `rerun_connect`."""
+        """The viewer's gRPC control endpoint, for the MCP server / `rerun_connect`."""
         return f"http://127.0.0.1:{self.port}"
 
     def check_alive(self) -> None:
@@ -259,9 +265,15 @@ def start_viewer(rerun_bin: str, sources: list[str], log_path: Path, size: str |
     raise SystemExit(f"viewer start failed after {SPAWN_ATTEMPTS} attempts: {last_err}")
 
 
+def mcp_subcommand(rerun_bin: str) -> str:
+    """`mcp` on 0.44+, `viewer-mcp` on 0.42, read from the binary's help (an unknown subcommand would open a file)."""
+    help_text: str = subprocess.run([rerun_bin, "--help"], capture_output=True, text=True, timeout=60).stdout
+    return "mcp" if re.search(r"^\s+mcp\s", help_text, re.MULTILINE) else "viewer-mcp"
+
+
 def connect_mcp(rerun_bin: str, viewer: HeadlessViewer, timeout_s: float = 30.0) -> McpStdioClient:
-    """Run `viewer-mcp` from the same rerun binary and connect it to the viewer."""
-    mcp = McpStdioClient([rerun_bin, "viewer-mcp"])
+    """Run the MCP server from the same rerun binary and connect it to the viewer."""
+    mcp = McpStdioClient([rerun_bin, mcp_subcommand(rerun_bin)])
     deadline = time.monotonic() + timeout_s
     while True:
         try:
@@ -271,7 +283,7 @@ def connect_mcp(rerun_bin: str, viewer: HeadlessViewer, timeout_s: float = 30.0)
         except RuntimeError as e:
             if mcp.proc.poll() is not None or time.monotonic() > deadline:
                 mcp.close()
-                raise SystemExit(f"could not connect viewer-mcp to {viewer.endpoint}: {e}") from e
+                raise SystemExit(f"could not connect the MCP server to {viewer.endpoint}: {e}") from e
             time.sleep(0.1)
         except BaseException:
             mcp.close()

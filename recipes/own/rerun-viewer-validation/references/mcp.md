@@ -6,9 +6,9 @@ and `scripts/rrd_to_video.py`: they drive the same tools in one session, without
 ## Get the tools
 
 1. `mcp__rerun__*` tools in your surface: use them.
-2. Otherwise drive `rerun viewer-mcp` over stdio yourself (newline-delimited JSON-RPC: `initialize`,
+2. Otherwise drive `rerun mcp` (0.44+; `rerun viewer-mcp` on 0.42) over stdio yourself (newline-delimited JSON-RPC: `initialize`,
    `notifications/initialized`, `tools/call`); `McpStdioClient` in `scripts/headless_viewer.py` does this.
-3. To register it for later sessions: `claude mcp add rerun -- <env>/bin/rerun viewer-mcp`. Crossing to another
+3. To register it for later sessions: `claude mcp add rerun -- <env>/bin/rerun mcp` (`viewer-mcp` on 0.42; 0.44 renamed the tools from `rerun_*` to `viewer_*`). Crossing to another
    agent CLI needs the user's OK.
 
 Run `tools/list` on the binary you use; names below are 0.42.
@@ -20,7 +20,7 @@ The MCP never starts a viewer. Start one (`headless_viewer.py start`), then `rer
 change, `rerun_disconnect`, then connect again.
 
 The UI tools are local-only: connect over `127.0.0.1` on the viewer's own host. For a viewer on another machine, run
-`rerun viewer-mcp` (or the scripts) there over SSH, or tunnel its port (`ssh -L <port>:127.0.0.1:<port> <host>`) and
+`rerun mcp` (or the scripts) there over SSH, or tunnel its port (`ssh -L <port>:127.0.0.1:<port> <host>`) and
 connect to `127.0.0.1`. A tailnet name (`http://pablo-m5-pro:9876`) fails with "Only connections from the local
 machine are allowed".
 
