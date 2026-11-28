@@ -39,6 +39,8 @@ cannot open a newer recording. On a skew:
 ### 2. Start one viewer on the GPU
 
 `python scripts/headless_viewer.py start --rerun-bin <env>/bin/rerun <file>…` (or let the capture scripts start it).
+Without `--rerun-bin`, the scripts use `rerun-canonical` when it is on PATH (stock `rerun` with every examples-monorepo
+viewer extension, so splat and depth-video recordings render), else `rerun`.
 It claims a free port with a lock file (never 9876), and stops the viewer by process group. Start it with
 `RUST_LOG=info,re_renderer=debug` once and read the `Picked adapter:` line: a CPU adapter (llvmpipe, lavapipe,
 SwiftShader) makes timings and video-decode evidence invalid. A GPU probe that fails in the agent sandbox says nothing

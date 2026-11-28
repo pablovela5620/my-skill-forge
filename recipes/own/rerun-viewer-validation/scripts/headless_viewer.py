@@ -27,6 +27,7 @@ import json
 import os
 import re
 import select
+import shutil
 import signal
 import socket
 import subprocess
@@ -42,6 +43,9 @@ BIND_TIMEOUT_S = 60.0
 SPAWN_ATTEMPTS = 3  # retries against the free-port race (port stolen between probe and viewer bind)
 RERUN_DEFAULT_PORT = 9876
 PORT_LOCKS = Path(tempfile.gettempdir()) / "rerun-viewer-ports"
+# The canonical viewer (examples-monorepo packages/canonical-viewer: stock rerun plus every viewer extension, so splat and
+# depth-video recordings render) when it is on PATH, else stock rerun.
+DEFAULT_RERUN_BIN = "rerun-canonical" if shutil.which("rerun-canonical") else "rerun"
 
 
 class McpStdioClient:
@@ -295,7 +299,7 @@ def main() -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     start = sub.add_parser("start", help="start a headless viewer and leave it running")
     start.add_argument("sources", nargs="*", help="files or URLs to open")
-    start.add_argument("--rerun-bin", default="rerun")
+    start.add_argument("--rerun-bin", default=DEFAULT_RERUN_BIN)
     start.add_argument("--size", default=None, help="window size WxH in logical points")
     start.add_argument("--log", default=None, help="viewer log path (default: a temp file)")
     stop = sub.add_parser("stop", help="stop a viewer started with `start`")

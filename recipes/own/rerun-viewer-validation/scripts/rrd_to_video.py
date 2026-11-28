@@ -48,7 +48,7 @@ from pathlib import Path
 from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # `python -I` does not add the script dir
-from headless_viewer import HeadlessViewer, McpStdioClient, connect_mcp, rerun_version, start_viewer  # noqa: E402
+from headless_viewer import DEFAULT_RERUN_BIN, HeadlessViewer, McpStdioClient, connect_mcp, rerun_version, start_viewer  # noqa: E402
 
 LOAD_TIMEOUT_S = 180.0
 FFMPEG_TIMEOUT_S = 600.0
@@ -241,7 +241,7 @@ def main() -> int:
     ap.add_argument("--out", default=None, help="Write one H.264 MP4 here")
     ap.add_argument("--embed", default=None, help="Output stem for <stem>.av1.mp4, <stem>.h264.mp4, <stem>.poster.jpg")
     ap.add_argument("--rbl", default=None, help="Blueprint (path or URL), applied after the recording loads")
-    ap.add_argument("--rerun-bin", default="rerun", help="rerun binary, 0.42+ (same version as the viewer that will show it)")
+    ap.add_argument("--rerun-bin", default=DEFAULT_RERUN_BIN, help="rerun binary, 0.42+ (same version as the viewer that will show it); default rerun-canonical when on PATH, else rerun")
     ap.add_argument("--timeline", default=None, help="Timeline to sweep (default: first ranged timeline that is not log_time)")
     ap.add_argument("--start", default=None, help="First time: integer in the timeline's unit, or seconds with an 's' suffix")
     ap.add_argument("--end", default=None, help="Last time, same format")

@@ -30,7 +30,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # `python -I` does not add the script dir
-from headless_viewer import connect_mcp, rerun_version, start_viewer  # noqa: E402
+from headless_viewer import DEFAULT_RERUN_BIN, connect_mcp, rerun_version, start_viewer  # noqa: E402
 from rrd_to_video import apply_blueprint, parse_time, pick_timeline, serve_local, wait_loaded  # noqa: E402
 
 STORE_RE = re.compile(r'StoreId\(\s*Recording,\s*"[^"]*",\s*"([^"]+)"', re.S)
@@ -62,7 +62,7 @@ def main() -> int:
     ap.add_argument("--name", default="shot", help="File name prefix")
     ap.add_argument("--view-id", default=None, help="Shoot one view (id from rerun_get_state 'views') instead of the window")
     ap.add_argument("--size", default="1600x900", help="Viewer window size WxH in logical points")
-    ap.add_argument("--rerun-bin", default="rerun", help="rerun binary, 0.42+ (>= the recording's writer version)")
+    ap.add_argument("--rerun-bin", default=DEFAULT_RERUN_BIN, help="rerun binary, 0.42+ (>= the recording's writer version); default rerun-canonical when on PATH, else rerun")
     args = ap.parse_args()
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
 
